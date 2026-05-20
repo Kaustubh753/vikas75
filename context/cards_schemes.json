@@ -1,0 +1,527 @@
+[
+  {
+    "id": "s001",
+    "name": "Pradhan Mantri Jan Dhan Yojana",
+    "hi": "प्रधान मंत्री जन धन योजना",
+    "desc": "Ensures access to banking, pensions, and insurance for every family.",
+    "bullets": ["Zero-balance savings account", "RuPay debit card", "₹2 lakh accident insurance", "₹10,000 overdraft facility", "Access to credit, insurance, pension", "Easy money transfers"]
+  },
+  {
+    "id": "s002",
+    "name": "Skill India Mission",
+    "hi": "स्किल इंडिया मिशन",
+    "desc": "Improves employability and entrepreneurship with certification and digital skilling.",
+    "bullets": ["Trains 40 crore youth by 2025", "Job-relevant skills in 24+ sectors", "Industry-aligned training", "Focus on AI, robotics, green energy", "Digital training platforms", "Global employability standards"]
+  },
+  {
+    "id": "s003",
+    "name": "Make in India",
+    "hi": "मेक इन इंडिया",
+    "desc": "Makes India a hub for manufacturing, design, and innovation.",
+    "bullets": ["Boosts manufacturing in 27 sectors", "100% FDI in key areas", "Simplifies business regulations", "Promotes innovation and startups", "Builds industrial corridors"]
+  },
+  {
+    "id": "s004",
+    "name": "Swachh Bharat Abhiyan",
+    "hi": "स्वच्छ भारत अभियान",
+    "desc": "Targets cleaner cities and villages and better public health.",
+    "bullets": ["Open defecation-free nation", "Builds toilets and sanitation", "Promotes waste management and recycling", "Focuses on clean public spaces", "Includes rural and urban campaigns"]
+  },
+  {
+    "id": "s005",
+    "name": "Saansad Adarsh Gram Yojana",
+    "hi": "संसद आदर्श ग्राम योजना",
+    "desc": "MP-led initiative to develop model villages through community participation.",
+    "bullets": ["MPs adopt villages for development", "Infrastructure and sanitation focus", "Healthcare and livelihood opportunities", "Clean water and electricity access", "Sustainable inclusive growth"]
+  },
+  {
+    "id": "s006",
+    "name": "Shramev Jayate Karyakram",
+    "hi": "श्रमेव जयते कार्यक्रम",
+    "desc": "Labour reforms to make compliance transparent through a unified portal.",
+    "bullets": ["Shram Suvidha Portal for transparency", "Universal Account Number for EPF", "Skill training for workers", "Supports Make in India", "Single compliance form"]
+  },
+  {
+    "id": "s007",
+    "name": "Mission Indradhanush",
+    "hi": "मिशन इन्द्रधनुष",
+    "desc": "Immunisation drive to cover children and pregnant women.",
+    "bullets": ["Targets 90% coverage for kids under 2", "Vaccinates against 7+ diseases", "Focuses on low-coverage areas", "Reduces child mortality"]
+  },
+  {
+    "id": "s008",
+    "name": "Beti Bachao Beti Padhao",
+    "hi": "बेटी बचाओ बेटी पढ़ाओ",
+    "desc": "Encourages gender balance and continued schooling for girls.",
+    "bullets": ["Improves child sex ratio", "Promotes girls' education and empowerment", "Targets 100 gender-critical districts", "Enforcement against female foeticide", "Community awareness campaigns"]
+  },
+  {
+    "id": "s009",
+    "name": "HRIDAY",
+    "hi": "हृदय",
+    "desc": "Urban programme to conserve and revitalise heritage cities.",
+    "bullets": ["Targets 12 heritage cities", "Improves roads and sanitation", "Revitalises monuments and ghats", "Boosts tourism and economy", "100% centrally funded"]
+  },
+  {
+    "id": "s010",
+    "name": "Pradhan Mantri Mudra Yojana",
+    "hi": "प्रधान मंत्री मुद्रा योजना",
+    "desc": "Collateral-free loans for micro and small enterprises.",
+    "bullets": ["Loans up to ₹10 lakh", "Three categories: Shishu, Kishore, Tarun", "No collateral required", "Targets women entrepreneurs", "Promotes job creation and financial inclusion"]
+  },
+  {
+    "id": "s011",
+    "name": "UJALA Scheme",
+    "hi": "उन्नत जीवन",
+    "desc": "Provides cheap energy-saving LED bulbs and fans to homes.",
+    "bullets": ["Cuts electricity bills", "Saves energy for the nation", "Reduces carbon emissions", "Accessible to all income groups"]
+  },
+  {
+    "id": "s012",
+    "name": "PM Suraksha Bima Yojana",
+    "hi": "प्रधान मंत्री सुरक्षा बीमा योजना",
+    "desc": "Low-cost accidental insurance for eligible bank account holders.",
+    "bullets": ["Affordable annual premium", "Accidental death and disability cover", "Auto-debited from account", "Renewable every year"]
+  },
+  {
+    "id": "s013",
+    "name": "PM Jeevan Jyoti Bima Yojana",
+    "hi": "प्रधान मंत्री जीवन ज्योति बीमा योजना",
+    "desc": "Low-cost term life insurance linked to savings accounts.",
+    "bullets": ["₹2 lakh life cover", "One-year renewable cover", "For any cause of death", "No investment or maturity benefits"]
+  },
+  {
+    "id": "s014",
+    "name": "AMRUT",
+    "hi": "अमरुत",
+    "desc": "Urban mission to provide basic services like water supply and sewerage.",
+    "bullets": ["Water supply and sewerage", "Stormwater drainage and green spaces", "500 cities and towns", "₹50,000 crore outlay"]
+  },
+  {
+    "id": "s015",
+    "name": "PM Awas Yojana (Urban)",
+    "hi": "प्रधान मंत्री आवास योजना (शहरी)",
+    "desc": "Affordable housing for urban poor with credit-linked subsidy.",
+    "bullets": ["In-situ slum redevelopment", "Partnerships with private developers", "Women's ownership priority", "Pucca houses with essential amenities"]
+  },
+  {
+    "id": "s016",
+    "name": "PM Gramin Awas Yojana",
+    "hi": "प्रधान मंत्री ग्रामीण आवास योजना",
+    "desc": "Rural housing scheme for pucca houses with basic facilities.",
+    "bullets": ["Socio-economic data for targeting", "Geo-tagged monitoring for transparency", "Convergence with toilets and LPG", "Livelihoods support"]
+  },
+  {
+    "id": "s017",
+    "name": "PM Ujjwala Yojana",
+    "hi": "प्रधान मंत्री उज्ज्वला योजना",
+    "desc": "Deposit-free LPG connections for women from eligible households.",
+    "bullets": ["Improves indoor air quality", "Clean cooking fuel", "Supports refills", "Behaviour change for sustained adoption"]
+  },
+  {
+    "id": "s018",
+    "name": "Digital India",
+    "hi": "डिजिटल इंडिया",
+    "desc": "Transforms service delivery through digital infrastructure.",
+    "bullets": ["Aadhaar-based eKYC and UPI", "DigiLocker and e-sign", "Connectivity and digital literacy", "Inclusive access for all citizens"]
+  },
+  {
+    "id": "s019",
+    "name": "PM Vidyalakshmi Scheme",
+    "hi": "पीएम विद्यालक्ष्मी योजना",
+    "desc": "Financial support for students pursuing quality higher education.",
+    "bullets": ["Collateral-free education loans", "75% credit guarantee by GOI", "Repayment period up to 15 years", "For any family income level"]
+  },
+  {
+    "id": "s020",
+    "name": "UDAY Scheme",
+    "hi": "उज्ज्वल डिस्कॉम एश्योरेंस योजना",
+    "desc": "Financial and operational turnaround for state power distribution companies.",
+    "bullets": ["Debt restructuring", "Loss reduction and efficiency", "Affordable and reliable power", "Healthier DISCOM finances"]
+  },
+  {
+    "id": "s021",
+    "name": "PM Jan Arogya Yojana",
+    "hi": "प्रधान मंत्री जन आरोग्य योजना",
+    "desc": "Publicly funded health insurance for poor and vulnerable families.",
+    "bullets": ["Cashless treatment", "Portability across states", "Reduces catastrophic health expenditure", "Expands access to hospital services"]
+  },
+  {
+    "id": "s022",
+    "name": "PM Kisan Samman Nidhi",
+    "hi": "प्रधान मंत्री किसान सम्मान निधि",
+    "desc": "Income support to eligible farmer families paid into bank accounts.",
+    "bullets": ["Direct transfer to bank accounts", "Covers input expenses", "Stabilises farm incomes", "Financial inclusion through direct transfers"]
+  },
+  {
+    "id": "s023",
+    "name": "Svamitva Yojana",
+    "hi": "स्वामित्व योजना",
+    "desc": "Property cards for rural households through drone-based mapping.",
+    "bullets": ["Clarifies ownership and reduces disputes", "Use of property as collateral", "Strengthens local revenue records", "Planning for gram panchayats"]
+  },
+  {
+    "id": "s024",
+    "name": "Amrit Bharat Station Scheme",
+    "hi": "अमृत भारत स्टेशन स्कीम",
+    "desc": "Long-term plan to modernise railway stations with better amenities.",
+    "bullets": ["Accessibility and signage improvements", "Urban integration around stations", "Safer and cleaner station experiences", "Better passenger facilities"]
+  },
+  {
+    "id": "s025",
+    "name": "Jeevan Pramaan",
+    "hi": "जीवन प्रमाण",
+    "desc": "Digital Life Certificate for pensioners using Aadhaar authentication.",
+    "bullets": ["No physical presence needed at banks", "Improves ease of living", "Timely pension disbursement", "Aadhaar-based authentication"]
+  },
+  {
+    "id": "s026",
+    "name": "Deen Dayal Upadhyay Gram Jyoti Yojana",
+    "hi": "दीन दयाल उपाध्याय ग्राम ज्योति योजना",
+    "desc": "Rural electrification for reliable power supply in villages.",
+    "bullets": ["Feeder separation for agriculture and homes", "Last-mile connectivity", "Reduces technical and commercial losses", "Reliable power for villages"]
+  },
+  {
+    "id": "s027",
+    "name": "DDU Grameen Kaushalya Yojana",
+    "hi": "दीन दयाल उपाध्याय ग्रामीण कौशल्य योजना",
+    "desc": "Placement-linked skilling for rural youth from poor and vulnerable groups.",
+    "bullets": ["Industry-led training", "Certification and post-placement support", "Aims at wage employment", "Focus on poor and vulnerable groups"]
+  },
+  {
+    "id": "s028",
+    "name": "Smart Cities Mission",
+    "hi": "स्मार्ट सिटीज़ मिशन",
+    "desc": "Smart solutions for core infrastructure, mobility and governance in cities.",
+    "bullets": ["Area-based development", "Pan-city ICT projects", "Citizen participation", "Data-driven decisions and urban innovation"]
+  },
+  {
+    "id": "s029",
+    "name": "PM Fasal Bima Yojana",
+    "hi": "प्रधान मंत्री फसल बीमा योजना",
+    "desc": "Crop insurance to protect farmers against yield loss from natural risks.",
+    "bullets": ["Technology for claim processing", "Stabilises farm incomes", "Encourages improved farming practices", "Covers natural risk losses"]
+  },
+  {
+    "id": "s030",
+    "name": "Stand Up India",
+    "hi": "स्टैंड-अप इंडिया",
+    "desc": "Bank loans for SC/ST and women entrepreneurs to set up enterprises.",
+    "bullets": ["Greenfield enterprise support", "One SC/ST and one woman borrower per branch", "Manufacturing, services, trading, agriculture allied", "Promotes financial inclusion"]
+  },
+  {
+    "id": "s031",
+    "name": "PM Matsya Sampada Yojana",
+    "hi": "पीएम मत्स्य संपदा योजना",
+    "desc": "Fisheries scheme to raise production, productivity and value addition.",
+    "bullets": ["Aquaculture and cold chain investment", "Targets export growth and jobs", "Sustainable fisheries management", "Fisher welfare support"]
+  },
+  {
+    "id": "s032",
+    "name": "SMILE Scheme",
+    "hi": "स्माइल स्कीम",
+    "desc": "Employment for transgender persons through skill development.",
+    "bullets": ["Vocational education and skill improvement", "Financial support for businesses", "Promotes social inclusion and dignity", "Sustainable livelihood options"]
+  },
+  {
+    "id": "s033",
+    "name": "PM Ucchatar Siksha Protsahan",
+    "hi": "पीएम उच्चतर शिक्षा प्रोत्साहन योजना",
+    "desc": "Scholarships to strengthen higher education for economically weak students.",
+    "bullets": ["₹12,000 UG / ₹20,000 PG annual scholarship", "Direct payment to students and institutions", "Covers tuition and maintenance", "For UG, PG and professional courses"]
+  },
+  {
+    "id": "s034",
+    "name": "PM DAKSH",
+    "hi": "पीएम दक्ष",
+    "desc": "Skilling and entrepreneurship for SC, OBC, EBC and DNT communities.",
+    "bullets": ["Short-term and entrepreneurship programs", "Stipends up to ₹2,500", "Focus on wage and self-employment skills", "Targets marginalised communities"]
+  },
+  {
+    "id": "s035",
+    "name": "PM Internship Scheme",
+    "hi": "पीएम इंटर्नशिप स्कीम",
+    "desc": "Structured internships for students and graduates in top Indian companies.",
+    "bullets": ["1 crore paid internships", "Top 500 Indian companies", "For family income below ₹8 lakh/year", "Ages 21 to 24 years"]
+  },
+  {
+    "id": "s036",
+    "name": "PM Bharatiya Janausadhi Yojana",
+    "hi": "पीएम भारतीय जनऔषध योजना",
+    "desc": "Quality generic medicines at affordable prices through Janaushadhi Kendras.",
+    "bullets": ["50 to 90% lower than branded drugs", "Jan Aushadhi Kendras nationwide", "Reduces out-of-pocket healthcare costs", "Quality assured generic medicines"]
+  },
+  {
+    "id": "s037",
+    "name": "PM Gramin Digital Saksharta Abhiyan",
+    "hi": "पीएम ग्रामीण डिजिटल साक्षरता अभियान",
+    "desc": "Mass digital literacy programme for rural households.",
+    "bullets": ["6 crore rural households targeted", "Ages 14 to 60 including marginalised groups", "Trains on devices, internet, emails, payments", "Promotes digital inclusion"]
+  },
+  {
+    "id": "s038",
+    "name": "PM KUSUM",
+    "hi": "पीएम किसान ऊर्जा सुरक्षा एवं उत्थान महाभियान",
+    "desc": "Solar pumps and grid-connected solar plants for farmers.",
+    "bullets": ["60% subsidy on solar pumps", "Three-part scheme covering solar plants and pumps", "Cuts diesel use and boosts farmer income", "Promotes solar power in agriculture"]
+  },
+  {
+    "id": "s039",
+    "name": "PM Poshan",
+    "hi": "पीएम पोषण",
+    "desc": "Nutritious hot cooked meals for schoolchildren for better health.",
+    "bullets": ["Hot cooked mid-day meal daily", "Focus on calories, protein and micronutrients", "Locally grown food and nutrition gardens", "Nutrition experts monitor health parameters"]
+  },
+  {
+    "id": "s040",
+    "name": "PM Matru Vandana Yojana",
+    "hi": "पीएम मातृ वंदना योजना",
+    "desc": "Cash incentives for pregnant and lactating women.",
+    "bullets": ["₹5,000 for first child in installments", "₹6,000 for second child if girl", "Encourages early registration and antenatal care", "Supports adequate rest and nutrition"]
+  },
+  {
+    "id": "s041",
+    "name": "PM Garib Kalyan Yojana",
+    "hi": "पीएम गरीब कल्याण योजना",
+    "desc": "Umbrella welfare scheme including free foodgrains and direct benefit transfers.",
+    "bullets": ["Free wheat, rice and pulses monthly", "Cash to 20 crore women Jan Dhan holders", "EPF contributions for low-wage workers", "Insurance for COVID frontline health workers"]
+  },
+  {
+    "id": "s042",
+    "name": "National Handicrafts Development Programme",
+    "hi": "नेशनल हैंडीक्राफ्ट्स डेवलपमेंट प्रोग्राम",
+    "desc": "Institutional support for artisans through training, design and marketing.",
+    "bullets": ["Skill development and training", "Marketing assistance and promotion", "Infrastructure and technology support", "Supports handicraft clusters"]
+  },
+  {
+    "id": "s043",
+    "name": "PM Surakshit Matritva Abhiyan",
+    "hi": "पीएम सुरक्षित मातृत्व अभियान",
+    "desc": "Specialist antenatal care services for pregnant women on fixed days.",
+    "bullets": ["Free quality antenatal care monthly", "Focus on 2nd and 3rd trimester", "High-risk pregnancy detection and management", "Counselling and birth planning support"]
+  },
+  {
+    "id": "s044",
+    "name": "Janani Suraksha Yojana",
+    "hi": "जननी सुरक्षा योजना",
+    "desc": "Cash transfer to promote institutional deliveries among pregnant women.",
+    "bullets": ["Focus on low-performing states", "Transportation and nutrition support", "Promotes safe motherhood", "Links women to accredited health facilities"]
+  },
+  {
+    "id": "s045",
+    "name": "Janani Shishu Suraksha Karyakram",
+    "hi": "जननी शिशु सुरक्षा कार्यक्रम",
+    "desc": "Free drugs, diagnostics and transport for pregnant women and sick newborns.",
+    "bullets": ["Free treatment for sick newborns", "No user charges in government hospitals", "Free transport from home and drop-off after delivery", "Free drugs, diagnostics and blood provision"]
+  },
+  {
+    "id": "s046",
+    "name": "PM TB Mukt Bharat Abhiyan",
+    "hi": "पीएम टीबी मुक्त भारत अभियान",
+    "desc": "Accelerates TB elimination through community participation and patient support.",
+    "bullets": ["Early detection and rapid diagnosis", "Free treatment and nutrition support", "Patient-friendly care", "Community participation in TB elimination"]
+  },
+  {
+    "id": "s047",
+    "name": "Niramaya Health Insurance",
+    "hi": "निरामया हेल्थ इंश्योरेंस स्कीम",
+    "desc": "Health insurance for persons with specified disabilities.",
+    "bullets": ["Cover up to ₹1 lakh annually", "No age limit or pre-insurance medical tests", "Covers hospitalization, surgeries, therapies", "Reimbursement basis"]
+  },
+  {
+    "id": "s048",
+    "name": "Rashtriya Arogya Nidhi",
+    "hi": "राष्ट्रीय आरोग्य निधि",
+    "desc": "Financial assistance for poor patients needing high-cost treatment.",
+    "bullets": ["Supports life-threatening disease care", "Timely tertiary care", "Transparent grant process", "For patients at designated hospitals"]
+  },
+  {
+    "id": "s049",
+    "name": "National Livestock Mission",
+    "hi": "नेशनल लाइवस्टॉक मिशन",
+    "desc": "Comprehensive programme to improve livestock productivity.",
+    "bullets": ["Supports value chains", "Entrepreneurship and disease control", "Income enhancement for farmers", "Allied sector growth"]
+  },
+  {
+    "id": "s050",
+    "name": "Mission Shakti",
+    "hi": "मिशन शक्ति",
+    "desc": "Umbrella scheme for women's safety, security and empowerment.",
+    "bullets": ["Protection services and institutional care", "Economic empowerment", "Partners with states and civil society", "Convergent delivery"]
+  },
+  {
+    "id": "s051",
+    "name": "PM Fellowship for Doctoral Research",
+    "hi": "पीएम फेलोशिप फॉर डॉक्टोरल रिसर्च",
+    "desc": "Industry-academia fellowship for PhD scholars on applied research.",
+    "bullets": ["Funded by government and industry", "Mentorship from both sides", "Strengthens R&D talent pipeline", "Accelerates technology translation"]
+  },
+  {
+    "id": "s052",
+    "name": "SERB International Research Experience",
+    "hi": "SERB इंटरनेशनल रिसर्च एक्सपीरियंस",
+    "desc": "Short-term research visits to leading foreign labs for early-career researchers.",
+    "bullets": ["Builds international collaborations", "Exposure to advanced research methods", "Global networks for Indian researchers", "Elevates research quality"]
+  },
+  {
+    "id": "s053",
+    "name": "PRASHAD",
+    "hi": "पिलग्रिमेज रेजुवेनेशन एंड स्पिरिचुअल ऑगमेंटेशन ड्राइव",
+    "desc": "Develops pilgrimage sites with better amenities and heritage-sensitive infrastructure.",
+    "bullets": ["Improved sanitation at pilgrimage sites", "Last-mile connectivity", "Visitor services and facilities", "Boosts spiritual tourism and local livelihoods"]
+  },
+  {
+    "id": "s054",
+    "name": "Jal Jeevan Mission",
+    "hi": "जल जीवन मिशन",
+    "desc": "Safe tap water to every rural household at 55 litres per capita per day.",
+    "bullets": ["Over 15 crore rural homes connected", "55 litres per person per day target", "Quality, regular supply and community management", "Launched in 2019"]
+  },
+  {
+    "id": "s055",
+    "name": "GOBAR-DHAN",
+    "hi": "गैल्वनाइजिंग ऑर्गेनिक बायो-एग्रो रिसोर्सेज धन",
+    "desc": "Converts cattle dung and organic waste into biogas and organic manure.",
+    "bullets": ["Promotes village cleanliness", "Rural income support through biogas", "Sustainable energy from waste", "Encourages rural entrepreneurship in biogas plants"]
+  },
+  {
+    "id": "s056",
+    "name": "Rashtriya Gram Swaraj Abhiyan",
+    "hi": "राष्ट्रीय ग्राम स्वराज अभियान",
+    "desc": "Strengthens Panchayati Raj Institutions with training and digital tools.",
+    "bullets": ["Training for 60 lakh stakeholders", "eGramSwaraj for planning", "Incentives for good governance", "Participatory and sustainable rural development"]
+  },
+  {
+    "id": "s057",
+    "name": "Mahila Sammaan Savings Certificate",
+    "hi": "महिला सम्मान सेविंग्स सर्टिफिकेट",
+    "desc": "Government savings scheme for women with 7.5% quarterly compounded interest.",
+    "bullets": ["Up to ₹2 lakh deposit", "Tax benefits under Section 80C", "Women's financial independence", "Easy closure and flexible account opening"]
+  },
+  {
+    "id": "s058",
+    "name": "PM Laghu Vyapari Maan Dhan Yojana",
+    "hi": "पीएम लघु व्यापारी मान धन योजना",
+    "desc": "Pension scheme for small traders and self-employed persons.",
+    "bullets": ["₹3,000 monthly pension after age 60", "Government matches contribution", "For turnover up to ₹1.5 crore", "For traders aged 18 to 40"]
+  },
+  {
+    "id": "s059",
+    "name": "Atal Beemit Vyakti Kalyan Yojana",
+    "hi": "अटल बीमित व्यक्ति कल्याण योजना",
+    "desc": "Unemployment relief for insured persons who become unemployed.",
+    "bullets": ["50% of average wages as relief", "For ESIC-covered employees", "Auto-transferred, no registration needed", "For employees earning up to ₹21,000/month"]
+  },
+  {
+    "id": "s060",
+    "name": "Atal Pension Yojana",
+    "hi": "अटल पेंशन योजना",
+    "desc": "Old age income security for unorganised sector workers aged 18 to 40.",
+    "bullets": ["₹1,000 to ₹5,000 pension after age 60", "Eligible for Indian citizens aged 18 to 40", "Automatic monthly deductions", "Government-backed guarantee"]
+  },
+  {
+    "id": "s061",
+    "name": "Mahila Samriddhi Yojana",
+    "hi": "महिला समृद्धि योजना",
+    "desc": "Micro-enterprise loans for women entrepreneurs from poor backgrounds.",
+    "bullets": ["Loans up to ₹1 lakh", "Accessible via banks, RRBs and NSFDC", "For economically weaker women", "Excludes income tax payers"]
+  },
+  {
+    "id": "s062",
+    "name": "PM Krishi Sinchayee Yojana",
+    "hi": "प्रधान मंत्री कृषि सिंचाई योजना",
+    "desc": "Enhances water use efficiency at farm level through micro irrigation.",
+    "bullets": ["Drip and sprinkler irrigation systems", "Subsidies for micro-irrigation", "Promotes sustainable water management", "Higher crop yields for farmers"]
+  },
+  {
+    "id": "s063",
+    "name": "AI for All",
+    "hi": "एआई फॉर ऑल",
+    "desc": "Online programme to raise public awareness and skills in Artificial Intelligence.",
+    "bullets": ["Train 100 million citizens in AI", "Industry-aligned certifications", "Focus on school students, youth, professionals", "Democratise AI education"]
+  },
+  {
+    "id": "s064",
+    "name": "Jute Raw Material Bank",
+    "hi": "जूट रॉ मटेरियल बैंक",
+    "desc": "Supplies jute raw materials at mill gate prices to artisans and manufacturers.",
+    "bullets": ["Cost-competitive jute product production", "Supports WSHGs and micro manufacturers", "Promotes sustainable jute sector growth", "Accessible via NJB proposals"]
+  },
+  {
+    "id": "s065",
+    "name": "Vishwakarma Kaushal Samman Yojana",
+    "hi": "विश्वकर्मा कौशल सम्मान योजना",
+    "desc": "Support for traditional artisans and craftspeople across recognised trades.",
+    "bullets": ["Skilling and toolkit assistance", "Collateral-free credit access", "Preserves heritage skills", "Digital transactions and market linkages"]
+  },
+  {
+    "id": "s066",
+    "name": "Atal Bhujal Yojana",
+    "hi": "अटल भूजल योजना",
+    "desc": "Sustainable groundwater management with community participation.",
+    "bullets": ["Local Water User Associations", "Water budgeting and security plans", "Behavioural change in water use", "Capacity building and monitoring"]
+  },
+  {
+    "id": "s067",
+    "name": "Mission Solar Charkha",
+    "hi": "मिशन सोलर चरखा",
+    "desc": "Solar Charkha Clusters for women and youth employment in rural areas.",
+    "bullets": ["Employment for women and youth", "Solar energy for eco-friendly development", "Reduces migration to cities", "Boosts rural economy"]
+  },
+  {
+    "id": "s068",
+    "name": "Soil Health Card Scheme",
+    "hi": "सॉइल हेल्थ कार्ड स्कीम",
+    "desc": "Cards giving farmers soil nutrient status and fertilizer recommendations.",
+    "bullets": ["Advises on fertilizer dosage and amendments", "Soil samples collected and tested regularly", "Improves crop yield for farmers", "Tested for macro and micronutrients"]
+  },
+  {
+    "id": "s069",
+    "name": "Startup India Seed Fund Scheme",
+    "hi": "स्टार्टअप इंडिया सीड फंड स्कीम",
+    "desc": "Financial assistance to early-stage startups for proof of concept and market entry.",
+    "bullets": ["Grants up to ₹20 lakh", "Funding up to ₹50 lakh via incubators", "DPIIT-recognised startups under 2 years old", "For proof of concept and prototype development"]
+  },
+  {
+    "id": "s070",
+    "name": "PM SVANidhi",
+    "hi": "पीएम स्वनिधि",
+    "desc": "Working-capital loans for street vendors with digital payment incentives.",
+    "bullets": ["Collateral-free working capital loan", "7% interest subsidy for timely repayment", "Digital cashback incentives", "UPI-linked RuPay credit card"]
+  },
+  {
+    "id": "s071",
+    "name": "Coir Udyami Yojana",
+    "hi": "कोइर उद्यमी योजना",
+    "desc": "Credit-linked subsidy for setting up coir processing units.",
+    "bullets": ["40% government subsidy", "No collateral required", "Repayment period up to 7 years", "Open to individuals, NGOs, SHGs"]
+  },
+  {
+    "id": "s072",
+    "name": "Aatma Nirbhar Bharat Package",
+    "hi": "आत्मनिर्भर भारत पैकेज",
+    "desc": "Mission to promote Indian goods globally and achieve self-reliance.",
+    "bullets": ["MSME support and market access", "Free food grains for the poor", "One Nation One Ration Card", "Strengthened healthcare and digital initiatives"]
+  },
+  {
+    "id": "s073",
+    "name": "National Quantum Mission",
+    "hi": "नेशनल क्वांटम मिशन",
+    "desc": "Mission-mode push for quantum computing, communications and sensing.",
+    "bullets": ["Quantum computing and communication", "Sensing, metrology and materials", "Startup funding and education curricula", "International collaborations for self-reliance"]
+  },
+  {
+    "id": "s074",
+    "name": "PM Employment Generation Programme",
+    "hi": "पीएम एम्प्लॉयमेंट जेनरेशन प्रोग्राम",
+    "desc": "Credit-linked subsidy for micro-enterprise creation in manufacturing and services.",
+    "bullets": ["Targets 40 lakh+ jobs", "Entrepreneurship training provided", "Prioritises women, SC/ST and disaster-affected", "For manufacturing and services sectors"]
+  },
+  {
+    "id": "s075",
+    "name": "PM Anusuchit Jaati Abhyuday Yojana",
+    "hi": "पीएम अनुसूचित जाति अभ्युदय योजना",
+    "desc": "Scheduled Caste welfare covering education, entrepreneurship and area development.",
+    "bullets": ["Supports individual beneficiaries and community assets", "Faster socio-economic mobility", "Reduces service gaps in SC-majority localities", "Education and entrepreneurship focus"]
+  }
+]
