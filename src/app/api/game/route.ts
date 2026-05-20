@@ -28,10 +28,10 @@ export async function POST(req: NextRequest) {
 
     case 'join': {
       const { code, playerId, playerName } = body;
-      const room = await getRoom(code);
-      if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
-      if (room.phase !== 'lobby' && room.phase !== 'between-rounds') {
-        return NextResponse.json({ error: 'Cannot join mid-round' }, { status: 400 });
+      const room = await getRoom(code?.toUpperCase());
+      if (!room) return NextResponse.json({ error: 'Room not found — check your code' }, { status: 404 });
+      if (room.phase === 'submission') {
+        return NextResponse.json({ error: 'Round in progress — join after this round ends' }, { status: 400 });
       }
       if (room.players[playerId]) {
         // Rejoin — just return the existing room (e.g. page refresh)
@@ -46,9 +46,9 @@ export async function POST(req: NextRequest) {
 
     case 'advance': {
       const { code, hostId } = body;
-      const room = await getRoom(code);
+      const room = await getRoom(code?.toUpperCase());
       if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
-      if (room.hostId !== hostId) return NextResponse.json({ error: 'Not host' }, { status: 403 });
+      if (hostId && room.hostId !== hostId) return NextResponse.json({ error: 'Not the host' }, { status: 403 });
       const updated = advancePhase(room);
       await setRoom(updated);
       await pusherServer.trigger(getRoomChannel(code), 'game:room-updated', updated);

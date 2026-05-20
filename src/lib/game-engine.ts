@@ -37,7 +37,7 @@ export function createRoom(hostId: string, hostName: string, totalRounds = DEFAU
     id: hostId,
     name: hostName,
     score: 0,
-    hand: dealHand([]),
+    hand: dealHand(),
     joinedRound: 0,
   };
 
@@ -57,14 +57,12 @@ export function createRoom(hostId: string, hostName: string, totalRounds = DEFAU
   };
 }
 
-export function dealHand(usedSchemeIds: string[]): SchemeCard[] {
-  const available = schemes.filter((s) => !usedSchemeIds.includes(s.id));
-  const pool = available.length >= HAND_SIZE ? available : schemes;
-  return shuffle(pool).slice(0, HAND_SIZE);
+// Always deals from the full pool — supports 15+ players, allows overlapping hands
+export function dealHand(): SchemeCard[] {
+  return shuffle([...schemes]).slice(0, HAND_SIZE);
 }
 
 export function addPlayer(room: GameRoom, playerId: string, playerName: string): GameRoom {
-  const usedIds = Object.values(room.players).flatMap((p) => p.hand.map((c) => c.id));
   return {
     ...room,
     players: {
@@ -73,7 +71,7 @@ export function addPlayer(room: GameRoom, playerId: string, playerName: string):
         id: playerId,
         name: playerName,
         score: 0,
-        hand: dealHand(usedIds),
+        hand: dealHand(),
         joinedRound: room.round,
       },
     },
