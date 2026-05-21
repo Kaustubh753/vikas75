@@ -55,7 +55,7 @@ export default function PlayerView({ code }: Props) {
         const r: GameRoom = data.room;
         setRoom(r);
         const pid = localStorage.getItem('vikas75_playerId') ?? '';
-        if (pid && r.players[pid]) {
+        if (pid && r.players[pid]?.hand?.length) {
           setCachedHand(r.players[pid].hand);
         }
         if (!toastedJoin.current && pid && r.players[pid]) {
@@ -78,12 +78,8 @@ export default function PlayerView({ code }: Props) {
     const channel = pusher.subscribe(getRoomChannel(code));
 
     const onRoomUpdated = (updated: GameRoom) => {
-      // Broadcast strips messages for bandwidth — preserve local chat history
+      // Broadcast strips player hands and messages for bandwidth — do NOT update cachedHand here
       setRoom(prev => ({ ...updated, messages: prev?.messages ?? [] }));
-      const pid = localStorage.getItem('vikas75_playerId') ?? '';
-      if (pid && updated.players[pid]) {
-        setCachedHand(updated.players[pid].hand);
-      }
     };
 
     // Chat messages come as individual game:chat events — room:updated does NOT include them
@@ -114,6 +110,13 @@ export default function PlayerView({ code }: Props) {
       toast('Round starting...', { icon: '🎯' });
     }
   }, [room?.phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-fetch hand from server on each new round — broadcasts never include hand data
+  useEffect(() => {
+    if (hydrated && room?.phase === 'challenge-reveal') {
+      fetchRoom();
+    }
+  }, [hydrated, room?.phase, fetchRoom]);
 
   async function handleStart() {
     setStartLoading(true);
