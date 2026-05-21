@@ -1,7 +1,8 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import LogoLockup from '@/components/ui/LogoLockup';
 import CodeInput from '@/components/ui/CodeInput';
 import AvatarPicker from '@/components/ui/AvatarPicker';
@@ -16,6 +17,34 @@ export default function HomePage() {
   const [avatarId, setAvatarId] = useState<AvatarId>('a1');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const shownIdleToast = useRef(false);
+
+  // Easter egg: idle toast after 30 seconds of inactivity
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+
+    const reset = () => {
+      clearTimeout(timer);
+      if (shownIdleToast.current) return;
+      timer = setTimeout(() => {
+        if (shownIdleToast.current) return;
+        shownIdleToast.current = true;
+        toast("Still deciding? This game was built faster than you're making this decision. — Kaustubh & Claude 🤖", {
+          duration: 5000,
+          position: 'bottom-center',
+        });
+      }, 30000);
+    };
+
+    reset();
+    window.addEventListener('click', reset);
+    window.addEventListener('keydown', reset);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('click', reset);
+      window.removeEventListener('keydown', reset);
+    };
+  }, []);
 
   useEffect(() => {
     // Try to restore session
