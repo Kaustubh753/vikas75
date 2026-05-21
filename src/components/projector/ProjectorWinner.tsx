@@ -36,7 +36,7 @@ export default function ProjectorWinner({ room }: Props) {
   const winner = room.players[verdict.winnerId];
 
   return (
-    <div className="w-full h-full bg-[#0d1b2e] flex flex-col items-center justify-center overflow-hidden relative">
+    <div className="w-full h-full bg-[#0d1b35] flex flex-col items-center justify-center overflow-hidden relative">
       {stage >= 1 && <Confetti />}
 
       {/* Stage 0: suspense */}

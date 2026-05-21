@@ -1,7 +1,7 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import LogoLockup from '@/components/ui/LogoLockup';
 import CodeInput from '@/components/ui/CodeInput';
@@ -10,10 +10,20 @@ import SocialLinks from '@/components/ui/SocialLinks';
 import type { AvatarId } from '@/types/game';
 
 export default function HomePage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen bg-[#0d1b2e]" />}>
+      <HomePageInner />
+    </Suspense>
+  );
+}
+
+function HomePageInner() {
   const router = useRouter();
-  const [showJoinForm, setShowJoinForm] = useState(false);
+  const searchParams = useSearchParams();
+  const initialCode = (searchParams.get('code') ?? '').toUpperCase().slice(0, 4);
+  const [showJoinForm, setShowJoinForm] = useState(Boolean(initialCode));
   const [name, setName] = useState('');
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(initialCode);
   const [avatarId, setAvatarId] = useState<AvatarId>('a1');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

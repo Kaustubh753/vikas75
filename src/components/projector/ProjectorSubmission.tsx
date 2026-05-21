@@ -56,7 +56,7 @@ export default function ProjectorSubmission({ room }: Props) {
   }, [room.timerEndsAt]);
 
   return (
-    <div className="w-full h-full bg-[#0d1b2e] flex flex-col overflow-hidden">
+    <div className="w-full h-full bg-[#0d1b35] flex flex-col overflow-hidden">
       {/* Header */}
       <div className="px-10 pt-6 pb-4 flex items-center justify-between border-b border-white/10">
         {challenge && (

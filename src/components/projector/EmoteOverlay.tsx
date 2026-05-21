@@ -19,9 +19,12 @@ export default function EmoteOverlay({ code }: Props) {
   const [emotes, setEmotes] = useState<FloatingEmote[]>([]);
 
   useEffect(() => {
+    const channelName = getRoomChannel(code);
+    console.log('EMOTE OVERLAY mounting, subscribing to', channelName);
     const pusher = getPusherClient();
-    const channel = pusher.subscribe(getRoomChannel(code));
+    const channel = pusher.subscribe(channelName);
     const onEmote = (event: EmoteEvent) => {
+      console.log('EMOTE EVENT RECEIVED', event);
       const uid = `${event.playerId}-${Date.now()}`;
       const x = 10 + Math.random() * 80;
       setEmotes((prev) => [...prev, { ...event, uid, x }]);

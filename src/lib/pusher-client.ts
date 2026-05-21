@@ -12,7 +12,8 @@ export function getPusherClient(): PusherClient {
 }
 
 export function getRoomChannel(code: string): string {
-  return `game-${code}`;
+  // Always uppercase to match the server-side channel name (API normalizes via code.toUpperCase())
+  return `game-${code.toUpperCase()}`;
 }
 
 export type PusherConnectionState = 'connected' | 'connecting' | 'unavailable' | 'disconnected' | 'failed';

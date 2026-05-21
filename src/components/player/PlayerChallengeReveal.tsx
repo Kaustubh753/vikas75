@@ -15,7 +15,6 @@ export default function PlayerChallengeReveal({ challenge }: Props) {
         <p className="text-white/40 text-xs uppercase tracking-widest mb-3 font-[family-name:var(--font-inter)]">
           Problem Statement
         </p>
-        <p className="text-5xl mb-4 text-center">{challenge.icon}</p>
         <p className="font-[family-name:var(--font-bebas)] text-white text-3xl leading-tight mb-4 tracking-wide">
           {challenge.en}
         </p>

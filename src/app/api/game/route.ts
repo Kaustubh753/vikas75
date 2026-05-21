@@ -193,10 +193,14 @@ export async function POST(req: NextRequest) {
 
       case 'emote': {
         const { code, emote } = body as { code: string; emote: EmoteEvent };
+        console.log('EMOTE RECEIVED', emote?.playerId, emote?.emoteId);
         if (!rateLimit(`emote:${emote?.playerId ?? 'anon'}`, 20, 60_000)) {
+          console.log('EMOTE DROPPED (rate limit)', emote?.playerId);
           return NextResponse.json({ ok: true }); // silently drop — client already has cooldown
         }
-        await pusherServer.trigger(getRoomChannel(code?.toUpperCase()), 'game:emote', emote);
+        const channelName = getRoomChannel(code?.toUpperCase());
+        console.log('EMOTE BROADCAST', channelName, emote?.emoteId);
+        await pusherServer.trigger(channelName, 'game:emote', emote);
         return NextResponse.json({ ok: true });
       }
 

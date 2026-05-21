@@ -8,7 +8,7 @@ export default function ProjectorJudging() {
   }, []);
 
   return (
-    <div className="w-full h-full bg-[#0d1b2e] flex flex-col items-center justify-center gap-10">
+    <div className="w-full h-full bg-[#0d1b35] flex flex-col items-center justify-center gap-10">
       {/* Pulsing rings */}
       <div className="relative w-40 h-40 flex items-center justify-center">
         <div className="absolute inset-0 rounded-full border-2 border-[#FF9933]/20 animate-ping" />

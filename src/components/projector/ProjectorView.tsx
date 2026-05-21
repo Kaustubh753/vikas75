@@ -83,7 +83,7 @@ export default function ProjectorView({ code }: Props) {
 
   if (!room) {
     return (
-      <div className="w-screen h-screen bg-[#0d1b2e] flex items-center justify-center p-12">
+      <div className="w-screen h-screen bg-[#0d1b35] flex items-center justify-center p-12">
         <div className="grid grid-cols-3 gap-4 w-full max-w-2xl">
           {Array.from({ length: 6 }).map((_, i) => (
             <SkeletonCard key={i} className="h-32" />

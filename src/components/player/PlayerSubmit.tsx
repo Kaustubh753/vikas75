@@ -139,23 +139,35 @@ export default function PlayerSubmit({
 
   if (step === 'select') {
     return (
-      <div className="flex flex-col gap-4 py-6">
+      <div className="flex flex-col gap-6 py-6">
+        {/* Challenge card — prominent with extra vertical space */}
         <div className="px-4 flex items-start justify-between gap-3">
-          <div className="flex-1">
-            <p className="text-white/40 text-xs uppercase tracking-widest mb-1 font-[family-name:var(--font-inter)]">
+          <div
+            className="flex-1 rounded-xl border p-6"
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              borderColor: 'rgba(255,255,255,0.12)',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+            }}
+          >
+            <p className="text-[#FF9933] uppercase mb-3 font-[family-name:var(--font-inter)]" style={{ fontSize: 11, letterSpacing: '0.08em', fontWeight: 500 }}>
               Challenge
             </p>
-            <p className="text-white font-[family-name:var(--font-bebas)] text-xl tracking-wide">
-              {challenge.icon} {challenge.en}
+            <p className="text-white font-[family-name:var(--font-bebas)] tracking-wide leading-tight" style={{ fontSize: 22 }}>
+              {challenge.en}
+            </p>
+            <p className="text-blue-200/80 font-[family-name:var(--font-devanagari)] mt-3 leading-relaxed" style={{ fontSize: 16 }}>
+              {challenge.hi}
             </p>
           </div>
           {timerEndsAt && <TimerRing total={timerDuration} endsAt={timerEndsAt} />}
         </div>
-        <p className="text-white/60 text-xs uppercase tracking-widest px-4 font-[family-name:var(--font-inter)]">
+
+        <p className="text-white/60 px-4 font-[family-name:var(--font-inter)] uppercase" style={{ fontSize: 11, letterSpacing: '0.08em', fontWeight: 500 }}>
           Your Hand — tap to select
         </p>
 
-        {/* Horizontal scrolling card tray */}
+        {/* Horizontal scrolling card tray — compact, expand only when selected */}
         <div className="overflow-x-auto pb-4">
           <div className="flex gap-3 px-4" style={{ width: 'max-content' }}>
             {hand.map((card, index) => {
@@ -168,27 +180,35 @@ export default function PlayerSubmit({
                     setSelected(card);
                     setExpanded(expanded === card.id ? null : card.id);
                   }}
-                  className={`relative rounded-2xl cursor-pointer transition-all flex-shrink-0 overflow-hidden
-                    ${isSelected ? 'ring-3 ring-[#FF9933] shadow-lg shadow-[#FF9933]/30' : 'ring-1 ring-white/10'}
+                  className={`relative rounded-xl cursor-pointer transition-all flex-shrink-0 overflow-hidden
+                    ${isSelected
+                      ? 'border-2 border-[#FF9933]'
+                      : 'border border-white/12'}
                     ${isExpanded ? 'bg-[#1a4a9e]' : 'bg-[#1a3a6e]'}`}
-                  style={{ width: isExpanded ? 200 : 160, minHeight: 200 }}
+                  style={{
+                    width: isExpanded ? 200 : 144,
+                    minHeight: isExpanded ? 200 : 112,
+                    boxShadow: isSelected
+                      ? '0 0 0 2px rgba(255,153,51,0.4), 0 4px 24px rgba(0,0,0,0.3)'
+                      : '0 4px 24px rgba(0,0,0,0.3)',
+                  }}
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 20, delay: index * 0.05 }}
                   whileTap={{ scale: 0.97 }}
                 >
                   <div className="p-4">
-                    <p className="text-[#FF9933] text-xs uppercase tracking-widest mb-2 font-[family-name:var(--font-inter)]">
+                    <p className="text-[#FF9933] uppercase mb-2 font-[family-name:var(--font-inter)]" style={{ fontSize: 11, letterSpacing: '0.08em', fontWeight: 500 }}>
                       Scheme
                     </p>
-                    <p className="font-[family-name:var(--font-bebas)] text-white text-lg leading-tight tracking-wide mb-1">
+                    <p className="font-[family-name:var(--font-inter)] text-white leading-tight mb-1" style={{ fontSize: 16, fontWeight: 600 }}>
                       {card.name}
                     </p>
-                    <p className="text-white/50 text-xs font-[family-name:var(--font-devanagari)] mb-2">
+                    <p className="text-white/50 font-[family-name:var(--font-devanagari)]" style={{ fontSize: 12 }}>
                       {card.hi}
                     </p>
                     {isExpanded && (
-                      <p className="text-white/70 text-xs font-[family-name:var(--font-inter)] leading-relaxed">
+                      <p className="text-white/70 font-[family-name:var(--font-inter)] leading-relaxed mt-3" style={{ fontSize: 14 }}>
                         {card.desc}
                       </p>
                     )}
@@ -265,7 +285,8 @@ export default function PlayerSubmit({
       <motion.button
         onClick={handleThrow}
         disabled={!explanation.trim() || loading || throwing}
-        className="w-full h-14 bg-[#FF9933] hover:bg-[#e8872a] disabled:opacity-40 disabled:cursor-not-allowed text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95"
+        className="w-full disabled:opacity-40 disabled:cursor-not-allowed text-white font-[family-name:var(--font-inter)] uppercase tracking-widest rounded-xl transition-all active:scale-95"
+        style={{ height: 48, backgroundColor: '#FF9933', fontSize: 16, fontWeight: 600 }}
         whileTap={{ scale: 0.95 }}
       >
         {loading || throwing ? 'Throwing…' : 'Throw Your Card ↑'}

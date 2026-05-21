@@ -17,7 +17,7 @@ export default function ProjectorReveal({ room }: Props) {
   }, [revealed, submissions.length]);
 
   return (
-    <div className="w-full h-full bg-[#0d1b2e] flex flex-col overflow-hidden">
+    <div className="w-full h-full bg-[#0d1b35] flex flex-col overflow-hidden">
       <div className="px-10 py-6 border-b border-white/10">
         <h2 className="font-[family-name:var(--font-bebas)] text-white text-4xl tracking-widest text-center">
           Let&apos;s see what everyone played…

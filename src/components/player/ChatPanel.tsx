@@ -31,9 +31,12 @@ export default function ChatPanel({ messages, onSend, playerId, avatarId, player
   }
 
   return (
-    <div className="fixed bottom-20 left-4 z-40">
+    <div className="fixed bottom-20 left-4 z-40" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       {open && (
-        <div className="absolute bottom-14 left-0 w-72 bg-[#0d1b2e]/95 border border-white/20 rounded-2xl shadow-xl flex flex-col animate-bounce-in overflow-hidden">
+        <div
+          className="absolute bottom-14 left-0 bg-[#0d1b2e]/95 border border-white/20 rounded-2xl shadow-xl flex flex-col animate-bounce-in overflow-hidden"
+          style={{ width: 'min(260px, calc(100vw - 200px))' }}
+        >
           <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
             <span className="text-white/70 text-sm font-[family-name:var(--font-inter)]">Chat</span>
             <button
@@ -46,8 +49,8 @@ export default function ChatPanel({ messages, onSend, playerId, avatarId, player
 
           <div className="flex-1 overflow-y-auto max-h-64 px-3 py-2 space-y-2">
             {messages.length === 0 && (
-              <p className="text-white/30 text-xs text-center py-4 font-[family-name:var(--font-inter)]">
-                No messages yet
+              <p className="text-white/30 text-xs text-center py-4 font-[family-name:var(--font-inter)] animate-pulse">
+                Be the first to say something
               </p>
             )}
             {messages.map((msg) => (

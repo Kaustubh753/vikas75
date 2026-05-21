@@ -156,7 +156,7 @@ export default function AdminDashboard() {
 
                   {room.currentChallenge && (
                     <p className="text-white/30 text-xs mt-2 font-[family-name:var(--font-inter)]">
-                      Challenge: {room.currentChallenge.icon} {room.currentChallenge.en}
+                      Challenge: {room.currentChallenge.en}
                     </p>
                   )}
                 </div>

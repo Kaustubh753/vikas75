@@ -39,7 +39,7 @@ export default function ProjectorLobby({ room }: Props) {
   const particles = particlesRef.current;
 
   return (
-    <div className="relative w-full h-full bg-[#0d1b2e] flex flex-col overflow-hidden grain-overlay">
+    <div className="relative w-full h-full bg-[#0d1b35] flex flex-col overflow-hidden grain-overlay">
       {/* Floating particles */}
       {particles.map((p) => (
         <div
