@@ -1,7 +1,10 @@
-// Projector / TV view — full-screen shared game experience
 import ProjectorView from '@/components/projector/ProjectorView';
 
-export default async function ProjectorPage({ params }: { params: Promise<{ code: string }> }) {
+interface Props {
+  params: Promise<{ code: string }>;
+}
+
+export default async function ProjectorPage({ params }: Props) {
   const { code } = await params;
   return <ProjectorView code={code} />;
 }

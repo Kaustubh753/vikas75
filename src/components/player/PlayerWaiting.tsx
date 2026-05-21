@@ -1,40 +1,42 @@
-export default function PlayerWaiting({ message }: { message: string }) {
+'use client';
+import type { GamePhase } from '@/types/game';
+
+interface Props {
+  phase: GamePhase;
+}
+
+const MESSAGES: Partial<Record<GamePhase, string>> = {
+  'challenge-reveal': 'Challenge is being revealed…',
+  submission: 'Others are submitting their cards…',
+  reveal: 'Submissions are being revealed…',
+  judging: 'AI Judge is deliberating…',
+  winner: 'Winner is being announced!',
+  'between-rounds': 'Preparing next round…',
+  'game-over': 'Game over! Check the big screen.',
+};
+
+export default function PlayerWaiting({ phase }: Props) {
+  const message = MESSAGES[phase] ?? 'Please wait…';
+
   return (
-    <div className="min-h-screen bg-[#faf8f0] flex flex-col">
-      {/* Header */}
-      <div className="bg-[#1a3a6e] flex-shrink-0">
-        <div className="h-1 flex">
-          <div className="flex-1 bg-[#FF9933]" /><div className="flex-1 bg-white/30" /><div className="flex-1 bg-[#138808]" />
-        </div>
-        <div className="px-5 py-4">
-          <div className="flex items-baseline gap-1.5">
-            <span className="font-[family-name:var(--font-oswald)] text-white text-xl uppercase tracking-wider">Vikas</span>
-            <span className="font-[family-name:var(--font-oswald)] text-[#FF9933] text-xl uppercase tracking-wider">75</span>
-          </div>
-        </div>
+    <div className="flex flex-col items-center justify-center gap-6 min-h-[50vh] px-4">
+      <div className="flex gap-2">
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            className="w-3 h-3 bg-[#FF9933]/60 rounded-full animate-bounce"
+            style={{ animationDelay: `${i * 0.15}s` }}
+          />
+        ))}
       </div>
-
-      <div className="flex-1 flex flex-col items-center justify-center p-8 gap-8">
-        {/* Pulsing dots */}
-        <div className="flex gap-2">
-          {[0, 1, 2].map(i => (
-            <div
-              key={i}
-              className="w-3 h-3 rounded-full bg-[#1a3a6e]"
-              style={{ animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite` }}
-            />
-          ))}
-        </div>
-
-        <div className="text-center space-y-2">
-          <p className="text-[#1a3a6e] font-bold text-xl">{message}</p>
-          <p className="text-gray-400 text-sm">Watch the big screen</p>
-        </div>
-      </div>
-
-      <div className="flex-shrink-0 py-4 text-center">
-        <p className="text-gray-300 text-xs tracking-widest uppercase">Vikas 75</p>
-      </div>
+      <p className="text-white/60 text-center text-sm font-[family-name:var(--font-inter)]">
+        {message}
+      </p>
+      {phase === 'submission' && (
+        <p className="text-white/30 text-xs text-center font-[family-name:var(--font-inter)]">
+          Watch the projector screen
+        </p>
+      )}
     </div>
   );
 }

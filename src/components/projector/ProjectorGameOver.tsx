@@ -1,67 +1,118 @@
+'use client';
+import { useEffect } from 'react';
 import Avatar from '@/lib/avatars';
+import Confetti from '@/components/ui/Confetti';
+import SocialLinks from '@/components/ui/SocialLinks';
+import LogoLockup from '@/components/ui/LogoLockup';
+import { getMusicManager } from '@/lib/music';
 import type { GameRoom } from '@/types/game';
 
 interface Props { room: GameRoom }
 
 export default function ProjectorGameOver({ room }: Props) {
-  const leaderboard = Object.values(room.players).sort((a, b) => b.score - a.score);
-  const winner = leaderboard[0];
+  const players = Object.values(room.players).sort((a, b) => b.score - a.score);
+  const [first, second, third] = players;
+
+  useEffect(() => {
+    getMusicManager().play('winner');
+  }, []);
 
   return (
-    <div
-      className="h-screen w-screen bg-[#080f1e] flex flex-col items-center justify-center gap-8 p-12 text-center relative overflow-hidden"
-      style={{ backgroundImage: 'radial-gradient(#ffffff05 1px, transparent 1px)', backgroundSize: '32px 32px' }}
-    >
-      <div className="h-1.5 absolute top-0 left-0 right-0 flex">
+    <div className="w-full h-full bg-[#080f1e] flex flex-col items-center justify-between overflow-hidden relative py-10"
+      style={{ backgroundImage: 'radial-gradient(#ffffff05 1px, transparent 1px)', backgroundSize: '32px 32px' }}>
+      <Confetti />
+
+      {/* Tricolour top bar */}
+      <div className="absolute top-0 left-0 right-0 h-1.5 flex">
         <div className="flex-1 bg-[#FF9933]" />
         <div className="flex-1 bg-white/20" />
         <div className="flex-1 bg-[#138808]" />
       </div>
 
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] rounded-full bg-[#FFD700]/8 blur-3xl pointer-events-none" />
+      <LogoLockup size="sm" className="mt-4" />
 
-      <p className="text-[#FF9933] tracking-[0.5em] uppercase text-sm animate-fade-in">
-        Game Over · Final Standings
-      </p>
+      <div className="text-center animate-bounce-in">
+        <p className="font-[family-name:var(--font-bebas)] text-[#FF9933] text-3xl tracking-[0.4em] mb-1">
+          GAME OVER
+        </p>
+        <h1 className="font-[family-name:var(--font-bebas)] text-white leading-none tracking-widest"
+          style={{ fontSize: '96px' }}>
+          KHEL KHATAM!
+        </h1>
+      </div>
 
-      {winner && (
-        <div className="space-y-3 animate-slide-up flex flex-col items-center">
-          <p className="text-[#8aa8cc] tracking-[0.3em] uppercase text-xs">Champion</p>
-          <Avatar id={winner.avatarId ?? 'a1'} size={96} className="rounded-2xl shadow-2xl" />
-          <p
-            className="font-[family-name:var(--font-oswald)] text-[#FFD700] font-bold uppercase tracking-wider"
-            style={{ fontSize: 'clamp(3rem, 7vw, 5.5rem)' }}
-          >
-            {winner.name} 👑
-          </p>
-          <p className="text-white/60 text-lg">{winner.score} points</p>
+      {/* Podium */}
+      <div className="flex items-end justify-center gap-4 w-full max-w-3xl px-8">
+        {/* 2nd place */}
+        {second && (
+          <div className="flex flex-col items-center gap-3 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            <div className="rounded-2xl overflow-hidden shadow-lg ring-4 ring-[#C0C0C0]/40">
+              <Avatar id={second.avatarId} size={72} />
+            </div>
+            <div className="text-center">
+              <p className="font-[family-name:var(--font-bebas)] text-[#C0C0C0] text-2xl tracking-wide">{second.name}</p>
+              <p className="font-[family-name:var(--font-bebas)] text-white/60 text-lg">🏆 {second.score}</p>
+            </div>
+            <div className="w-32 bg-[#C0C0C0]/20 border-2 border-[#C0C0C0]/40 rounded-t-xl flex items-center justify-center py-5">
+              <span className="font-[family-name:var(--font-bebas)] text-[#C0C0C0] text-4xl">2</span>
+            </div>
+          </div>
+        )}
+
+        {/* 1st place */}
+        {first && (
+          <div className="flex flex-col items-center gap-3 animate-slam-in">
+            <span className="text-5xl">👑</span>
+            <div className="rounded-2xl overflow-hidden shadow-[0_0_60px_#FFD70060] ring-4 ring-[#FFD700]/60">
+              <Avatar id={first.avatarId} size={100} />
+            </div>
+            <div className="text-center">
+              <p className="font-[family-name:var(--font-bebas)] text-[#FFD700] text-3xl tracking-wide">{first.name}</p>
+              <p className="font-[family-name:var(--font-bebas)] text-white/70 text-xl">🏆 {first.score}</p>
+            </div>
+            <div className="w-32 bg-[#FFD700]/20 border-2 border-[#FFD700]/50 rounded-t-xl flex items-center justify-center py-10">
+              <span className="font-[family-name:var(--font-bebas)] text-[#FFD700] text-5xl">1</span>
+            </div>
+          </div>
+        )}
+
+        {/* 3rd place */}
+        {third && (
+          <div className="flex flex-col items-center gap-3 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+            <div className="rounded-2xl overflow-hidden shadow-lg ring-4 ring-[#CD7F32]/40">
+              <Avatar id={third.avatarId} size={60} />
+            </div>
+            <div className="text-center">
+              <p className="font-[family-name:var(--font-bebas)] text-[#CD7F32] text-xl tracking-wide">{third.name}</p>
+              <p className="font-[family-name:var(--font-bebas)] text-white/50 text-base">🏆 {third.score}</p>
+            </div>
+            <div className="w-32 bg-[#CD7F32]/20 border-2 border-[#CD7F32]/40 rounded-t-xl flex items-center justify-center py-3">
+              <span className="font-[family-name:var(--font-bebas)] text-[#CD7F32] text-3xl">3</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Remaining players */}
+      {players.length > 3 && (
+        <div className="flex flex-wrap justify-center gap-4 px-8 mt-2">
+          {players.slice(3).map((p, i) => (
+            <div key={p.id} className="flex items-center gap-2 bg-white/5 rounded-xl px-4 py-2 animate-fade-in"
+              style={{ animationDelay: `${(i + 3) * 0.08}s` }}>
+              <span className="font-[family-name:var(--font-bebas)] text-white/40 text-lg w-5">{i + 4}</span>
+              <div className="rounded-lg overflow-hidden"><Avatar id={p.avatarId} size={28} /></div>
+              <span className="font-[family-name:var(--font-inter)] text-white/70 text-sm">{p.name}</span>
+              <span className="font-[family-name:var(--font-bebas)] text-white/50 text-sm">🏆 {p.score}</span>
+            </div>
+          ))}
         </div>
       )}
 
-      <div className="w-full max-w-lg space-y-2 mt-2">
-        {leaderboard.map((p, i) => (
-          <div
-            key={p.id}
-            className={`flex items-center gap-5 rounded-xl px-6 py-3 border animate-fade-in ${
-              i === 0 ? 'bg-[#FFD700]/10 border-[#FFD700]/25' : 'bg-white/5 border-white/5'
-            }`}
-            style={{ animationDelay: `${i * 0.1}s` }}
-          >
-            <span className={`font-[family-name:var(--font-oswald)] text-xl w-7 ${i === 0 ? 'text-[#FFD700]' : 'text-[#8aa8cc]'}`}>{i + 1}</span>
-            <Avatar id={p.avatarId ?? 'a1'} size={36} className="rounded-lg" />
-            <span className="text-white flex-1 text-lg">{p.name}</span>
-            <span className={`font-[family-name:var(--font-oswald)] text-2xl font-bold ${i === 0 ? 'text-[#FFD700]' : 'text-white'}`}>{p.score}</span>
-          </div>
-        ))}
-      </div>
-
-      <p className="text-[#8aa8cc]/60 text-sm mt-4 tracking-widest uppercase">
-        Jai Hind! Thanks for playing Vikas 75
-      </p>
-
-      <div className="absolute bottom-4 flex flex-col items-center gap-1">
-        <span className="font-[family-name:var(--font-oswald)] text-white/20 text-sm tracking-widest uppercase">Vikas 75</span>
-        <span className="text-white/15 text-[10px]">An initiative of the Office of Shri Sujeet Kumar</span>
+      <div className="flex flex-col items-center gap-3">
+        <SocialLinks />
+        <div className="text-white/20 text-xs font-[family-name:var(--font-inter)]">
+          An initiative of the Office of Shri Sujeet Kumar
+        </div>
       </div>
     </div>
   );

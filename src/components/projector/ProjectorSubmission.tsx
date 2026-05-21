@@ -1,142 +1,110 @@
 'use client';
-
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getMusicManager } from '@/lib/music';
+import Avatar from '@/lib/avatars';
 import type { GameRoom } from '@/types/game';
-import { getPusherClient, getRoomChannel } from '@/lib/pusher-client';
 
 interface Props { room: GameRoom }
 
-export default function ProjectorSubmission({ room: initial }: Props) {
-  const [room, setRoom] = useState(initial);
-  const [seconds, setSeconds] = useState(90);
+function TimerRing({ total, remaining }: { total: number; remaining: number }) {
+  const r = 44;
+  const circ = 2 * Math.PI * r;
+  const frac = Math.max(0, remaining / total);
+  const urgent = remaining <= 10;
+  return (
+    <div className={`relative w-24 h-24 ${urgent ? 'animate-pulse-ring' : ''}`}>
+      <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+        <circle cx="50" cy="50" r={r} fill="none" stroke="white" strokeOpacity="0.1" strokeWidth="8" />
+        <circle
+          cx="50" cy="50" r={r} fill="none"
+          stroke={urgent ? '#ef4444' : '#FF9933'}
+          strokeWidth="8"
+          strokeDasharray={circ}
+          strokeDashoffset={circ * (1 - frac)}
+          strokeLinecap="round"
+          style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className={`font-[family-name:var(--font-bebas)] text-2xl ${urgent ? 'text-red-400' : 'text-white'}`}>
+          {remaining}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export default function ProjectorSubmission({ room }: Props) {
+  const [remaining, setRemaining] = useState(room.timerDuration);
+  const challenge = room.currentChallenge;
+  const players = Object.values(room.players);
+  const submittedIds = new Set(Object.keys(room.submissions));
+  const submittedCount = submittedIds.size;
 
   useEffect(() => {
-    const pusher = getPusherClient();
-    const ch = pusher.subscribe(getRoomChannel(room.code));
-    ch.bind('game:room-updated', setRoom);
-    return () => { ch.unbind_all(); pusher.unsubscribe(getRoomChannel(room.code)); };
-  }, [room.code]);
+    getMusicManager().play('ticking');
+  }, []);
 
   useEffect(() => {
-    const tick = () => {
-      if (!room.timerEndsAt) return;
-      setSeconds(Math.max(0, Math.ceil((room.timerEndsAt - Date.now()) / 1000)));
-    };
-    tick();
-    const id = setInterval(tick, 500);
-    return () => clearInterval(id);
+    if (!room.timerEndsAt) return;
+    const tick = setInterval(() => {
+      setRemaining(Math.max(0, Math.ceil((room.timerEndsAt! - Date.now()) / 1000)));
+    }, 500);
+    return () => clearInterval(tick);
   }, [room.timerEndsAt]);
 
-  const players = Object.values(room.players);
-  const submitted = Object.keys(room.submissions);
-  const fraction = players.length > 0 ? submitted.length / players.length : 0;
-  const timerPct = room.timerEndsAt ? Math.max(0, seconds / 90) : 1;
-  const timerColor = timerPct > 0.4 ? '#FF9933' : timerPct > 0.15 ? '#FFD700' : '#ef4444';
-
   return (
-    <div
-      className="h-screen w-screen bg-[#1a3a6e] flex overflow-hidden relative"
-      style={{ backgroundImage: 'radial-gradient(#ffffff07 1px, transparent 1px)', backgroundSize: '32px 32px' }}
-    >
-      <div className="h-1.5 absolute top-0 left-0 right-0 flex z-10">
-        <div className="flex-1 bg-[#FF9933]" />
-        <div className="flex-1 bg-white/20" />
-        <div className="flex-1 bg-[#138808]" />
-      </div>
-
-      {/* Challenge side (left 55%) */}
-      <div className="flex flex-col justify-center px-10 pt-10 pb-8" style={{ width: '55%' }}>
-        <p className="text-[#8aa8cc] tracking-[0.4em] uppercase text-xs mb-6">
-          Round {room.round} · Submit your scheme
-        </p>
-
-        {room.currentChallenge && (
-          <div
-            className="rounded-2xl overflow-hidden shadow-2xl"
-            style={{ background: 'linear-gradient(135deg, #1e4080 0%, #0f2347 100%)', border: '1px solid rgba(255,255,255,0.08)' }}
-          >
-            <div className="h-0.5 bg-gradient-to-r from-[#FF9933] via-[#FFD700] to-[#FF9933]" />
-            <div className="px-10 py-8 text-center">
-              <p className="text-[#8aa8cc] tracking-[0.4em] uppercase text-[10px] mb-5">Problem Statement</p>
-              <p
-                className="font-[family-name:var(--font-oswald)] text-white font-bold uppercase leading-snug mb-5"
-                style={{ fontSize: 'clamp(1.4rem, 2.4vw, 2rem)' }}
-              >
-                {room.currentChallenge.en}
-              </p>
-              <div className="w-12 h-px bg-[#FF9933]/30 mx-auto mb-5" />
-              <p
-                className="font-[family-name:var(--font-devanagari)] text-[#c8d8f0]"
-                style={{ fontSize: 'clamp(0.9rem, 1.5vw, 1.2rem)' }}
-              >
-                {room.currentChallenge.hi}
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Tracker side (right 45%) */}
-      <div className="flex flex-col justify-center px-8 pt-10 pb-8 border-l border-white/5" style={{ width: '45%' }}>
-        {/* Timer */}
-        <div className="text-center mb-8">
-          <p className="text-[#8aa8cc] tracking-[0.3em] uppercase text-xs mb-2">Time Left</p>
-          <p
-            className="font-[family-name:var(--font-oswald)] font-bold leading-none transition-colors"
-            style={{ fontSize: '5rem', color: timerColor }}
-          >
-            {seconds}
-          </p>
-          <p className="text-[#8aa8cc] text-xs mt-1">seconds</p>
-          {/* Timer bar */}
-          <div className="h-1.5 bg-white/10 rounded-full mt-3 overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${timerPct * 100}%`, background: timerColor }}
-            />
-          </div>
-        </div>
-
-        {/* Submission progress */}
-        <div className="mb-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[#8aa8cc] tracking-[0.3em] uppercase text-xs">Submissions</p>
-            <p className="font-[family-name:var(--font-oswald)] text-white text-2xl">
-              <span style={{ color: timerColor }}>{submitted.length}</span>
-              <span className="text-white/40 text-lg"> / {players.length}</span>
+    <div className="w-full h-full bg-[#0d1b2e] flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="px-10 pt-6 pb-4 flex items-center justify-between border-b border-white/10">
+        {challenge && (
+          <div className="bg-[#1a3a6e] rounded-2xl px-6 py-3 max-w-2xl">
+            <p className="text-white/50 text-xs uppercase tracking-widest font-[family-name:var(--font-inter)] mb-1">
+              Problem Statement
+            </p>
+            <p className="font-[family-name:var(--font-bebas)] text-white text-2xl tracking-wide leading-snug">
+              {challenge.en}
             </p>
           </div>
-          <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-500 bg-[#138808]"
-              style={{ width: `${fraction * 100}%` }}
-            />
+        )}
+        <div className="flex items-center gap-6">
+          <div className="text-center">
+            <p className="font-[family-name:var(--font-bebas)] text-[#FF9933] text-4xl">{submittedCount}/{players.length}</p>
+            <p className="text-white/40 text-xs uppercase tracking-widest font-[family-name:var(--font-inter)]">Submitted</p>
           </div>
+          {room.timerEndsAt && <TimerRing total={room.timerDuration} remaining={remaining} />}
         </div>
+      </div>
 
-        {/* Player checklist */}
-        <div className="space-y-2 overflow-y-auto max-h-64">
-          {players.map(p => {
-            const done = submitted.includes(p.id);
+      {/* Player grid */}
+      <div className="flex-1 p-10">
+        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
+          {players.map((p) => {
+            const submitted = submittedIds.has(p.id);
             return (
               <div
                 key={p.id}
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${
-                  done ? 'bg-[#138808]/20 border border-[#138808]/30' : 'bg-white/5 border border-white/5'
+                className={`rounded-2xl border-2 p-4 flex flex-col items-center gap-2 transition-all duration-500 ${
+                  submitted
+                    ? 'border-[#138808] bg-[#138808]/10'
+                    : 'border-white/10 bg-white/5'
                 }`}
               >
-                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${done ? 'bg-[#138808]' : 'bg-white/20'}`} />
-                <span className={`flex-1 text-base ${done ? 'text-white' : 'text-white/40'}`}>{p.name}</span>
-                {done && <span className="text-[#138808] text-sm">✓</span>}
+                <div className={`rounded-xl overflow-hidden transition-all duration-500 ${submitted ? 'opacity-60 scale-95' : ''}`}>
+                  <Avatar id={p.avatarId} size={48} />
+                </div>
+                <p className="text-white text-sm font-[family-name:var(--font-inter)] text-center truncate w-full">
+                  {p.name}
+                </p>
+                {submitted ? (
+                  <span className="text-[#138808] text-xl">✓</span>
+                ) : (
+                  <span className="text-white/20 text-xs uppercase tracking-wider font-[family-name:var(--font-inter)]">Thinking…</span>
+                )}
               </div>
             );
           })}
         </div>
-      </div>
-
-      {/* Branding corner */}
-      <div className="absolute bottom-4 left-4">
-        <span className="font-[family-name:var(--font-oswald)] text-white/20 text-sm tracking-widest uppercase">Vikas 75</span>
       </div>
     </div>
   );

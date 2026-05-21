@@ -1,14 +1,12 @@
-// Host control panel — advance phases, extend timer, end game
-import HostPanel from '@/components/player/HostPanel';
+import HostDashboard from '@/components/host/HostDashboard';
 
-export default async function HostPage({
-  params,
-  searchParams,
-}: {
+interface Props {
   params: Promise<{ code: string }>;
   searchParams: Promise<{ h?: string }>;
-}) {
+}
+
+export default async function HostPage({ params, searchParams }: Props) {
   const { code } = await params;
   const { h } = await searchParams;
-  return <HostPanel code={code} hostId={h ?? ''} />;
+  return <HostDashboard code={code} hostId={h ?? ''} />;
 }

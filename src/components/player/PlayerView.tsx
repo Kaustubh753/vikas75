@@ -1,156 +1,245 @@
 'use client';
-
-import { useEffect, useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { getPusherClient, getRoomChannel, onConnectionStateChange, type PusherConnectionState } from '@/lib/pusher-client';
-import type { GameRoom, SchemeCard, AvatarId } from '@/types/game';
-import PlayerLobby from './PlayerLobby';
-import PlayerSubmit from './PlayerSubmit';
-import PlayerWaiting from './PlayerWaiting';
-import PlayerChallenge from './PlayerChallenge';
-import ChatPanel from './ChatPanel';
-import EmotePanel from './EmotePanel';
+import { getPusherClient, getRoomChannel } from '@/lib/pusher-client';
+import ConnectionBanner from '@/components/ui/ConnectionBanner';
+import MuteButton from '@/components/ui/MuteButton';
+import LogoLockup from '@/components/ui/LogoLockup';
+import PlayerLobby from '@/components/player/PlayerLobby';
+import PlayerChallengeReveal from '@/components/player/PlayerChallengeReveal';
+import PlayerSubmit from '@/components/player/PlayerSubmit';
+import PlayerWaiting from '@/components/player/PlayerWaiting';
+import EmotePanel from '@/components/player/EmotePanel';
+import ChatPanel from '@/components/player/ChatPanel';
+import type { GameRoom, SchemeCard, EmoteId, AvatarId } from '@/types/game';
 
-export default function PlayerView({ code }: { code: string }) {
+interface Props {
+  code: string;
+}
+
+export default function PlayerView({ code }: Props) {
   const router = useRouter();
-  const [room, setRoom] = useState<GameRoom | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [playerId, setPlayerId] = useState('');
   const [playerName, setPlayerName] = useState('');
   const [avatarId, setAvatarId] = useState<AvatarId>('a1');
-  const [connState, setConnState] = useState<PusherConnectionState>('connecting');
-  // Cache hand — Pusher broadcasts strip hand arrays to stay under 10 KB limit
-  const [myHand, setMyHand] = useState<SchemeCard[]>([]);
+  const [room, setRoom] = useState<GameRoom | null>(null);
+  const [cachedHand, setCachedHand] = useState<SchemeCard[]>([]);
+  const [startLoading, setStartLoading] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
+  // Load identity from localStorage
   useEffect(() => {
-    const id = sessionStorage.getItem('vikas75_playerId') ?? '';
-    const name = sessionStorage.getItem('vikas75_playerName') ?? '';
-    const avatar = (sessionStorage.getItem('vikas75_avatarId') ?? 'a1') as AvatarId;
-    if (!id || !name) {
+    const pid = localStorage.getItem('vikas75_playerId') ?? '';
+    const pname = localStorage.getItem('vikas75_playerName') ?? '';
+    const avid = (localStorage.getItem('vikas75_avatarId') as AvatarId) ?? 'a1';
+    if (!pid || !pname) {
       router.replace(`/?code=${code}`);
       return;
     }
-    setPlayerId(id);
-    setPlayerName(name);
-    setAvatarId(avatar);
+    setPlayerId(pid);
+    setPlayerName(pname);
+    setAvatarId(avid);
+    setHydrated(true);
   }, [code, router]);
 
-  useEffect(() => {
-    if (!playerId) return;
-
-    fetch(`/api/game?code=${code}`)
-      .then((r) => r.json())
-      .then(({ room: r, error: e }: { room?: GameRoom; error?: string }) => {
-        if (e) { setError(e); return; }
-        if (r) {
-          setRoom(r);
-          if (r.players[playerId]?.hand?.length) {
-            setMyHand(r.players[playerId].hand);
-          }
+  const fetchRoom = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/game?code=${code}`);
+      if (res.ok) {
+        const data = await res.json();
+        const r: GameRoom = data.room;
+        setRoom(r);
+        // Cache hand from initial load
+        const pid = localStorage.getItem('vikas75_playerId') ?? '';
+        if (pid && r.players[pid]?.hand?.length) {
+          setCachedHand(r.players[pid].hand);
         }
-      })
-      .catch(() => setError('Could not reach the server — check your connection'));
+      }
+    } catch {
+      // ignore
+    }
+  }, [code]);
 
+  useEffect(() => {
+    if (hydrated) fetchRoom();
+  }, [hydrated, fetchRoom]);
+
+  useEffect(() => {
+    if (!hydrated) return;
     const pusher = getPusherClient();
     const channel = pusher.subscribe(getRoomChannel(code));
-    channel.bind('game:room-updated', (data: GameRoom) => {
-      setRoom(data);
+    channel.bind('game:room-updated', (updated: GameRoom) => {
+      setRoom(updated);
+      // Pusher strips hands — preserve cached hand
+      const pid = localStorage.getItem('vikas75_playerId') ?? '';
+      if (pid && updated.players[pid]?.hand?.length) {
+        setCachedHand(updated.players[pid].hand);
+      }
     });
-
-    const cleanupConn = onConnectionStateChange(setConnState);
-
     return () => {
       channel.unbind_all();
       pusher.unsubscribe(getRoomChannel(code));
-      cleanupConn();
     };
-  }, [code, playerId]);
+  }, [code, hydrated]);
 
-  if (error) return (
-    <div className="min-h-screen bg-[#faf8f0] flex items-center justify-center p-6">
-      <div className="text-center space-y-3">
-        <p className="text-red-600 font-medium">{error}</p>
-        <a href="/" className="text-[#1a3a6e] text-sm underline">← Back to home</a>
-      </div>
-    </div>
-  );
-  if (!room || !playerId) return <PlayerWaiting message="Connecting…" />;
-
-  const hasSubmitted = !!room.submissions[playerId];
-  const player = room.players[playerId];
-  const playerWithHand = player ? { ...player, hand: myHand } : null;
-  const isFriendsMode = room.gameMode === 'friends';
-
-  const showEmotes = ['submission', 'challenge-reveal', 'reveal', 'judging', 'winner', 'between-rounds'].includes(room.phase);
-  const showChat = room.phase !== 'lobby';
-
-  let mainContent: React.ReactNode;
-
-  switch (room.phase) {
-    case 'lobby':
-      mainContent = <PlayerLobby room={room} playerName={playerName} avatarId={avatarId} />;
-      break;
-    case 'challenge-reveal':
-      mainContent = isFriendsMode
-        ? <PlayerChallenge room={room} />
-        : <PlayerWaiting message="New challenge coming up — watch the screen!" />;
-      break;
-    case 'submission':
-      if (hasSubmitted) { mainContent = <PlayerWaiting message="Answer submitted! Waiting for others…" />; break; }
-      if (!playerWithHand) { mainContent = <PlayerWaiting message="Waiting for your hand…" />; break; }
-      mainContent = <PlayerSubmit room={room} player={playerWithHand} />;
-      break;
-    case 'reveal':
-      mainContent = <PlayerWaiting message="All answers are in! Watch the projector." />;
-      break;
-    case 'judging':
-      mainContent = <PlayerWaiting message="AI Judge is deliberating… 🤔" />;
-      break;
-    case 'winner':
-      mainContent = <PlayerWaiting message="The verdict is in! See who won on screen." />;
-      break;
-    case 'between-rounds':
-      mainContent = <PlayerWaiting message="Round over. Check the leaderboard on screen." />;
-      break;
-    case 'game-over':
-      mainContent = <PlayerWaiting message="Game over! Check the final scores on screen." />;
-      break;
-    default:
-      mainContent = <PlayerWaiting message="Stand by…" />;
+  async function handleStart() {
+    setStartLoading(true);
+    try {
+      await fetch('/api/game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'advance', code, hostId: playerId }),
+      });
+    } catch {
+      // ignore
+    }
+    setStartLoading(false);
   }
 
-  // When the emote bar is visible it occupies ~110px at the bottom fixed.
-  // Wrap main content in a div with matching bottom padding so nothing gets obscured.
-  const EMOTE_BAR_HEIGHT = 'pb-[116px]';
+  async function handleSubmit(card: SchemeCard, explanation: string) {
+    await fetch('/api/game', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'submit',
+        code,
+        submission: {
+          playerId,
+          playerName,
+          avatarId,
+          schemeCard: card,
+          explanation,
+          submittedAt: Date.now(),
+        },
+      }),
+    });
+  }
 
-  const isDisconnected = connState === 'unavailable' || connState === 'failed' || connState === 'disconnected';
-  const isReconnecting = connState === 'connecting' && !!room; // only show after first connect
+  async function handleEmote(emoteId: EmoteId) {
+    await fetch('/api/game', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'emote',
+        code,
+        emote: { playerId, playerName, avatarId, emoteId, sentAt: Date.now() },
+      }),
+    });
+  }
+
+  async function handleChat(text: string) {
+    await fetch('/api/game', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'chat',
+        code,
+        message: { playerId, playerName, avatarId, text },
+      }),
+    });
+  }
+
+  if (!hydrated || !room) {
+    return (
+      <div className="min-h-screen bg-[#0d1b2e] flex items-center justify-center">
+        <p className="text-white/40 animate-pulse font-[family-name:var(--font-inter)]">
+          Connecting…
+        </p>
+      </div>
+    );
+  }
+
+  const mySubmission = room.submissions[playerId];
+  const phase = room.phase;
+  const isMidGameNewPlayer =
+    phase === 'submission' && !room.players[playerId];
+
+  function renderContent() {
+    if (!room) return null;
+
+    if (isMidGameNewPlayer) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-4 min-h-[60vh] px-4">
+          <p className="text-4xl">🕐</p>
+          <p className="text-white font-[family-name:var(--font-bebas)] text-2xl tracking-wide text-center">
+            You&apos;ll Play from Next Round
+          </p>
+          <p className="text-white/50 text-sm text-center font-[family-name:var(--font-inter)]">
+            A round is in progress. You&apos;ll get cards and join next round!
+          </p>
+        </div>
+      );
+    }
+
+    switch (phase) {
+      case 'lobby':
+        return (
+          <PlayerLobby
+            room={room}
+            playerId={playerId}
+            onStart={handleStart}
+            startLoading={startLoading}
+          />
+        );
+      case 'challenge-reveal':
+        if (room.gameMode === 'friends' && room.currentChallenge) {
+          return <PlayerChallengeReveal challenge={room.currentChallenge} />;
+        }
+        return <PlayerWaiting phase={phase} />;
+      case 'submission':
+        if (room.currentChallenge) {
+          return (
+            <PlayerSubmit
+              hand={cachedHand}
+              challenge={room.currentChallenge}
+              onSubmit={handleSubmit}
+              submitted={!!mySubmission}
+              submittedCard={mySubmission?.schemeCard}
+              submittedExplanation={mySubmission?.explanation}
+            />
+          );
+        }
+        return <PlayerWaiting phase={phase} />;
+      default:
+        return <PlayerWaiting phase={phase} />;
+    }
+  }
+
+  const showEmoteAndChat = phase !== 'lobby' && phase !== 'game-over';
 
   return (
-    <div className="relative">
-      {(isDisconnected || isReconnecting) && (
-        <div className="fixed top-0 left-0 right-0 z-[100] bg-yellow-500 text-[#1a3a6e] text-xs font-bold text-center py-2 px-4">
-          {isDisconnected ? '⚠ Connection lost — updates paused' : '↻ Reconnecting…'}
+    <main className="min-h-screen bg-[#0d1b2e] flex flex-col">
+      <ConnectionBanner />
+      <MuteButton />
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 pt-4 pb-2">
+        <LogoLockup size="sm" />
+        <div className="text-right">
+          <p className="text-white/40 text-[10px] uppercase tracking-widest font-[family-name:var(--font-inter)]">
+            Round
+          </p>
+          <p className="font-[family-name:var(--font-bebas)] text-white text-xl">
+            {room.round}/{room.totalRounds}
+          </p>
         </div>
-      )}
-      <div className={showEmotes ? EMOTE_BAR_HEIGHT : ''}>
-        {mainContent}
       </div>
-      {showEmotes && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#1a3a6e]/10 z-40">
-          <EmotePanel code={code} playerId={playerId} playerName={playerName} avatarId={avatarId} />
-        </div>
+
+      {/* Main content */}
+      <div className="flex-1 overflow-y-auto">{renderContent()}</div>
+
+      {showEmoteAndChat && (
+        <>
+          <EmotePanel onEmote={handleEmote} />
+          <ChatPanel
+            messages={room.messages}
+            onSend={handleChat}
+            playerId={playerId}
+            avatarId={avatarId}
+            playerName={playerName}
+          />
+        </>
       )}
-      {showChat && (
-        <ChatPanel
-          code={code}
-          playerId={playerId}
-          playerName={playerName}
-          avatarId={avatarId}
-          initialMessages={room.messages ?? []}
-          bottomOffset={showEmotes ? 124 : 16}
-        />
-      )}
-    </div>
+    </main>
   );
 }

@@ -1,7 +1,10 @@
-// Player phone view — hand of scheme cards, submission, waiting states
 import PlayerView from '@/components/player/PlayerView';
 
-export default async function PlayerPage({ params }: { params: Promise<{ code: string }> }) {
+interface Props {
+  params: Promise<{ code: string }>;
+}
+
+export default async function RoomPage({ params }: Props) {
   const { code } = await params;
   return <PlayerView code={code} />;
 }

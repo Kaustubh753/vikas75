@@ -1,63 +1,54 @@
 'use client';
-
-import { useState, useCallback } from 'react';
+import { useState, useRef } from 'react';
 import { EMOTES, EMOTE_IDS } from '@/lib/emotes';
-import type { AvatarId, EmoteId } from '@/types/game';
+import type { EmoteId } from '@/types/game';
 
 interface Props {
-  code: string;
-  playerId: string;
-  playerName: string;
-  avatarId: AvatarId;
+  onEmote: (emoteId: EmoteId) => void;
 }
 
-export default function EmotePanel({ code, playerId, playerName, avatarId }: Props) {
-  const [cooldown, setCooldown] = useState<EmoteId | null>(null);
+const RATE_LIMIT_MS = 5000;
 
-  const send = useCallback(async (emoteId: EmoteId) => {
-    if (cooldown) return;
-    setCooldown(emoteId);
-    try {
-      await fetch('/api/game', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'emote',
-          code,
-          emote: { playerId, playerName, avatarId, emoteId, sentAt: Date.now() },
-        }),
-      });
-    } finally {
-      setTimeout(() => setCooldown(null), 3000);
-    }
-  }, [cooldown, code, playerId, playerName, avatarId]);
+export default function EmotePanel({ onEmote }: Props) {
+  const [open, setOpen] = useState(false);
+  const lastEmoteAt = useRef<number>(0);
+
+  function handleEmote(id: EmoteId) {
+    const now = Date.now();
+    if (now - lastEmoteAt.current < RATE_LIMIT_MS) return;
+    lastEmoteAt.current = now;
+    onEmote(id);
+    setOpen(false);
+  }
 
   return (
-    <div className="px-4 py-3 border-t border-[#1a3a6e]/10">
-      <p className="text-[#8899aa] text-[9px] uppercase tracking-[0.3em] mb-2" aria-hidden="true">Emotes</p>
-      <div className="grid grid-cols-3 gap-2" role="group" aria-label="Send an emote">
-        {EMOTE_IDS.map((id) => {
-          const e = EMOTES[id];
-          const active = cooldown === id;
-          return (
-            <button
-              key={id}
-              onClick={() => send(id)}
-              disabled={!!cooldown}
-              aria-label={`Send ${e.label} emote`}
-              aria-pressed={active}
-              className={`flex flex-col items-center gap-0.5 py-3 px-1 rounded-xl border transition-all active:scale-95 text-center min-h-[56px] ${
-                active
-                  ? 'bg-[#1a3a6e] border-[#1a3a6e] text-white scale-95'
-                  : 'bg-white border-[#1a3a6e]/15 text-[#1a3a6e] disabled:opacity-40'
-              }`}
-            >
-              <span className="text-lg" aria-hidden="true">{e.emoji}</span>
-              <span className="text-[8px] font-bold uppercase tracking-wide leading-tight">{e.label}</span>
-            </button>
-          );
-        })}
-      </div>
+    <div className="fixed bottom-20 right-4 z-40 flex flex-col items-end gap-2">
+      {open && (
+        <div className="bg-[#0d1b2e]/95 border border-white/20 rounded-2xl p-3 grid grid-cols-2 gap-2 shadow-xl animate-bounce-in">
+          {EMOTE_IDS.map((id) => {
+            const e = EMOTES[id];
+            return (
+              <button
+                key={id}
+                onClick={() => handleEmote(id)}
+                className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/15 transition-all active:scale-95 min-w-[64px]"
+              >
+                <span className="text-2xl">{e.emoji}</span>
+                <span className="text-white/70 text-[10px] font-[family-name:var(--font-inter)] text-center leading-tight">
+                  {e.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-12 h-12 rounded-full bg-[#FF9933] hover:bg-[#e8872a] flex items-center justify-center text-2xl shadow-lg transition-all active:scale-95"
+        aria-label="Emotes"
+      >
+        {open ? '✕' : '😄'}
+      </button>
     </div>
   );
 }

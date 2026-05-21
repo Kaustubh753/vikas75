@@ -1,156 +1,107 @@
 'use client';
-
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { getPusherClient, getRoomChannel } from '@/lib/pusher-client';
+import { useState, useRef, useEffect } from 'react';
 import Avatar from '@/lib/avatars';
 import type { ChatMessage, AvatarId } from '@/types/game';
 
 interface Props {
-  code: string;
+  messages: ChatMessage[];
+  onSend: (text: string) => void;
   playerId: string;
-  playerName: string;
   avatarId: AvatarId;
-  initialMessages: ChatMessage[];
-  bottomOffset?: number; // px from bottom for the toggle button (default 16)
+  playerName: string;
 }
 
-export default function ChatPanel({ code, playerId, playerName, avatarId, initialMessages, bottomOffset = 16 }: Props) {
+const MAX_CHARS = 120;
+
+export default function ChatPanel({ messages, onSend, playerId, avatarId, playerName }: Props) {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [text, setText] = useState('');
-  const [sending, setSending] = useState(false);
-  const [unread, setUnread] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const openRef = useRef(open);
-  openRef.current = open;
-
-  // Subscribe once on mount — use ref for `open` to avoid re-subscribing on toggle
-  useEffect(() => {
-    const pusher = getPusherClient();
-    const ch = pusher.subscribe(getRoomChannel(code));
-    const handler = (msg: ChatMessage) => {
-      setMessages((prev) => [...prev.slice(-19), msg]);
-      if (!openRef.current) setUnread((n) => n + 1);
-    };
-    ch.bind('game:chat', handler);
-    return () => {
-      ch.unbind('game:chat', handler);
-      pusher.unsubscribe(getRoomChannel(code));
-    };
-  }, [code]);
 
   useEffect(() => {
-    if (open) {
-      setUnread(0);
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-    }
-  }, [open, messages]);
+    if (open) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, open]);
 
-  const send = useCallback(async () => {
+  function handleSend(e: React.FormEvent) {
+    e.preventDefault();
     const trimmed = text.trim();
-    if (!trimmed || sending) return;
-    setSending(true);
+    if (!trimmed) return;
+    onSend(trimmed);
     setText('');
-    try {
-      await fetch('/api/game', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'chat',
-          code,
-          message: { playerId, playerName, avatarId, text: trimmed },
-        }),
-      });
-    } finally {
-      setSending(false);
-    }
-  }, [text, sending, code, playerId, playerName, avatarId]);
+  }
 
   return (
-    <div className="fixed right-4 z-50" style={{ bottom: bottomOffset }}>
-      {/* Panel */}
+    <div className="fixed bottom-20 left-4 z-40">
       {open && (
-        <div
-          className="mb-2 w-72 bg-white rounded-2xl shadow-2xl overflow-hidden border border-[#1a3a6e]/10 flex flex-col"
-          style={{ maxHeight: '360px' }}
-          role="dialog"
-          aria-label="Chat"
-        >
-          <div className="bg-[#1a3a6e] px-4 py-2.5 flex items-center justify-between">
-            <span className="text-white text-sm font-bold tracking-wide">Chat</span>
+        <div className="absolute bottom-14 left-0 w-72 bg-[#0d1b2e]/95 border border-white/20 rounded-2xl shadow-xl flex flex-col animate-bounce-in overflow-hidden">
+          <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
+            <span className="text-white/70 text-sm font-[family-name:var(--font-inter)]">Chat</span>
             <button
               onClick={() => setOpen(false)}
-              className="text-white/60 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2"
-              aria-label="Close chat"
+              className="text-white/40 hover:text-white/70 text-lg"
             >
               ✕
             </button>
           </div>
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-[#faf8f0]" role="log" aria-live="polite" aria-label="Chat messages">
+
+          <div className="flex-1 overflow-y-auto max-h-64 px-3 py-2 space-y-2">
             {messages.length === 0 && (
-              <p className="text-gray-400 text-xs text-center py-4">No messages yet. Say something! 👋</p>
+              <p className="text-white/30 text-xs text-center py-4 font-[family-name:var(--font-inter)]">
+                No messages yet
+              </p>
             )}
-            {messages.map((m) => {
-              const isMe = m.playerId === playerId;
-              return (
-                <div key={m.id} className={`flex gap-2 items-end ${isMe ? 'flex-row-reverse' : ''}`}>
-                  <Avatar id={m.avatarId} size={24} className="rounded-md flex-shrink-0" />
-                  <div className={`max-w-[180px] ${isMe ? 'items-end' : 'items-start'} flex flex-col`}>
-                    {!isMe && (
-                      <span className="text-[#8899aa] text-[9px] uppercase tracking-wide mb-0.5">{m.playerName}</span>
-                    )}
-                    <div
-                      className={`px-3 py-2 rounded-xl text-xs leading-snug ${
-                        isMe
-                          ? 'bg-[#1a3a6e] text-white rounded-br-sm'
-                          : 'bg-white text-[#1a3a6e] rounded-bl-sm border border-[#1a3a6e]/10'
-                      }`}
-                    >
-                      {m.text}
-                    </div>
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex items-start gap-2 ${msg.playerId === playerId ? 'flex-row-reverse' : ''}`}
+              >
+                <div className="rounded-lg overflow-hidden flex-shrink-0">
+                  <Avatar id={msg.avatarId} size={28} />
+                </div>
+                <div className={`max-w-[180px] ${msg.playerId === playerId ? 'items-end' : 'items-start'} flex flex-col`}>
+                  <span className={`text-[10px] text-white/40 mb-0.5 font-[family-name:var(--font-inter)] ${msg.playerId === playerId ? 'text-right' : ''}`}>
+                    {msg.playerName}
+                  </span>
+                  <div
+                    className={`text-xs rounded-xl px-3 py-2 font-[family-name:var(--font-inter)] ${
+                      msg.playerId === playerId
+                        ? 'bg-[#FF9933]/20 text-white'
+                        : 'bg-white/10 text-white/80'
+                    }`}
+                  >
+                    {msg.text}
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
             <div ref={bottomRef} />
           </div>
-          {/* Input */}
-          <div className="p-2 border-t border-[#1a3a6e]/10 flex gap-2 bg-white">
+
+          <form onSubmit={handleSend} className="border-t border-white/10 px-3 py-2 flex gap-2">
             <input
-              className="flex-1 text-xs border border-[#1a3a6e]/20 rounded-lg px-3 py-2 outline-none focus:border-[#1a3a6e] text-[#1a3a6e] min-h-[44px]"
-              placeholder="Type something…"
+              type="text"
               value={text}
-              onChange={(e) => setText(e.target.value.slice(0, 120))}
-              onKeyDown={(e) => { if (e.key === 'Enter') send(); }}
-              maxLength={120}
-              aria-label="Chat message"
+              onChange={(e) => setText(e.target.value.slice(0, MAX_CHARS))}
+              placeholder="Say something…"
+              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-[#FF9933] placeholder-white/30 font-[family-name:var(--font-inter)]"
             />
             <button
-              onClick={send}
-              disabled={!text.trim() || sending}
-              className="bg-[#1a3a6e] text-white text-xs px-3 rounded-lg disabled:opacity-40 active:scale-95 min-w-[44px] min-h-[44px]"
-              aria-label="Send message"
+              type="submit"
+              disabled={!text.trim()}
+              className="w-9 h-9 bg-[#FF9933] hover:bg-[#e8872a] disabled:opacity-40 rounded-lg flex items-center justify-center text-white flex-shrink-0 transition-all"
             >
-              →
+              ↑
             </button>
-          </div>
+          </form>
         </div>
       )}
 
-      {/* Toggle bubble */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-12 h-12 bg-[#1a3a6e] rounded-full shadow-lg flex items-center justify-center text-xl relative active:scale-95 transition-transform focus:outline-none focus:ring-2 focus:ring-white/50"
-        aria-label={open ? 'Close chat' : `Open chat${unread > 0 ? `, ${unread} unread` : ''}`}
-        aria-expanded={open}
+        className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-xl shadow-lg transition-all active:scale-95"
+        aria-label="Chat"
       >
-        💬
-        {unread > 0 && !open && (
-          <span className="absolute -top-1 -right-1 bg-[#FF9933] text-white text-[9px] font-bold rounded-full w-5 h-5 flex items-center justify-center" aria-hidden="true">
-            {unread > 9 ? '9+' : unread}
-          </span>
-        )}
+        {open ? '✕' : '💬'}
       </button>
     </div>
   );
