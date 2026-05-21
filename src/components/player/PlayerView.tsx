@@ -77,7 +77,8 @@ export default function PlayerView({ code }: Props) {
     const channel = pusher.subscribe(getRoomChannel(code));
 
     const onRoomUpdated = (updated: GameRoom) => {
-      setRoom(updated);
+      // Broadcast strips messages for bandwidth — preserve local chat history
+      setRoom(prev => ({ ...updated, messages: prev?.messages ?? [] }));
       const pid = localStorage.getItem('vikas75_playerId') ?? '';
       if (pid && updated.players[pid]) {
         setCachedHand(updated.players[pid].hand);
