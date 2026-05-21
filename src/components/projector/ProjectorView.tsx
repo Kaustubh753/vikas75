@@ -27,6 +27,17 @@ export default function ProjectorView({ code }: Props) {
       .catch(() => {});
   }, [code]);
 
+  // Polling fallback — syncs state if Pusher drops or the projector loads mid-game
+  useEffect(() => {
+    const poll = setInterval(() => {
+      fetch(`/api/game?code=${code}`)
+        .then((r) => r.json())
+        .then((d) => { if (d.room) setRoom(d.room); })
+        .catch(() => {});
+    }, 5000);
+    return () => clearInterval(poll);
+  }, [code]);
+
   useEffect(() => {
     const pusher = getPusherClient();
     const channel = pusher.subscribe(getRoomChannel(code));

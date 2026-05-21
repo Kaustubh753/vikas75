@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import type { SchemeCard, ChallengeCard } from '@/types/game';
 
@@ -49,6 +49,8 @@ function TimerRing({ total, endsAt }: { total: number; endsAt: number }) {
   );
 }
 
+const DRAFT_KEY = 'vikas75_draft_explanation';
+
 const MAX_WORDS = 25;
 
 function countWords(text: string): number {
@@ -71,6 +73,25 @@ export default function PlayerSubmit({
   const [explanation, setExplanation] = useState(submittedExplanation ?? '');
   const [loading, setLoading] = useState(false);
   const [throwing, setThrowing] = useState(false);
+  const didRestoreDraft = useRef(false);
+
+  // Restore in-progress explanation from sessionStorage on mount (survives accidental navigation)
+  useEffect(() => {
+    if (didRestoreDraft.current || submitted || submittedExplanation) return;
+    didRestoreDraft.current = true;
+    const draft = sessionStorage.getItem(DRAFT_KEY);
+    if (draft) setExplanation(draft);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist explanation as the player types
+  useEffect(() => {
+    if (!submitted) sessionStorage.setItem(DRAFT_KEY, explanation);
+  }, [explanation, submitted]);
+
+  // Clear draft once submission is confirmed
+  useEffect(() => {
+    if (submitted) sessionStorage.removeItem(DRAFT_KEY);
+  }, [submitted]);
 
   const wordCount = countWords(explanation);
   const wordsLeft = MAX_WORDS - wordCount;

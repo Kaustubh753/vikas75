@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { after } from 'next/server';
-import { getRoom, setRoom, checkRoomCreationLimit } from '@/lib/redis';
+import { getRoom, setRoom, checkRoomCreationLimit, checkRateLimit } from '@/lib/redis';
 import { broadcastRoom, pusherServer, getRoomChannel } from '@/lib/pusher';
 import {
   createRoom,
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
           code: string; playerId: string; playerName: string; avatarId: AvatarId;
         };
         const ip = getIp(req);
-        if (!rateLimit(`join:${ip}`, 15, 60_000)) {
+        if (!(await checkRateLimit(`ratelimit:join:${ip}`, 15, 60))) {
           return NextResponse.json({ error: 'Too many requests — slow down' }, { status: 429 });
         }
         const safeName = sanitizeName(playerName);
@@ -125,7 +125,9 @@ export async function POST(req: NextRequest) {
         if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
         if (room.hostId !== hostId) return NextResponse.json({ error: 'Not the host' }, { status: 403 });
         if (room.phase !== 'lobby') return NextResponse.json({ error: 'Can only update settings in lobby' }, { status: 400 });
-        const updated = updateSettings(room, { totalRounds, timerDuration, gameMode });
+        const safeRounds = typeof totalRounds === 'number' ? Math.max(1, Math.min(50, Math.round(totalRounds))) : room.totalRounds;
+        const safeTimer = typeof timerDuration === 'number' ? Math.max(10, Math.min(300, Math.round(timerDuration))) : room.timerDuration;
+        const updated = updateSettings(room, { totalRounds: safeRounds, timerDuration: safeTimer, gameMode });
         await setRoom(updated);
         await broadcastRoom(updated);
         return NextResponse.json({ room: updated });
@@ -143,17 +145,34 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ ok: true });
         }
         // Validate submitter is an active player
-        if (!room.players[submission.playerId]) {
+        const submittingPlayer = room.players[submission.playerId];
+        if (!submittingPlayer) {
           return NextResponse.json({ error: 'Player not in this room' }, { status: 403 });
         }
-        const updated = addSubmission(room, submission);
+        // Validate the submitted card is actually in the player's hand
+        if (!submittingPlayer.hand.some((c) => c.id === submission.schemeCard?.id)) {
+          return NextResponse.json({ error: 'Card not in your hand' }, { status: 403 });
+        }
+        // Sanitize explanation
+        const safeExplanation = typeof submission.explanation === 'string'
+          ? submission.explanation.trim().slice(0, 200)
+          : '';
+        if (!safeExplanation) {
+          return NextResponse.json({ error: 'Explanation is required' }, { status: 400 });
+        }
+        const safeSubmission: Submission = { ...submission, explanation: safeExplanation };
+        const updated = addSubmission(room, safeSubmission);
         await setRoom(updated);
         // Broadcast happens before auto-advance so clients see the submission tick
         await broadcastRoom(updated);
         if (allPlayersSubmitted(updated)) {
-          const revealed = advancePhase(updated);
-          await setRoom(revealed);
-          await broadcastRoom(revealed);
+          // Re-read after write to reduce concurrent auto-advance race window
+          const fresh = await getRoom(code.toUpperCase());
+          if (fresh?.phase === 'submission') {
+            const revealed = advancePhase(fresh);
+            await setRoom(revealed);
+            await broadcastRoom(revealed);
+          }
         }
         return NextResponse.json({ ok: true });
       }

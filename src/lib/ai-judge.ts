@@ -90,12 +90,20 @@ function buildVerdict(
   rankingsRaw: Array<{ playerId: string; judgeScore: number; judgeComment: string; bonusPoint: boolean }>,
   reasoning: string,
 ): JudgeVerdict {
+  // Validate Claude ranked every submitted player and no unknown IDs
+  const submissionIds = new Set(submissions.map((s) => s.playerId));
+  for (const r of rankingsRaw) {
+    if (!submissionIds.has(r.playerId)) throw new Error(`Unknown player ${r.playerId} in rankings`);
+  }
+  if (rankingsRaw.length < submissions.length) {
+    throw new Error(`Judge omitted ${submissions.length - rankingsRaw.length} player(s) from rankings`);
+  }
+
   // Sort by judgeScore desc
   const sorted = [...rankingsRaw].sort((a, b) => b.judgeScore - a.judgeScore);
 
   const rankings: PlayerRanking[] = sorted.map((r, i) => {
-    const sub = submissions.find((s) => s.playerId === r.playerId);
-    if (!sub) throw new Error(`Unknown player ${r.playerId} in rankings`);
+    const sub = submissions.find((s) => s.playerId === r.playerId)!;
     const gamePoints = i === 0 ? 3 : i === 1 ? 2 : i === 2 ? 1 : 0;
     return {
       playerId: sub.playerId,
@@ -130,7 +138,8 @@ function fallbackJudge(submissions: Submission[]): JudgeVerdict {
   const rankings: PlayerRanking[] = shuffled.map((sub, i) => {
     const judgeScore = Math.max(1, 10 - i * Math.floor(10 / shuffled.length));
     const gamePoints = i === 0 ? 3 : i === 1 ? 2 : i === 2 ? 1 : 0;
-    const bonusPoint = sub.explanation.trim().split(/\s+/).filter(Boolean).length <= 10;
+    // Match Claude's bonus point rule: single sentence or less
+    const bonusPoint = sub.explanation.trim().split(/[.!?]/).filter(Boolean).length <= 1;
     return {
       playerId: sub.playerId,
       playerName: sub.playerName,
@@ -164,8 +173,8 @@ export async function judgeRound(
   if (process.env.ANTHROPIC_API_KEY) {
     try {
       return await claudeJudge(challenge, submissions);
-    } catch {
-      // Fall through to fallback judge silently
+    } catch (err) {
+      console.error('[ai-judge] Claude failed, falling back to random judge:', err instanceof Error ? err.message : err);
     }
   }
   return fallbackJudge(submissions);

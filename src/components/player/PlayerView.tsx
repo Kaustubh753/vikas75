@@ -134,7 +134,7 @@ export default function PlayerView({ code }: Props) {
 
   async function handleSubmit(card: SchemeCard, explanation: string) {
     try {
-      await fetch('/api/game', {
+      const res = await fetch('/api/game', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -150,10 +150,15 @@ export default function PlayerView({ code }: Props) {
           },
         }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error((data as { error?: string }).error || 'Submission failed — please try again');
+        return;
+      }
       toast.success('Answer submitted!');
       try { (navigator as Navigator & { vibrate?: (p: number | number[]) => void }).vibrate?.(50); } catch {}
     } catch {
-      // Network error — player can retry
+      toast.error('Network error — please check your connection and try again');
     }
   }
 
@@ -270,7 +275,7 @@ export default function PlayerView({ code }: Props) {
         if (room.gameMode === 'friends' && room.currentChallenge) {
           return <PlayerChallengeReveal challenge={room.currentChallenge} />;
         }
-        return <PlayerWaiting phase={phase} />;
+        return <PlayerWaiting phase={phase} hint="Look at the big screen for the challenge!" />;
       case 'submission':
         if (room.currentChallenge) {
           return (
@@ -287,6 +292,30 @@ export default function PlayerView({ code }: Props) {
           );
         }
         return <PlayerWaiting phase={phase} />;
+      case 'game-over':
+        return (
+          <div className="flex flex-col items-center justify-center gap-4 min-h-[50vh] px-4">
+            <p className="text-4xl">🎉</p>
+            <p className="text-white font-[family-name:var(--font-bebas)] text-3xl tracking-wide text-center">
+              Game Over!
+            </p>
+            <p className="text-white/50 text-sm text-center font-[family-name:var(--font-inter)]">
+              Thanks for playing Vikas 75!
+            </p>
+            <button
+              onClick={() => {
+                localStorage.removeItem('vikas75_playerId');
+                localStorage.removeItem('vikas75_playerName');
+                localStorage.removeItem('vikas75_avatarId');
+                localStorage.removeItem('vikas75_roomCode');
+                router.push('/');
+              }}
+              className="mt-4 px-8 h-14 bg-[#FF9933] hover:bg-[#e8872a] text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95"
+            >
+              Play Again →
+            </button>
+          </div>
+        );
       default:
         return <PlayerWaiting phase={phase} />;
     }

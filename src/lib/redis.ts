@@ -8,6 +8,15 @@ function isRedisConfigured(): boolean {
   return !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 }
 
+// Warn once at request time (not during static build) if running in production without Redis
+let _warnedNoRedis = false;
+function warnIfMissingRedis() {
+  if (!_warnedNoRedis && process.env.NODE_ENV === 'production' && !isRedisConfigured()) {
+    _warnedNoRedis = true;
+    console.error('[redis] WARNING: Running in production without Upstash Redis. Room state will not persist across serverless instances.');
+  }
+}
+
 let redisInstance: ReturnType<typeof createRedis> | null = null;
 
 function createRedis() {
@@ -27,6 +36,7 @@ const ROOM_PREFIX = 'room:';
 const ROOM_TTL = 60 * 60 * 24; // 24 hours in seconds
 
 export async function getRoom(code: string): Promise<GameRoom | null> {
+  warnIfMissingRedis();
   if (!isRedisConfigured()) {
     const entry = devStore.get(`${ROOM_PREFIX}${code}`);
     if (!entry || entry.expiresAt < Date.now()) return null;
@@ -92,6 +102,30 @@ export async function checkRoomCreationLimit(ip: string): Promise<boolean> {
     return count <= max;
   } catch {
     return true; // fail open — don't block room creation on Redis errors
+  }
+}
+
+// General-purpose Redis rate limiter. Returns true if within limit, false if exceeded.
+// Uses Redis INCR in production; in-memory fallback in dev (not shared across instances).
+export async function checkRateLimit(key: string, max: number, windowSec: number): Promise<boolean> {
+  if (!isRedisConfigured()) {
+    const now = Date.now();
+    const entry = devRateStore.get(key);
+    if (!entry || entry.expiresAt < now) {
+      devRateStore.set(key, { count: 1, expiresAt: now + windowSec * 1000 });
+      return true;
+    }
+    if (entry.count >= max) return false;
+    entry.count++;
+    return true;
+  }
+  try {
+    const redis = getRedis();
+    const count: number = await redis.incr(key);
+    if (count === 1) await redis.expire(key, windowSec);
+    return count <= max;
+  } catch {
+    return true; // fail open — don't block on Redis errors
   }
 }
 

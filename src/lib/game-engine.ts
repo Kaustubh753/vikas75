@@ -105,6 +105,11 @@ export function startRound(room: GameRoom): GameRoom {
   const pool = remainingChallenges.length > 0 ? remainingChallenges : challenges;
   const challenge = shuffle(pool)[0] ?? challenges[0];
 
+  // Deal fresh hands for all players every round
+  const refreshedPlayers = Object.fromEntries(
+    Object.entries(room.players).map(([id, p]) => [id, { ...p, hand: dealHand() }])
+  );
+
   return {
     ...room,
     round: nextRound,
@@ -113,6 +118,7 @@ export function startRound(room: GameRoom): GameRoom {
     submissions: {},
     lastVerdict: null,
     timerEndsAt: null,
+    players: refreshedPlayers,
   };
 }
 

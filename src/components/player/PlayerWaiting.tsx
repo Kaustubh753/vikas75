@@ -3,6 +3,7 @@ import type { GamePhase } from '@/types/game';
 
 interface Props {
   phase: GamePhase;
+  hint?: string;
 }
 
 const MESSAGES: Partial<Record<GamePhase, string>> = {
@@ -15,7 +16,7 @@ const MESSAGES: Partial<Record<GamePhase, string>> = {
   'game-over': 'Game over! Check the big screen.',
 };
 
-export default function PlayerWaiting({ phase }: Props) {
+export default function PlayerWaiting({ phase, hint }: Props) {
   const message = MESSAGES[phase] ?? 'Please wait…';
 
   return (
@@ -32,7 +33,12 @@ export default function PlayerWaiting({ phase }: Props) {
       <p className="text-white/60 text-center text-sm font-[family-name:var(--font-inter)]">
         {message}
       </p>
-      {phase === 'submission' && (
+      {hint && (
+        <p className="text-[#FF9933]/70 text-xs text-center font-[family-name:var(--font-inter)]">
+          {hint}
+        </p>
+      )}
+      {!hint && phase === 'submission' && (
         <p className="text-white/30 text-xs text-center font-[family-name:var(--font-inter)]">
           Watch the projector screen
         </p>
