@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import type { SchemeCard, ChallengeCard } from '@/types/game';
 
@@ -10,6 +10,43 @@ interface Props {
   submitted?: boolean;
   submittedCard?: SchemeCard;
   submittedExplanation?: string;
+  timerEndsAt?: number;
+  timerDuration: number;
+}
+
+function TimerRing({ total, endsAt }: { total: number; endsAt: number }) {
+  const [remaining, setRemaining] = useState(Math.max(0, Math.ceil((endsAt - Date.now()) / 1000)));
+  useEffect(() => {
+    const tick = setInterval(() => {
+      setRemaining(Math.max(0, Math.ceil((endsAt - Date.now()) / 1000)));
+    }, 500);
+    return () => clearInterval(tick);
+  }, [endsAt]);
+  const r = 30;
+  const circ = 2 * Math.PI * r;
+  const frac = Math.max(0, remaining / total);
+  const urgent = remaining <= 10;
+  return (
+    <div className={`relative w-16 h-16 flex-shrink-0 ${urgent ? 'animate-pulse' : ''}`}>
+      <svg viewBox="0 0 68 68" className="w-full h-full -rotate-90">
+        <circle cx="34" cy="34" r={r} fill="none" stroke="white" strokeOpacity="0.15" strokeWidth="5" />
+        <circle
+          cx="34" cy="34" r={r} fill="none"
+          stroke={urgent ? '#ef4444' : '#FF9933'}
+          strokeWidth="5"
+          strokeDasharray={circ}
+          strokeDashoffset={circ * (1 - frac)}
+          strokeLinecap="round"
+          style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className={`font-[family-name:var(--font-bebas)] text-xl leading-none ${urgent ? 'text-red-400' : 'text-white'}`}>
+          {remaining}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 const MAX_WORDS = 25;
@@ -25,6 +62,8 @@ export default function PlayerSubmit({
   submitted,
   submittedCard,
   submittedExplanation,
+  timerEndsAt,
+  timerDuration,
 }: Props) {
   const [step, setStep] = useState<'select' | 'justify'>(submitted ? 'justify' : 'select');
   const [selected, setSelected] = useState<SchemeCard | null>(submittedCard ?? null);
@@ -80,13 +119,16 @@ export default function PlayerSubmit({
   if (step === 'select') {
     return (
       <div className="flex flex-col gap-4 py-6">
-        <div className="px-4">
-          <p className="text-white/40 text-xs uppercase tracking-widest mb-1 font-[family-name:var(--font-inter)]">
-            Challenge
-          </p>
-          <p className="text-white font-[family-name:var(--font-bebas)] text-xl tracking-wide">
-            {challenge.icon} {challenge.en}
-          </p>
+        <div className="px-4 flex items-start justify-between gap-3">
+          <div className="flex-1">
+            <p className="text-white/40 text-xs uppercase tracking-widest mb-1 font-[family-name:var(--font-inter)]">
+              Challenge
+            </p>
+            <p className="text-white font-[family-name:var(--font-bebas)] text-xl tracking-wide">
+              {challenge.icon} {challenge.en}
+            </p>
+          </div>
+          {timerEndsAt && <TimerRing total={timerDuration} endsAt={timerEndsAt} />}
         </div>
         <p className="text-white/60 text-xs uppercase tracking-widest px-4 font-[family-name:var(--font-inter)]">
           Your Hand — tap to select
@@ -102,11 +144,8 @@ export default function PlayerSubmit({
                 <motion.div
                   key={card.id}
                   onClick={() => {
-                    if (expanded === card.id) {
-                      setSelected(card);
-                    } else {
-                      setExpanded(card.id);
-                    }
+                    setSelected(card);
+                    setExpanded(expanded === card.id ? null : card.id);
                   }}
                   className={`relative rounded-2xl cursor-pointer transition-all flex-shrink-0 overflow-hidden
                     ${isSelected ? 'ring-3 ring-[#FF9933] shadow-lg shadow-[#FF9933]/30' : 'ring-1 ring-white/10'}

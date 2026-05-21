@@ -30,11 +30,11 @@ export default function ProjectorView({ code }: Props) {
   useEffect(() => {
     const pusher = getPusherClient();
     const channel = pusher.subscribe(getRoomChannel(code));
-    channel.bind('game:room-updated', (updated: GameRoom) => {
-      setRoom(updated);
-    });
+    const onRoomUpdated = (updated: GameRoom) => setRoom(updated);
+    channel.bind('game:room-updated', onRoomUpdated);
     return () => {
-      channel.unbind_all();
+      // Only unbind our specific handler — unbind_all would kill EmoteOverlay's game:emote binding
+      channel.unbind('game:room-updated', onRoomUpdated);
       pusher.unsubscribe(getRoomChannel(code));
     };
   }, [code]);

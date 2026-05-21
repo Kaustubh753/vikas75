@@ -13,7 +13,7 @@ import PlayerSubmit from '@/components/player/PlayerSubmit';
 import PlayerWaiting from '@/components/player/PlayerWaiting';
 import EmotePanel from '@/components/player/EmotePanel';
 import ChatPanel from '@/components/player/ChatPanel';
-import type { GameRoom, SchemeCard, EmoteId, AvatarId } from '@/types/game';
+import type { GameRoom, SchemeCard, EmoteId, AvatarId, ChatMessage } from '@/types/game';
 
 interface Props {
   code: string;
@@ -28,7 +28,6 @@ export default function PlayerView({ code }: Props) {
   const [cachedHand, setCachedHand] = useState<SchemeCard[]>([]);
   const [startLoading, setStartLoading] = useState(false);
   const [hydrated, setHydrated] = useState(false);
-  const [darkMode, setDarkMode] = useState(true);
   const toastedJoin = useRef(false);
   const prevPhaseRef = useRef<string | null>(null);
 
@@ -44,8 +43,6 @@ export default function PlayerView({ code }: Props) {
     setPlayerId(pid);
     setPlayerName(pname);
     setAvatarId(avid);
-    const dm = localStorage.getItem('vikas75_darkMode');
-    setDarkMode(dm !== 'false');
     setHydrated(true);
   }, [code, router]);
 
@@ -56,7 +53,6 @@ export default function PlayerView({ code }: Props) {
         const data = await res.json();
         const r: GameRoom = data.room;
         setRoom(r);
-        // Cache hand from initial load
         const pid = localStorage.getItem('vikas75_playerId') ?? '';
         if (pid && r.players[pid]?.hand?.length) {
           setCachedHand(r.players[pid].hand);
@@ -79,21 +75,35 @@ export default function PlayerView({ code }: Props) {
     if (!hydrated) return;
     const pusher = getPusherClient();
     const channel = pusher.subscribe(getRoomChannel(code));
-    channel.bind('game:room-updated', (updated: GameRoom) => {
+
+    const onRoomUpdated = (updated: GameRoom) => {
       setRoom(updated);
-      // Pusher strips hands — preserve cached hand
       const pid = localStorage.getItem('vikas75_playerId') ?? '';
       if (pid && updated.players[pid]?.hand?.length) {
         setCachedHand(updated.players[pid].hand);
       }
-    });
+    };
+
+    // Chat messages come as individual game:chat events — room:updated does NOT include them
+    const onChat = (msg: ChatMessage) => {
+      setRoom(prev => {
+        if (!prev) return prev;
+        const messages = [...prev.messages.slice(-19), msg];
+        return { ...prev, messages };
+      });
+    };
+
+    channel.bind('game:room-updated', onRoomUpdated);
+    channel.bind('game:chat', onChat);
+
     return () => {
-      channel.unbind_all();
+      channel.unbind('game:room-updated', onRoomUpdated);
+      channel.unbind('game:chat', onChat);
       pusher.unsubscribe(getRoomChannel(code));
     };
   }, [code, hydrated]);
 
-  // Toast on phase change
+  // Toast on phase change to challenge-reveal
   useEffect(() => {
     if (!room) return;
     const prev = prevPhaseRef.current;
@@ -138,7 +148,7 @@ export default function PlayerView({ code }: Props) {
       toast.success('Answer submitted!');
       try { (navigator as Navigator & { vibrate?: (p: number | number[]) => void }).vibrate?.(50); } catch {}
     } catch {
-      // Network error — player can retry by pressing submit again
+      // Network error — player can retry
     }
   }
 
@@ -169,7 +179,7 @@ export default function PlayerView({ code }: Props) {
 
   if (!hydrated || !room) {
     return (
-      <div className="min-h-screen bg-[#0a0f1e] flex flex-col gap-4 p-4">
+      <div className="min-h-screen bg-[#0d1b2e] flex flex-col gap-4 p-4">
         <SkeletonCard className="h-24" />
         <SkeletonCard className="h-40" />
         <SkeletonCard className="h-32" />
@@ -179,8 +189,7 @@ export default function PlayerView({ code }: Props) {
 
   const mySubmission = room.submissions[playerId];
   const phase = room.phase;
-  const isMidGameNewPlayer =
-    phase === 'submission' && !room.players[playerId];
+  const isMidGameNewPlayer = phase === 'submission' && !room.players[playerId];
 
   function renderContent() {
     if (!room) return null;
@@ -224,6 +233,8 @@ export default function PlayerView({ code }: Props) {
               submitted={!!mySubmission}
               submittedCard={mySubmission?.schemeCard}
               submittedExplanation={mySubmission?.explanation}
+              timerEndsAt={room.timerEndsAt ?? undefined}
+              timerDuration={room.timerDuration}
             />
           );
         }
@@ -236,20 +247,13 @@ export default function PlayerView({ code }: Props) {
   const showEmoteAndChat = phase !== 'lobby' && phase !== 'game-over';
 
   return (
-    <main className={`min-h-screen ${darkMode ? 'bg-[#0a0f1e]' : 'bg-[#faf8f0]'} flex flex-col`}>
+    <main className="min-h-screen bg-[#0d1b2e] flex flex-col">
       <ConnectionBanner />
       <MuteButton />
 
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <LogoLockup size="sm" />
-        <button
-          onClick={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('vikas75_darkMode', String(next)); }}
-          className="text-white/50 hover:text-white text-lg transition-colors"
-          aria-label="Toggle dark mode"
-        >
-          {darkMode ? '🌙' : '☀️'}
-        </button>
         <div className="text-right">
           <p className="text-white/40 text-[10px] uppercase tracking-widest font-[family-name:var(--font-inter)]">
             Round

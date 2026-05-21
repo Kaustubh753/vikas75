@@ -11,23 +11,48 @@ function TimerRing({ total, remaining }: { total: number; remaining: number }) {
   const frac = Math.max(0, remaining / total);
   const urgent = remaining <= 10;
   return (
-    <div className={`relative w-28 h-28 ${urgent ? 'animate-pulse-ring' : ''}`}>
+    <div className={`relative w-40 h-40 ${urgent ? 'animate-pulse' : ''}`}>
       <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-        <circle cx="50" cy="50" r={r} fill="none" stroke="white" strokeOpacity="0.1" strokeWidth="8" />
+        <circle cx="50" cy="50" r={r} fill="none" stroke="white" strokeOpacity="0.15" strokeWidth="6" />
         <circle
           cx="50" cy="50" r={r} fill="none"
           stroke={urgent ? '#ef4444' : '#FF9933'}
-          strokeWidth="8"
+          strokeWidth="6"
           strokeDasharray={circ}
           strokeDashoffset={circ * (1 - frac)}
           strokeLinecap="round"
           style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }}
         />
       </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className={`font-[family-name:var(--font-bebas)] text-3xl ${urgent ? 'text-red-400' : 'text-white'}`}>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className={`font-[family-name:var(--font-bebas)] text-5xl leading-none ${urgent ? 'text-red-400' : 'text-white'}`}>
           {remaining}
         </span>
+        <span className="text-white/40 text-xs uppercase tracking-widest font-[family-name:var(--font-inter)]">sec</span>
+      </div>
+    </div>
+  );
+}
+
+function StaticTimerRing({ total }: { total: number }) {
+  const r = 44;
+  const circ = 2 * Math.PI * r;
+  return (
+    <div className="relative w-40 h-40">
+      <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+        <circle cx="50" cy="50" r={r} fill="none" stroke="white" strokeOpacity="0.15" strokeWidth="6" />
+        <circle
+          cx="50" cy="50" r={r} fill="none"
+          stroke="#FF9933"
+          strokeWidth="6"
+          strokeDasharray={circ}
+          strokeDashoffset={0}
+          strokeLinecap="round"
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="font-[family-name:var(--font-bebas)] text-5xl leading-none text-white">{total}</span>
+        <span className="text-white/40 text-xs uppercase tracking-widest font-[family-name:var(--font-inter)]">sec</span>
       </div>
     </div>
   );
@@ -53,12 +78,13 @@ export default function ProjectorChallengeReveal({ room }: Props) {
 
   return (
     <div className="w-full h-full bg-black flex items-center justify-center relative overflow-hidden">
-      {/* Timer ring top-right */}
-      {room.timerEndsAt && (
-        <div className="absolute top-8 right-8 z-20">
-          <TimerRing total={room.timerDuration} remaining={remaining} />
-        </div>
-      )}
+      {/* Timer ring top-right — static full ring showing time limit before submission starts */}
+      <div className="absolute top-8 right-8 z-20">
+        {room.timerEndsAt
+          ? <TimerRing total={room.timerDuration} remaining={remaining} />
+          : <StaticTimerRing total={room.timerDuration} />
+        }
+      </div>
 
       {/* Card animates in from top */}
       <div

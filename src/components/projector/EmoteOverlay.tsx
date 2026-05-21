@@ -21,16 +21,17 @@ export default function EmoteOverlay({ code }: Props) {
   useEffect(() => {
     const pusher = getPusherClient();
     const channel = pusher.subscribe(getRoomChannel(code));
-    channel.bind('game:emote', (event: EmoteEvent) => {
+    const onEmote = (event: EmoteEvent) => {
       const uid = `${event.playerId}-${Date.now()}`;
       const x = 10 + Math.random() * 80;
       setEmotes((prev) => [...prev, { ...event, uid, x }]);
       setTimeout(() => {
         setEmotes((prev) => prev.filter((e) => e.uid !== uid));
       }, 5000);
-    });
+    };
+    channel.bind('game:emote', onEmote);
     return () => {
-      channel.unbind('game:emote');
+      channel.unbind('game:emote', onEmote);
     };
   }, [code]);
 
