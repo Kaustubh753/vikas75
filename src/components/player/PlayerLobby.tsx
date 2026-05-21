@@ -1,4 +1,5 @@
 'use client';
+import { motion } from 'framer-motion';
 import Avatar from '@/lib/avatars';
 import type { GameRoom } from '@/types/game';
 
@@ -61,8 +62,8 @@ export default function PlayerLobby({ room, playerId, onStart, startLoading }: P
           Players ({players.length})
         </p>
         <div className="space-y-2">
-          {players.map((p) => (
-            <div key={p.id} className="flex items-center gap-3 animate-slide-up">
+          {players.map((p, i) => (
+            <motion.div key={p.id} className="flex items-center gap-3" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }}>
               <div className="rounded-lg overflow-hidden">
                 <Avatar id={p.avatarId} size={36} />
               </div>
@@ -74,20 +75,21 @@ export default function PlayerLobby({ room, playerId, onStart, startLoading }: P
                   HOST
                 </span>
               )}
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>
 
       {/* Start button for host */}
       {isHost && onStart && (
-        <button
+        <motion.button
           onClick={onStart}
           disabled={startLoading || players.length < 1}
           className="w-full max-w-xs h-14 bg-[#FF9933] hover:bg-[#e8872a] disabled:opacity-40 text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95 animate-pulse-ring"
+          whileTap={{ scale: 0.95 }}
         >
           {startLoading ? 'Starting…' : 'Start Game →'}
-        </button>
+        </motion.button>
       )}
     </div>
   );

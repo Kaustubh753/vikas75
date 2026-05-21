@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import LogoLockup from '@/components/ui/LogoLockup';
 import CodeInput from '@/components/ui/CodeInput';
@@ -70,18 +71,20 @@ export default function HomePage() {
 
         {!showJoinForm ? (
           <div className="w-full flex flex-col gap-4 animate-fade-in">
-            <button
+            <motion.button
               onClick={() => setShowJoinForm(true)}
               className="w-full h-14 bg-[#FF9933] hover:bg-[#e8872a] text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95"
+              whileTap={{ scale: 0.95 }}
             >
               Join Game
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               onClick={() => router.push('/host/setup')}
               className="w-full h-14 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95"
+              whileTap={{ scale: 0.95 }}
             >
               Host a Game
-            </button>
+            </motion.button>
           </div>
         ) : (
           <form onSubmit={handleJoin} className="w-full flex flex-col gap-5 animate-slide-up">
@@ -116,21 +119,23 @@ export default function HomePage() {
               <p className="text-red-400 text-sm text-center animate-shake">{error}</p>
             )}
 
-            <button
+            <motion.button
               type="submit"
               disabled={loading || !name.trim() || code.length !== 4}
               className="w-full h-14 bg-[#FF9933] hover:bg-[#e8872a] disabled:opacity-40 disabled:cursor-not-allowed text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95"
+              whileTap={{ scale: 0.95 }}
             >
               {loading ? 'Joining…' : 'Join Game →'}
-            </button>
+            </motion.button>
 
-            <button
+            <motion.button
               type="button"
               onClick={() => { setShowJoinForm(false); setError(''); }}
               className="text-white/40 text-sm text-center hover:text-white/60 transition-colors"
+              whileTap={{ scale: 0.95 }}
             >
               ← Back
-            </button>
+            </motion.button>
           </form>
         )}
 

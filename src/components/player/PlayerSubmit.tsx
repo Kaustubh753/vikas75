@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import type { SchemeCard, ChallengeCard } from '@/types/game';
 
 interface Props {
@@ -48,7 +49,8 @@ export default function PlayerSubmit({
 
   if (submitted && submittedCard) {
     return (
-      <div className="flex flex-col items-center gap-6 py-8 px-4">
+      <div style={{ perspective: 800 }}>
+      <motion.div className="flex flex-col items-center gap-6 py-8 px-4" initial={{ rotateY: 90, opacity: 0 }} animate={{ rotateY: 0, opacity: 1 }} transition={{ duration: 0.4 }}>
         <div className="w-2 h-2 bg-green-400 rounded-full animate-ping" />
         <p className="text-green-400 font-[family-name:var(--font-bebas)] text-2xl tracking-widest">
           SUBMITTED!
@@ -70,6 +72,7 @@ export default function PlayerSubmit({
         <p className="text-white/40 text-sm text-center font-[family-name:var(--font-inter)]">
           Watch the projector!
         </p>
+      </motion.div>
       </div>
     );
   }
@@ -92,11 +95,11 @@ export default function PlayerSubmit({
         {/* Horizontal scrolling card tray */}
         <div className="overflow-x-auto pb-4">
           <div className="flex gap-3 px-4" style={{ width: 'max-content' }}>
-            {hand.map((card) => {
+            {hand.map((card, index) => {
               const isExpanded = expanded === card.id;
               const isSelected = selected?.id === card.id;
               return (
-                <div
+                <motion.div
                   key={card.id}
                   onClick={() => {
                     if (expanded === card.id) {
@@ -109,6 +112,10 @@ export default function PlayerSubmit({
                     ${isSelected ? 'ring-3 ring-[#FF9933] shadow-lg shadow-[#FF9933]/30' : 'ring-1 ring-white/10'}
                     ${isExpanded ? 'bg-[#1a4a9e]' : 'bg-[#1a3a6e]'}`}
                   style={{ width: isExpanded ? 200 : 160, minHeight: 200 }}
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20, delay: index * 0.05 }}
+                  whileTap={{ scale: 0.97 }}
                 >
                   <div className="p-4">
                     <p className="text-[#FF9933] text-xs uppercase tracking-widest mb-2 font-[family-name:var(--font-inter)]">
@@ -131,7 +138,7 @@ export default function PlayerSubmit({
                       ✓
                     </div>
                   )}
-                </div>
+                </motion.div>
               );
             })}
           </div>
@@ -195,13 +202,14 @@ export default function PlayerSubmit({
         </p>
       </div>
 
-      <button
+      <motion.button
         onClick={handleThrow}
         disabled={!explanation.trim() || loading || throwing}
         className="w-full h-14 bg-[#FF9933] hover:bg-[#e8872a] disabled:opacity-40 disabled:cursor-not-allowed text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95"
+        whileTap={{ scale: 0.95 }}
       >
         {loading || throwing ? 'Throwing…' : 'Throw Your Card ↑'}
-      </button>
+      </motion.button>
 
       <button
         onClick={() => setStep('select')}

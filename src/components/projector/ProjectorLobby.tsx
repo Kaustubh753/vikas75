@@ -1,8 +1,10 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 import LogoLockup from '@/components/ui/LogoLockup';
 import SocialLinks from '@/components/ui/SocialLinks';
+import CountUp from '@/components/ui/CountUp';
 import Avatar from '@/lib/avatars';
 import { getMusicManager } from '@/lib/music';
 import type { GameRoom } from '@/types/game';
@@ -37,7 +39,7 @@ export default function ProjectorLobby({ room }: Props) {
   const particles = particlesRef.current;
 
   return (
-    <div className="relative w-full h-full bg-[#0d1b2e] flex flex-col overflow-hidden">
+    <div className="relative w-full h-full bg-[#0d1b2e] flex flex-col overflow-hidden grain-overlay">
       {/* Floating particles */}
       {particles.map((p) => (
         <div
@@ -104,14 +106,16 @@ export default function ProjectorLobby({ room }: Props) {
       {players.length > 0 && (
         <div className="relative z-10 px-12 pb-4">
           <p className="text-white/40 text-xs uppercase tracking-widest mb-3 font-[family-name:var(--font-inter)]">
-            Players ({players.length})
+            Players (<CountUp value={players.length} />)
           </p>
           <div className="flex flex-wrap gap-3">
             {players.map((p, i) => (
-              <div
+              <motion.div
                 key={p.id}
-                className="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2 animate-bounce-in"
-                style={{ animationDelay: `${i * 0.08}s` }}
+                className="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2"
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 20, delay: i * 0.08 }}
               >
                 <div className="rounded-lg overflow-hidden">
                   <Avatar id={p.avatarId} size={32} />
@@ -119,7 +123,7 @@ export default function ProjectorLobby({ room }: Props) {
                 <span className="text-white text-sm font-[family-name:var(--font-inter)]">
                   {p.name}
                 </span>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>

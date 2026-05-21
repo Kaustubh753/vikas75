@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import Avatar from '@/lib/avatars';
 import Confetti from '@/components/ui/Confetti';
 import { getMusicManager } from '@/lib/music';
@@ -23,7 +24,10 @@ export default function ProjectorWinner({ room }: Props) {
 
   useEffect(() => {
     getMusicManager().play('winner');
-    const t1 = setTimeout(() => setStage(1), 4000);
+    const t1 = setTimeout(() => {
+      try { (navigator as Navigator & { vibrate?: (p: number | number[]) => void }).vibrate?.([100, 50, 100]); } catch {}
+      setStage(1);
+    }, 4000);
     const t2 = setTimeout(() => setStage(2), 8000);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
@@ -54,7 +58,7 @@ export default function ProjectorWinner({ room }: Props) {
 
       {/* Stage 1: winner reveal */}
       {stage === 1 && (
-        <div className="flex flex-col items-center gap-6 animate-slam-in">
+        <motion.div className="flex flex-col items-center gap-6" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 200, damping: 10 }}>
           <p className="font-[family-name:var(--font-bebas)] text-[#FF9933] text-2xl tracking-[0.5em]">
             ROUND {room.round} WINNER
           </p>
@@ -79,7 +83,7 @@ export default function ProjectorWinner({ room }: Props) {
           <p className="font-[family-name:var(--font-inter)] text-white/50 text-sm max-w-xl text-center">
             {verdict.reasoning}
           </p>
-        </div>
+        </motion.div>
       )}
 
       {/* Stage 2: all rankings */}
@@ -90,12 +94,14 @@ export default function ProjectorWinner({ room }: Props) {
           </h2>
           <div className="space-y-3 max-w-3xl mx-auto">
             {rankings.map((r, i) => (
-              <div
+              <motion.div
                 key={r.playerId}
-                className={`flex items-center gap-4 rounded-2xl px-6 py-3 animate-fade-in ${
+                className={`flex items-center gap-4 rounded-2xl px-6 py-3 ${
                   i === 0 ? 'bg-[#FFD700]/10 border border-[#FFD700]/30' : 'bg-white/5 border border-white/5'
                 }`}
-                style={{ animationDelay: `${i * 0.1}s` }}
+                initial={{ opacity: 0, x: 40 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.1 }}
               >
                 <span className={`font-[family-name:var(--font-bebas)] text-2xl w-8 ${i === 0 ? 'text-[#FFD700]' : 'text-white/40'}`}>
                   {i + 1}
@@ -114,7 +120,7 @@ export default function ProjectorWinner({ room }: Props) {
                 {r.bonusPoint && (
                   <span className="text-[#FFD700] text-sm font-[family-name:var(--font-inter)] font-bold">+bonus</span>
                 )}
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>

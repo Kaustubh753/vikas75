@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import Avatar from '@/lib/avatars';
 import type { GameRoom } from '@/types/game';
 
@@ -8,7 +9,7 @@ export default function ProjectorBetweenRounds({ room }: Props) {
   const roundWinner = room.lastVerdict ? room.players[room.lastVerdict.winnerId] : null;
 
   return (
-    <div className="w-full h-full bg-[#080f1e] flex flex-col items-center justify-center gap-8 p-12 relative overflow-hidden"
+    <div className="w-full h-full bg-[#080f1e] flex flex-col items-center justify-center gap-8 p-12 relative overflow-hidden grain-overlay"
       style={{ backgroundImage: 'radial-gradient(#ffffff05 1px, transparent 1px)', backgroundSize: '32px 32px' }}>
       {/* Tricolour top bar */}
       <div className="absolute top-0 left-0 right-0 h-1.5 flex">
@@ -41,12 +42,14 @@ export default function ProjectorBetweenRounds({ room }: Props) {
 
       <div className="w-full max-w-xl space-y-3">
         {players.map((p, i) => (
-          <div
+          <motion.div
             key={p.id}
-            className={`flex items-center gap-5 rounded-2xl px-7 py-4 border animate-fade-in ${
+            className={`flex items-center gap-5 rounded-2xl px-7 py-4 border ${
               i === 0 ? 'bg-[#FFD700]/10 border-[#FFD700]/30' : 'bg-white/5 border-white/5'
             }`}
-            style={{ animationDelay: `${i * 0.08}s` }}
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: i * 0.08, duration: 0.35 }}
           >
             <span className={`font-[family-name:var(--font-bebas)] text-2xl w-8 ${i === 0 ? 'text-[#FFD700]' : 'text-white/40'}`}>{i + 1}</span>
             {i === 0 && <span className="text-xl">👑</span>}
@@ -57,7 +60,7 @@ export default function ProjectorBetweenRounds({ room }: Props) {
             <span className={`font-[family-name:var(--font-bebas)] text-3xl ${i === 0 ? 'text-[#FFD700]' : 'text-white'}`}>
               🏆 {p.score}
             </span>
-          </div>
+          </motion.div>
         ))}
       </div>
 

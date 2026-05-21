@@ -1,10 +1,12 @@
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import { getPusherClient, getRoomChannel } from '@/lib/pusher-client';
 import ConnectionBanner from '@/components/ui/ConnectionBanner';
 import MuteButton from '@/components/ui/MuteButton';
 import LogoLockup from '@/components/ui/LogoLockup';
+import SkeletonCard from '@/components/ui/SkeletonCard';
 import PlayerLobby from '@/components/player/PlayerLobby';
 import PlayerChallengeReveal from '@/components/player/PlayerChallengeReveal';
 import PlayerSubmit from '@/components/player/PlayerSubmit';
@@ -26,6 +28,9 @@ export default function PlayerView({ code }: Props) {
   const [cachedHand, setCachedHand] = useState<SchemeCard[]>([]);
   const [startLoading, setStartLoading] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
+  const toastedJoin = useRef(false);
+  const prevPhaseRef = useRef<string | null>(null);
 
   // Load identity from localStorage
   useEffect(() => {
@@ -39,6 +44,8 @@ export default function PlayerView({ code }: Props) {
     setPlayerId(pid);
     setPlayerName(pname);
     setAvatarId(avid);
+    const dm = localStorage.getItem('vikas75_darkMode');
+    setDarkMode(dm !== 'false');
     setHydrated(true);
   }, [code, router]);
 
@@ -53,6 +60,10 @@ export default function PlayerView({ code }: Props) {
         const pid = localStorage.getItem('vikas75_playerId') ?? '';
         if (pid && r.players[pid]?.hand?.length) {
           setCachedHand(r.players[pid].hand);
+        }
+        if (!toastedJoin.current && pid && r.players[pid]) {
+          toast.success('Joined room!');
+          toastedJoin.current = true;
         }
       }
     } catch {
@@ -81,6 +92,16 @@ export default function PlayerView({ code }: Props) {
       pusher.unsubscribe(getRoomChannel(code));
     };
   }, [code, hydrated]);
+
+  // Toast on phase change
+  useEffect(() => {
+    if (!room) return;
+    const prev = prevPhaseRef.current;
+    prevPhaseRef.current = room.phase;
+    if (prev !== null && prev !== room.phase && room.phase === 'challenge-reveal') {
+      toast('Round starting...', { icon: '🎯' });
+    }
+  }, [room?.phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleStart() {
     setStartLoading(true);
@@ -114,12 +135,15 @@ export default function PlayerView({ code }: Props) {
           },
         }),
       });
+      toast.success('Answer submitted!');
+      try { (navigator as Navigator & { vibrate?: (p: number | number[]) => void }).vibrate?.(50); } catch {}
     } catch {
       // Network error — player can retry by pressing submit again
     }
   }
 
   async function handleEmote(emoteId: EmoteId) {
+    try { (navigator as Navigator & { vibrate?: (p: number | number[]) => void }).vibrate?.(30); } catch {}
     await fetch('/api/game', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -145,10 +169,10 @@ export default function PlayerView({ code }: Props) {
 
   if (!hydrated || !room) {
     return (
-      <div className="min-h-screen bg-[#0d1b2e] flex items-center justify-center">
-        <p className="text-white/40 animate-pulse font-[family-name:var(--font-inter)]">
-          Connecting…
-        </p>
+      <div className="min-h-screen bg-[#0a0f1e] flex flex-col gap-4 p-4">
+        <SkeletonCard className="h-24" />
+        <SkeletonCard className="h-40" />
+        <SkeletonCard className="h-32" />
       </div>
     );
   }
@@ -212,13 +236,20 @@ export default function PlayerView({ code }: Props) {
   const showEmoteAndChat = phase !== 'lobby' && phase !== 'game-over';
 
   return (
-    <main className="min-h-screen bg-[#0d1b2e] flex flex-col">
+    <main className={`min-h-screen ${darkMode ? 'bg-[#0a0f1e]' : 'bg-[#faf8f0]'} flex flex-col`}>
       <ConnectionBanner />
       <MuteButton />
 
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <LogoLockup size="sm" />
+        <button
+          onClick={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem('vikas75_darkMode', String(next)); }}
+          className="text-white/50 hover:text-white text-lg transition-colors"
+          aria-label="Toggle dark mode"
+        >
+          {darkMode ? '🌙' : '☀️'}
+        </button>
         <div className="text-right">
           <p className="text-white/40 text-[10px] uppercase tracking-widest font-[family-name:var(--font-inter)]">
             Round

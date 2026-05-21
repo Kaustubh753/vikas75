@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { getMusicManager } from '@/lib/music';
+import CountUp from '@/components/ui/CountUp';
 import Avatar from '@/lib/avatars';
 import type { GameRoom } from '@/types/game';
 
@@ -69,7 +70,7 @@ export default function ProjectorSubmission({ room }: Props) {
         )}
         <div className="flex items-center gap-6">
           <div className="text-center">
-            <p className="font-[family-name:var(--font-bebas)] text-[#FF9933] text-4xl">{submittedCount}/{players.length}</p>
+            <p className="font-[family-name:var(--font-bebas)] text-[#FF9933] text-4xl"><CountUp value={submittedCount} />/{players.length}</p>
             <p className="text-white/40 text-xs uppercase tracking-widest font-[family-name:var(--font-inter)]">Submitted</p>
           </div>
           {room.timerEndsAt && <TimerRing total={room.timerDuration} remaining={remaining} />}

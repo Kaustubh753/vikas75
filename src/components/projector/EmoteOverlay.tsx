@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { getPusherClient, getRoomChannel } from '@/lib/pusher-client';
 import Avatar from '@/lib/avatars';
 import { EMOTES } from '@/lib/emotes';
@@ -35,13 +36,18 @@ export default function EmoteOverlay({ code }: Props) {
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[100] overflow-hidden">
+      <AnimatePresence>
       {emotes.map((e) => {
         const emote = EMOTES[e.emoteId];
         return (
-          <div
+          <motion.div
             key={e.uid}
-            className="absolute bottom-20 animate-float-up"
+            className="absolute bottom-20"
             style={{ left: `${e.x}%` }}
+            initial={{ opacity: 0, y: 60, scale: 0.5 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -40, scale: 0.8 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 15 }}
           >
             <div className="bg-black/70 backdrop-blur-sm rounded-2xl px-4 py-3 flex flex-col items-center gap-1 w-44">
               <span className="text-4xl">{emote.emoji}</span>
@@ -57,9 +63,10 @@ export default function EmoteOverlay({ code }: Props) {
                 </span>
               </div>
             </div>
-          </div>
+          </motion.div>
         );
       })}
+      </AnimatePresence>
     </div>
   );
 }

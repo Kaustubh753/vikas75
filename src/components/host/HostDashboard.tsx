@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 import { getPusherClient, getRoomChannel } from '@/lib/pusher-client';
@@ -182,21 +183,23 @@ export default function HostDashboard({ code, hostId }: Props) {
 
         {/* Advance button */}
         {room.phase !== 'judging' && room.phase !== 'game-over' && (
-          <button
+          <motion.button
             onClick={handleAdvance}
             disabled={loading}
             className="w-full h-14 bg-[#FF9933] hover:bg-[#e8872a] disabled:opacity-40 text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95 mb-4 animate-pulse-ring"
+            whileTap={{ scale: 0.95 }}
           >
             {loading ? 'Working…' : getAdvanceLabel(room)}
-          </button>
+          </motion.button>
         )}
         {room.phase === 'game-over' && (
-          <button
+          <motion.button
             onClick={() => router.push('/host/setup')}
             className="w-full h-14 bg-[#FF9933] hover:bg-[#e8872a] text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95 mb-4"
+            whileTap={{ scale: 0.95 }}
           >
             New Game
-          </button>
+          </motion.button>
         )}
 
         {error && (

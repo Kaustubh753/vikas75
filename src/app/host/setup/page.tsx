@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import LogoLockup from '@/components/ui/LogoLockup';
 import type { GameMode } from '@/types/game';
@@ -60,32 +61,34 @@ export default function HostSetupPage() {
             Game Mode
           </p>
           <div className="grid grid-cols-2 gap-3">
-            <button
+            <motion.button
               onClick={() => setMode('friends')}
               className={`h-20 rounded-xl flex flex-col items-center justify-center gap-1 transition-all border-2 ${
                 mode === 'friends'
                   ? 'border-[#FF9933] bg-[#FF9933]/10 text-white'
                   : 'border-white/10 bg-white/5 text-white/50 hover:text-white/70'
               }`}
+              whileTap={{ scale: 0.95 }}
             >
               <span className="text-3xl">📱</span>
               <span className="font-[family-name:var(--font-bebas)] text-sm tracking-widest">
                 Friends Mode
               </span>
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               onClick={() => setMode('crowd')}
               className={`h-20 rounded-xl flex flex-col items-center justify-center gap-1 transition-all border-2 ${
                 mode === 'crowd'
                   ? 'border-[#FF9933] bg-[#FF9933]/10 text-white'
                   : 'border-white/10 bg-white/5 text-white/50 hover:text-white/70'
               }`}
+              whileTap={{ scale: 0.95 }}
             >
               <span className="text-3xl">📺</span>
               <span className="font-[family-name:var(--font-bebas)] text-sm tracking-widest">
                 Crowd Mode
               </span>
-            </button>
+            </motion.button>
           </div>
           <p className="text-white/40 text-xs mt-3 text-center font-[family-name:var(--font-inter)]">
             {mode === 'friends'
@@ -147,13 +150,14 @@ export default function HostSetupPage() {
           <p className="text-red-400 text-sm text-center animate-shake">{error}</p>
         )}
 
-        <button
+        <motion.button
           onClick={handleCreate}
           disabled={loading}
           className="w-full h-14 bg-[#FF9933] hover:bg-[#e8872a] disabled:opacity-40 disabled:cursor-not-allowed text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95"
+          whileTap={{ scale: 0.95 }}
         >
           {loading ? 'Creating…' : 'Create Room →'}
-        </button>
+        </motion.button>
       </div>
     </main>
   );
