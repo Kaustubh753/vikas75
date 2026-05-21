@@ -93,7 +93,7 @@ export default function HomePage({ initialCode }: Props) {
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder="e.g. Priya, Raj, The Jugaad King"
+                placeholder=""
                 className="w-full border-2 border-[#1a3a6e]/20 rounded-xl px-4 py-3 text-base text-[#1a3a6e] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1a3a6e]/30 focus:border-[#1a3a6e] bg-white transition-colors"
                 maxLength={24}
                 autoComplete="nickname"
