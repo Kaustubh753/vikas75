@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import LogoLockup from '@/components/ui/LogoLockup';
 import SocialLinks from '@/components/ui/SocialLinks';
@@ -22,16 +22,19 @@ export default function ProjectorLobby({ room }: Props) {
 
   const joinUrl = origin ? `${origin}/?code=${room.code}` : `Join → ${room.code}`;
 
-  // Floating particles
-  const particles = Array.from({ length: 20 }, (_, i) => ({
-    id: i,
-    left: `${5 + Math.random() * 90}%`,
-    top: `${5 + Math.random() * 90}%`,
-    size: 3 + Math.floor(Math.random() * 5),
-    delay: `${Math.random() * 4}s`,
-    duration: `${3 + Math.random() * 3}s`,
-    color: ['#FF9933', '#FFFFFF', '#138808', '#FFD700'][Math.floor(Math.random() * 4)],
-  }));
+  // Stable particles — generated once, never on re-render
+  const particlesRef = useRef(
+    Array.from({ length: 20 }, (_, i) => ({
+      id: i,
+      left: `${5 + Math.random() * 90}%`,
+      top: `${5 + Math.random() * 90}%`,
+      size: 3 + Math.floor(Math.random() * 5),
+      delay: `${Math.random() * 4}s`,
+      duration: `${3 + Math.random() * 3}s`,
+      color: ['#FF9933', '#FFFFFF', '#138808', '#FFD700'][Math.floor(Math.random() * 4)],
+    }))
+  );
+  const particles = particlesRef.current;
 
   return (
     <div className="relative w-full h-full bg-[#0d1b2e] flex flex-col overflow-hidden">

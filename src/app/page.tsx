@@ -97,7 +97,6 @@ export default function HomePage() {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Enter your name"
                 maxLength={20}
                 autoFocus
                 className="w-full h-14 rounded-xl border-2 border-white/20 bg-white/5 text-white px-4 text-lg focus:outline-none focus:border-[#FF9933] focus:ring-2 focus:ring-[#FF9933]/40 placeholder-white/30 transition-all"

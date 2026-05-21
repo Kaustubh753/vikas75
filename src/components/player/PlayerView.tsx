@@ -97,22 +97,26 @@ export default function PlayerView({ code }: Props) {
   }
 
   async function handleSubmit(card: SchemeCard, explanation: string) {
-    await fetch('/api/game', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'submit',
-        code,
-        submission: {
-          playerId,
-          playerName,
-          avatarId,
-          schemeCard: card,
-          explanation,
-          submittedAt: Date.now(),
-        },
-      }),
-    });
+    try {
+      await fetch('/api/game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'submit',
+          code,
+          submission: {
+            playerId,
+            playerName,
+            avatarId,
+            schemeCard: card,
+            explanation,
+            submittedAt: Date.now(),
+          },
+        }),
+      });
+    } catch {
+      // Network error — player can retry by pressing submit again
+    }
   }
 
   async function handleEmote(emoteId: EmoteId) {

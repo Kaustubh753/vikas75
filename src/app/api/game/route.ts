@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
 
       case 'submit': {
         const { code, submission } = body as { code: string; submission: Submission };
-        const room = await getRoom(code);
+        const room = await getRoom(code?.toUpperCase());
         if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
         if (room.phase !== 'submission') {
           return NextResponse.json({ error: 'Not in submission phase' }, { status: 400 });
