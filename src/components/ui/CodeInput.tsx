@@ -73,11 +73,12 @@ export default function CodeInput({ value, onChange, disabled }: Props) {
   }
 
   return (
-    <div className="flex gap-3 justify-center">
+    <div className="flex gap-3 justify-center" role="group" aria-label="Room code — enter 4 letters">
       {chars.map((char, i) => (
         <input
           key={i}
           ref={el => { refs.current[i] = el; }}
+          aria-label={`Room code letter ${i + 1} of 4`}
           type="text"
           inputMode="text"
           autoCapitalize="characters"

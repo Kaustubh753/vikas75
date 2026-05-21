@@ -1,11 +1,14 @@
 import type {
   GameRoom,
   GamePhase,
+  GameMode,
   Player,
+  AvatarId,
   SchemeCard,
   ChallengeCard,
   Submission,
   JudgeVerdict,
+  ChatMessage,
 } from '@/types/game';
 import challengesData from '@/../context/cards_challenges.json';
 import schemesData from '@/../context/cards_schemes.json';
@@ -15,7 +18,8 @@ const schemes = schemesData as SchemeCard[];
 
 const HAND_SIZE = 7;
 const DEFAULT_TOTAL_ROUNDS = 5;
-const SUBMISSION_TIMER_MS = 90_000;
+const DEFAULT_TIMER_DURATION = 90; // seconds
+const MAX_CHAT_MESSAGES = 20;
 
 export function generateRoomCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // no I, O to avoid confusion
@@ -31,38 +35,52 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-export function createRoom(hostId: string, hostName: string, totalRounds = DEFAULT_TOTAL_ROUNDS): GameRoom {
-  const code = generateRoomCode();
-  const host: Player = {
-    id: hostId,
-    name: hostName,
-    score: 0,
-    hand: dealHand(),
-    joinedRound: 0,
-  };
+// Always deals from the full pool — supports 15+ players, allows overlapping hands
+export function dealHand(): SchemeCard[] {
+  return shuffle([...schemes]).slice(0, HAND_SIZE);
+}
 
+export function createRoom(
+  hostId: string,
+  hostName: string,
+  totalRounds = DEFAULT_TOTAL_ROUNDS,
+  timerDuration = DEFAULT_TIMER_DURATION,
+  gameMode: GameMode = 'crowd',
+): GameRoom {
+  const code = generateRoomCode();
   return {
     code,
     hostId,
+    hostName,
     phase: 'lobby',
     round: 0,
     totalRounds,
-    players: { [hostId]: host },
+    timerDuration,
+    gameMode,
+    players: {},  // host is not a player
     currentChallenge: null,
     submissions: {},
     lastVerdict: null,
     timerEndsAt: null,
     cardSetId: 'vikas75',
     createdAt: Date.now(),
+    messages: [],
   };
 }
 
-// Always deals from the full pool — supports 15+ players, allows overlapping hands
-export function dealHand(): SchemeCard[] {
-  return shuffle([...schemes]).slice(0, HAND_SIZE);
+export function updateSettings(
+  room: GameRoom,
+  settings: { totalRounds?: number; timerDuration?: number; gameMode?: GameMode },
+): GameRoom {
+  return {
+    ...room,
+    totalRounds: settings.totalRounds ?? room.totalRounds,
+    timerDuration: settings.timerDuration ?? room.timerDuration,
+    gameMode: settings.gameMode ?? room.gameMode,
+  };
 }
 
-export function addPlayer(room: GameRoom, playerId: string, playerName: string): GameRoom {
+export function addPlayer(room: GameRoom, playerId: string, playerName: string, avatarId: AvatarId): GameRoom {
   return {
     ...room,
     players: {
@@ -70,6 +88,7 @@ export function addPlayer(room: GameRoom, playerId: string, playerName: string):
       [playerId]: {
         id: playerId,
         name: playerName,
+        avatarId,
         score: 0,
         hand: dealHand(),
         joinedRound: room.round,
@@ -82,7 +101,9 @@ export function startRound(room: GameRoom): GameRoom {
   const nextRound = room.round + 1;
   const usedIds = challenges.slice(0, nextRound - 1).map((c) => c.id);
   const remainingChallenges = challenges.filter((c) => !usedIds.includes(c.id));
-  const challenge = shuffle(remainingChallenges)[0];
+  // If all challenges exhausted (> 30 rounds), cycle from the beginning
+  const pool = remainingChallenges.length > 0 ? remainingChallenges : challenges;
+  const challenge = shuffle(pool)[0] ?? challenges[0];
 
   return {
     ...room,
@@ -99,7 +120,7 @@ export function startSubmission(room: GameRoom): GameRoom {
   return {
     ...room,
     phase: 'submission',
-    timerEndsAt: Date.now() + SUBMISSION_TIMER_MS,
+    timerEndsAt: Date.now() + room.timerDuration * 1000,
   };
 }
 
@@ -115,11 +136,15 @@ export function addSubmission(room: GameRoom, submission: Submission): GameRoom 
 
 export function applyVerdict(room: GameRoom, verdict: JudgeVerdict): GameRoom {
   const players = { ...room.players };
-  if (players[verdict.winnerId]) {
-    players[verdict.winnerId] = {
-      ...players[verdict.winnerId],
-      score: players[verdict.winnerId].score + 2 + (verdict.bonusPoint ? 1 : 0),
-    };
+
+  // Award points to all ranked players (1st=3, 2nd=2, 3rd=1)
+  for (const ranking of verdict.rankings) {
+    if (players[ranking.playerId]) {
+      players[ranking.playerId] = {
+        ...players[ranking.playerId],
+        score: players[ranking.playerId].score + ranking.gamePoints + (ranking.bonusPoint ? 1 : 0),
+      };
+    }
   }
 
   return {
@@ -141,7 +166,7 @@ export function advancePhase(room: GameRoom): GameRoom {
     case 'reveal':
       return { ...room, phase: 'judging' };
     case 'judging':
-      return room; // waiting for AI verdict
+      return room; // AI judge handles transition to 'winner'
     case 'winner':
       if (room.round >= room.totalRounds) {
         return { ...room, phase: 'game-over' };
@@ -154,11 +179,16 @@ export function advancePhase(room: GameRoom): GameRoom {
   }
 }
 
+export function addMessage(room: GameRoom, message: ChatMessage): GameRoom {
+  const messages = [...room.messages, message].slice(-MAX_CHAT_MESSAGES);
+  return { ...room, messages };
+}
+
 export function getLeaderboard(room: GameRoom): Player[] {
   return Object.values(room.players).sort((a, b) => b.score - a.score);
 }
 
 export function allPlayersSubmitted(room: GameRoom): boolean {
   const playerIds = Object.keys(room.players);
-  return playerIds.every((id) => room.submissions[id]);
+  return playerIds.length > 0 && playerIds.every((id) => room.submissions[id]);
 }

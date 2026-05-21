@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { GameRoom } from '@/types/game';
-import { getPusherClient, getRoomChannel } from '@/lib/pusher';
+import { getPusherClient, getRoomChannel } from '@/lib/pusher-client';
 
 interface Props { room: GameRoom }
 
