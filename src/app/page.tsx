@@ -17,34 +17,22 @@ export default function HomePage() {
   const [avatarId, setAvatarId] = useState<AvatarId>('a1');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const shownIdleToast = useRef(false);
+  const logoClickCount = useRef(0);
+  const logoEasterEggShown = useRef(false);
 
-  // Easter egg: idle toast after 30 seconds of inactivity
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
-
-    const reset = () => {
-      clearTimeout(timer);
-      if (shownIdleToast.current) return;
-      timer = setTimeout(() => {
-        if (shownIdleToast.current) return;
-        shownIdleToast.current = true;
-        toast("Still deciding? This game was built faster than you're making this decision. — Kaustubh & Claude 🤖", {
-          duration: 5000,
-          position: 'bottom-center',
-        });
-      }, 30000);
-    };
-
-    reset();
-    window.addEventListener('click', reset);
-    window.addEventListener('keydown', reset);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('click', reset);
-      window.removeEventListener('keydown', reset);
-    };
-  }, []);
+  function handleLogoClick() {
+    if (logoEasterEggShown.current) return;
+    logoClickCount.current += 1;
+    if (logoClickCount.current === 7) {
+      logoEasterEggShown.current = true;
+      logoClickCount.current = 0;
+      toast("Claude wrote the code. I wrote the prompt. Tomato tomato.\n— Kaustubh", {
+        duration: 8000,
+        position: 'bottom-center',
+        style: { background: '#1a3a6e', color: '#ffffff' },
+      });
+    }
+  }
 
   useEffect(() => {
     // Try to restore session
@@ -89,7 +77,9 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-[#0d1b2e] flex flex-col items-center justify-center px-4 py-8">
       <div className="w-full max-w-sm flex flex-col items-center">
-        <LogoLockup size="lg" className="mb-4" />
+        <button onClick={handleLogoClick} className="focus:outline-none">
+          <LogoLockup size="lg" className="mb-4" />
+        </button>
 
         {/* Tricolour bar */}
         <div className="w-full h-1.5 flex mb-8 rounded-full overflow-hidden">
