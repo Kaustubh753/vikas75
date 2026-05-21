@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
+import toast from 'react-hot-toast';
 import { getPusherClient, getRoomChannel } from '@/lib/pusher-client';
 import LogoLockup from '@/components/ui/LogoLockup';
 import ConnectionBanner from '@/components/ui/ConnectionBanner';
@@ -83,8 +84,21 @@ export default function HostDashboard({ code, hostId }: Props) {
     };
   }, [code]);
 
+  // Warn before leaving during an active game
+  useEffect(() => {
+    if (!room || room.phase === 'lobby' || room.phase === 'game-over') return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [room?.phase]);
+
   async function handleAdvance() {
     if (!room) return;
+    // Client-side min-players guard
+    if (room.phase === 'lobby' && Object.values(room.players).length < 2) {
+      toast.error('Need at least 2 players to start.');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -100,6 +114,26 @@ export default function HostDashboard({ code, hostId }: Props) {
       setError('Network error');
     }
     setLoading(false);
+  }
+
+  async function handleCopyJoinLink() {
+    const url = `${origin}/?code=${code}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Join link copied!');
+    } catch {
+      toast.error('Could not copy — try manually');
+    }
+  }
+
+  async function handleShare() {
+    const url = `${origin}/?code=${code}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Vikas 75', text: `Join my Vikas 75 game! Room code: ${code}`, url }); } catch { /* cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(url).catch(() => {});
+      toast.success('Link copied!');
+    }
   }
 
   async function handleUpdateSettings() {
@@ -141,8 +175,17 @@ export default function HostDashboard({ code, hostId }: Props) {
           <p className="text-white/40 text-xs uppercase tracking-widest mb-1 font-[family-name:var(--font-inter)]">
             Room Code
           </p>
-          <div className="font-[family-name:var(--font-bebas)] text-[#FF9933] text-7xl tracking-[0.2em] leading-none">
-            {code}
+          <div className="flex items-center justify-center gap-3">
+            <div className="font-[family-name:var(--font-bebas)] text-[#FF9933] text-7xl tracking-[0.2em] leading-none">
+              {code}
+            </div>
+            <button
+              onClick={handleCopyJoinLink}
+              title="Copy join link"
+              className="text-white/40 hover:text-[#FF9933] transition-colors mt-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
           </div>
         </div>
 
@@ -155,6 +198,13 @@ export default function HostDashboard({ code, hostId }: Props) {
             <p className="text-white/40 text-xs mt-2 font-[family-name:var(--font-inter)]">
               {joinUrl}
             </p>
+            <button
+              onClick={handleShare}
+              className="mt-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-[family-name:var(--font-inter)] transition-all flex items-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              Share Link
+            </button>
           </div>
         )}
 

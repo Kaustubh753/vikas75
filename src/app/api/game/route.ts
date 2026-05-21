@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { after } from 'next/server';
-import { getRoom, setRoom } from '@/lib/redis';
+import { getRoom, setRoom, checkRoomCreationLimit } from '@/lib/redis';
 import { broadcastRoom, pusherServer, getRoomChannel } from '@/lib/pusher';
 import {
   createRoom,
+  generateRoomCode,
   addPlayer,
   advancePhase,
   addSubmission,
@@ -37,7 +38,7 @@ function getIp(req: NextRequest): string {
 
 function sanitizeName(name: unknown): string {
   if (typeof name !== 'string') return '';
-  return name.trim().replace(/[<>&"']/g, '').slice(0, 24);
+  return name.replace(/[<>]/g, '').trim().slice(0, 30);
 }
 
 export async function POST(req: NextRequest) {
@@ -51,7 +52,22 @@ export async function POST(req: NextRequest) {
         const safeName = sanitizeName(hostName);
         if (!safeName) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
         if (!hostId || typeof hostId !== 'string') return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
-        const room = createRoom(hostId, safeName, totalRounds, timerDuration, gameMode);
+
+        // Rate limit: max 10 rooms per IP per hour
+        const ip = getIp(req);
+        if (!(await checkRoomCreationLimit(ip))) {
+          return NextResponse.json({ error: 'Too many rooms created. Please try again later.' }, { status: 429 });
+        }
+
+        // Generate a unique room code — retry up to 10 times to avoid collisions
+        let roomCode: string | null = null;
+        for (let attempt = 0; attempt < 10; attempt++) {
+          const candidate = generateRoomCode();
+          if (!(await getRoom(candidate))) { roomCode = candidate; break; }
+        }
+        if (!roomCode) return NextResponse.json({ error: 'Could not generate unique room code — try again' }, { status: 500 });
+
+        const room = createRoom(hostId, safeName, roomCode, totalRounds, timerDuration, gameMode);
         await setRoom(room);
         return NextResponse.json({ room });
       }
@@ -87,6 +103,10 @@ export async function POST(req: NextRequest) {
         const room = await getRoom(code?.toUpperCase());
         if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
         if (hostId && room.hostId !== hostId) return NextResponse.json({ error: 'Not the host' }, { status: 403 });
+        // Require at least 2 players before leaving lobby
+        if (room.phase === 'lobby' && Object.keys(room.players).length < 2) {
+          return NextResponse.json({ error: 'Need at least 2 players to start.' }, { status: 400 });
+        }
         const updated = advancePhase(room);
         await setRoom(updated);
         await broadcastRoom(updated);

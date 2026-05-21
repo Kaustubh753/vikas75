@@ -93,6 +93,25 @@ body {
 /* Smooth scroll */
 html { scroll-behavior: smooth; }
 
+/* Prevent iOS Safari from zooming in on focused inputs */
+input, textarea, select { font-size: max(16px, 1em); }
+
+/* Portrait orientation lock for projector */
+.portrait-lock {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: #0d1b2e;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+@media (orientation: portrait) {
+  .portrait-lock { display: flex; }
+}
+
 /* Glassmorphism card */
 .glass-card {
   background: rgba(255, 255, 255, 0.08);

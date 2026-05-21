@@ -30,6 +30,7 @@ export default function PlayerView({ code }: Props) {
   const [hydrated, setHydrated] = useState(false);
   const toastedJoin = useRef(false);
   const prevPhaseRef = useRef<string | null>(null);
+  const visibilityNotifiedRef = useRef(false);
 
   // Load identity from localStorage
   useEffect(() => {
@@ -193,6 +194,33 @@ export default function PlayerView({ code }: Props) {
     const t = setTimeout(fire, delay);
     return () => clearTimeout(t);
   }, [room?.timerEndsAt, room?.phase, code]);
+
+  // Warn before leaving during an active game
+  useEffect(() => {
+    if (!room || room.phase === 'lobby' || room.phase === 'game-over') return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [room?.phase]);
+
+  // Notify player when they switch tabs during submission with < 30s left
+  useEffect(() => {
+    if (!room || room.phase !== 'submission') { visibilityNotifiedRef.current = false; return; }
+    const handler = () => {
+      if (document.visibilityState !== 'visible' || !room.timerEndsAt) return;
+      const remaining = Math.ceil((room.timerEndsAt - Date.now()) / 1000);
+      if (remaining > 0 && remaining <= 30 && !visibilityNotifiedRef.current) {
+        visibilityNotifiedRef.current = true;
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification('Vikas 75 — Hurry!', { body: 'Round is ending soon.', icon: '/favicon.svg' });
+        } else {
+          toast('Hurry! Round is ending soon.', { icon: '⏰' });
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
+  }, [room?.phase, room?.timerEndsAt]);
 
   if (!hydrated || !room) {
     return (

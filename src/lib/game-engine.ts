@@ -43,11 +43,11 @@ export function dealHand(): SchemeCard[] {
 export function createRoom(
   hostId: string,
   hostName: string,
+  code: string,
   totalRounds = DEFAULT_TOTAL_ROUNDS,
   timerDuration = DEFAULT_TIMER_DURATION,
   gameMode: GameMode = 'crowd',
 ): GameRoom {
-  const code = generateRoomCode();
   return {
     code,
     hostId,

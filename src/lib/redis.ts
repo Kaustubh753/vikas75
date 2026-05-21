@@ -2,6 +2,7 @@ import type { GameRoom } from '@/types/game';
 
 // In-memory store used when Upstash env vars are absent (local dev without Redis)
 const devStore = new Map<string, { value: GameRoom; expiresAt: number }>();
+const devRateStore = new Map<string, { count: number; expiresAt: number }>();
 
 function isRedisConfigured(): boolean {
   return !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
@@ -62,6 +63,35 @@ export async function deleteRoom(code: string): Promise<void> {
     await getRedis().del(`${ROOM_PREFIX}${code}`);
   } catch {
     // Best-effort delete — ignore errors
+  }
+}
+
+// Returns true if the request is within the limit, false if exceeded.
+// Uses Redis INCR in production; in-memory fallback in dev.
+export async function checkRoomCreationLimit(ip: string): Promise<boolean> {
+  const key = `ratelimit:create-room:${ip}`;
+  const max = 10;
+  const windowSec = 3600; // 1 hour
+
+  if (!isRedisConfigured()) {
+    const now = Date.now();
+    const entry = devRateStore.get(key);
+    if (!entry || entry.expiresAt < now) {
+      devRateStore.set(key, { count: 1, expiresAt: now + windowSec * 1000 });
+      return true;
+    }
+    if (entry.count >= max) return false;
+    entry.count++;
+    return true;
+  }
+
+  try {
+    const redis = getRedis();
+    const count: number = await redis.incr(key);
+    if (count === 1) await redis.expire(key, windowSec);
+    return count <= max;
+  } catch {
+    return true; // fail open — don't block room creation on Redis errors
   }
 }
 

@@ -84,6 +84,14 @@ export default function ProjectorView({ code }: Props) {
 
   return (
     <div className="w-screen h-screen overflow-hidden relative">
+      {/* Portrait orientation guard — hidden in landscape via CSS media query in globals.css */}
+      <div className="portrait-lock">
+        <span style={{ fontSize: 64 }}>🔄</span>
+        <p className="font-[family-name:var(--font-bebas)] text-white text-3xl tracking-wide text-center px-8">
+          Please rotate your screen to landscape
+        </p>
+      </div>
+
       <AnimatePresence mode="wait">
         <motion.div
           key={room.phase}

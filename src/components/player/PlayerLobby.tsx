@@ -1,5 +1,6 @@
 'use client';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import Avatar from '@/lib/avatars';
 import type { GameRoom } from '@/types/game';
 
@@ -14,6 +15,16 @@ export default function PlayerLobby({ room, playerId, onStart, startLoading }: P
   const me = room.players[playerId];
   const players = Object.values(room.players);
   const isHost = playerId === room.hostId;
+
+  async function handleShare() {
+    const url = `${window.location.origin}/?code=${room.code}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Vikas 75', text: `Join my Vikas 75 game! Room code: ${room.code}`, url }); } catch { /* cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(url).catch(() => {});
+      toast.success('Link copied!');
+    }
+  }
 
   return (
     <div className="flex flex-col items-center gap-6 py-6 px-4">
@@ -80,15 +91,24 @@ export default function PlayerLobby({ room, playerId, onStart, startLoading }: P
         </div>
       </div>
 
+      {/* Share button */}
+      <button
+        onClick={handleShare}
+        className="flex items-center gap-2 text-white/50 hover:text-white/80 text-sm font-[family-name:var(--font-inter)] transition-colors"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Invite Friends
+      </button>
+
       {/* Start button for host */}
       {isHost && onStart && (
         <motion.button
           onClick={onStart}
-          disabled={startLoading || players.length < 1}
+          disabled={startLoading || players.length < 2}
           className="w-full max-w-xs h-14 bg-[#FF9933] hover:bg-[#e8872a] disabled:opacity-40 text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95 animate-pulse-ring"
           whileTap={{ scale: 0.95 }}
         >
-          {startLoading ? 'Starting…' : 'Start Game →'}
+          {startLoading ? 'Starting…' : players.length < 2 ? 'Waiting for players…' : 'Start Game →'}
         </motion.button>
       )}
     </div>
