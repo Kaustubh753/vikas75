@@ -20,6 +20,11 @@ export default function HostPanel({ code, hostId }: Props) {
   const [gameMode, setGameMode] = useState<GameMode>('crowd');
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [connState, setConnState] = useState<PusherConnectionState>('connecting');
+  const [projectorUrl, setProjectorUrl] = useState('');
+
+  // Must be declared before any early returns to satisfy rules of hooks
+  const players = useMemo(() => (room ? Object.values(room.players) : []), [room]);
+  const leaderboard = useMemo(() => [...players].sort((a: Player, b: Player) => b.score - a.score), [players]);
 
   useEffect(() => {
     fetch(`/api/game?code=${code}`)
@@ -38,6 +43,7 @@ export default function HostPanel({ code, hostId }: Props) {
     const channel = pusher.subscribe(getRoomChannel(code));
     channel.bind('game:room-updated', (data: GameRoom) => setRoom(data));
     const cleanupConn = onConnectionStateChange(setConnState);
+    setProjectorUrl(`${window.location.origin}/projector/${code}`);
     return () => {
       channel.unbind_all();
       pusher.unsubscribe(getRoomChannel(code));
@@ -93,12 +99,9 @@ export default function HostPanel({ code, hostId }: Props) {
     </div>
   );
 
-  const players = useMemo(() => Object.values(room.players), [room.players]);
-  const leaderboard = useMemo(() => [...players].sort((a: Player, b: Player) => b.score - a.score), [players]);
   const submittedCount = Object.keys(room.submissions).length;
   const isJudging = room.phase === 'judging';
   const isOver = room.phase === 'game-over';
-  const projectorUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/projector/${code}`;
 
   const isDisconnected = connState === 'unavailable' || connState === 'failed' || connState === 'disconnected';
   const isReconnecting = connState === 'connecting';

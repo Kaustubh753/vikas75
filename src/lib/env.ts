@@ -21,12 +21,12 @@ export function validateEnv(): void {
     );
   }
 
-  const warnings: string[] = [];
-  for (const [key, hint] of Object.entries(OPTIONAL_SERVER_VARS)) {
-    if (!process.env[key]) warnings.push(`  • ${key} not set — ${hint}`);
-  }
-  if (warnings.length > 0 && process.env.NODE_ENV !== 'test') {
-    // Use process.stderr directly so it appears during startup without polluting logs
-    process.stderr.write(`[vikas75] Optional env vars missing:\n${warnings.join('\n')}\n`);
+  // Optional vars — log to stdout only in development so Vercel doesn't treat them as errors
+  if (process.env.NODE_ENV === 'development') {
+    for (const [key, hint] of Object.entries(OPTIONAL_SERVER_VARS)) {
+      if (!process.env[key]) {
+        process.stdout.write(`[vikas75] ${key} not set — ${hint}\n`);
+      }
+    }
   }
 }
