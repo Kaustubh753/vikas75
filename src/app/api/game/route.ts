@@ -138,6 +138,20 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
+      case 'timer-expire': {
+        const { code } = body;
+        const room = await getRoom(code?.toUpperCase());
+        if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+        // Idempotent — only act if still in submission and timer has actually elapsed
+        if (room.phase !== 'submission') return NextResponse.json({ ok: true });
+        if (!room.timerEndsAt || Date.now() < room.timerEndsAt) return NextResponse.json({ ok: true });
+        // Advance to reveal — players who didn't submit are simply skipped (no entry in submissions)
+        const revealed = advancePhase(room);
+        await setRoom(revealed);
+        await broadcastRoom(revealed);
+        return NextResponse.json({ ok: true });
+      }
+
       case 'emote': {
         const { code, emote } = body as { code: string; emote: EmoteEvent };
         if (!rateLimit(`emote:${emote?.playerId ?? 'anon'}`, 20, 60_000)) {

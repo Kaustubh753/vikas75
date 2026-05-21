@@ -125,8 +125,20 @@ export function startSubmission(room: GameRoom): GameRoom {
 }
 
 export function addSubmission(room: GameRoom, submission: Submission): GameRoom {
+  const player = room.players[submission.playerId];
+  const updatedPlayers = player
+    ? {
+        ...room.players,
+        [submission.playerId]: {
+          ...player,
+          hand: player.hand.filter((c) => c.id !== submission.schemeCard.id),
+        },
+      }
+    : room.players;
+
   return {
     ...room,
+    players: updatedPlayers,
     submissions: {
       ...room.submissions,
       [submission.playerId]: submission,

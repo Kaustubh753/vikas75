@@ -54,7 +54,7 @@ export default function PlayerView({ code }: Props) {
         const r: GameRoom = data.room;
         setRoom(r);
         const pid = localStorage.getItem('vikas75_playerId') ?? '';
-        if (pid && r.players[pid]?.hand?.length) {
+        if (pid && r.players[pid]) {
           setCachedHand(r.players[pid].hand);
         }
         if (!toastedJoin.current && pid && r.players[pid]) {
@@ -79,7 +79,7 @@ export default function PlayerView({ code }: Props) {
     const onRoomUpdated = (updated: GameRoom) => {
       setRoom(updated);
       const pid = localStorage.getItem('vikas75_playerId') ?? '';
-      if (pid && updated.players[pid]?.hand?.length) {
+      if (pid && updated.players[pid]) {
         setCachedHand(updated.players[pid].hand);
       }
     };
@@ -176,6 +176,22 @@ export default function PlayerView({ code }: Props) {
       }),
     });
   }
+
+  // When submission timer expires, tell the server to advance (idempotent — server checks timerEndsAt)
+  useEffect(() => {
+    if (!room?.timerEndsAt || room.phase !== 'submission') return;
+    const delay = room.timerEndsAt - Date.now();
+    const fire = () => {
+      fetch('/api/game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'timer-expire', code }),
+      }).catch(() => {});
+    };
+    if (delay <= 0) { fire(); return; }
+    const t = setTimeout(fire, delay);
+    return () => clearTimeout(t);
+  }, [room?.timerEndsAt, room?.phase, code]);
 
   if (!hydrated || !room) {
     return (

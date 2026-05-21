@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getPusherClient, getRoomChannel } from '@/lib/pusher-client';
 import EmoteOverlay from '@/components/projector/EmoteOverlay';
@@ -38,6 +38,23 @@ export default function ProjectorView({ code }: Props) {
       pusher.unsubscribe(getRoomChannel(code));
     };
   }, [code]);
+
+  // Backup timer-expire trigger — projector is always connected, so this is more reliable than player phones
+  const timerExpire = useCallback(() => {
+    fetch('/api/game', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'timer-expire', code }),
+    }).catch(() => {});
+  }, [code]);
+
+  useEffect(() => {
+    if (!room?.timerEndsAt || room.phase !== 'submission') return;
+    const delay = room.timerEndsAt - Date.now();
+    if (delay <= 0) { timerExpire(); return; }
+    const t = setTimeout(timerExpire, delay);
+    return () => clearTimeout(t);
+  }, [room?.timerEndsAt, room?.phase, timerExpire]);
 
   function renderPhase() {
     if (!room) return null;
