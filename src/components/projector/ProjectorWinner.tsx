@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import Avatar from '@/lib/avatars';
 import Confetti from '@/components/ui/Confetti';
 import { getMusicManager } from '@/lib/music';
+import { vibrate } from '@/lib/vibrate';
 import type { GameRoom } from '@/types/game';
 
 interface Props { room: GameRoom }
@@ -12,6 +13,9 @@ export default function ProjectorWinner({ room }: Props) {
   // If verdict already exists on mount (mid-phase refresh), skip the suspense stage
   const [stage, setStage] = useState(() => room.lastVerdict ? 1 : 0);
   const prevRound = useRef(room.round);
+  // stageRef lets the one-shot timer effect read the *current* stage without a stale closure
+  const stageRef = useRef(stage);
+  stageRef.current = stage;
 
   const verdict = room.lastVerdict;
   const rankings = verdict?.rankings ?? [];
@@ -25,18 +29,18 @@ export default function ProjectorWinner({ room }: Props) {
 
   useEffect(() => {
     getMusicManager().play('winner');
-    // If already at stage 1+ (mid-phase refresh), only schedule the stage 2 transition
-    if (stage >= 1) {
+    // Read current stage via ref — avoids stale closure if round resets before timers fire
+    if (stageRef.current >= 1) {
       const t2 = setTimeout(() => setStage(2), 4000);
       return () => clearTimeout(t2);
     }
     const t1 = setTimeout(() => {
-      try { (navigator as Navigator & { vibrate?: (p: number | number[]) => void }).vibrate?.([100, 50, 100]); } catch {}
+      vibrate([100, 50, 100]);
       setStage(1);
     }, 4000);
     const t2 = setTimeout(() => setStage(2), 8000);
     return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps — intentional one-shot on mount
 
   if (!verdict) return null;
   const winner = room.players[verdict.winnerId];

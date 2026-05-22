@@ -1,3 +1,4 @@
+import type { Redis as RedisType } from '@upstash/redis';
 import type { GameRoom } from '@/types/game';
 
 // In-memory store used when Upstash env vars are absent (local dev without Redis)
@@ -18,17 +19,20 @@ function warnIfMissingRedis() {
   }
 }
 
-let redisInstance: ReturnType<typeof createRedis> | null = null;
+let redisInstance: RedisType | null = null;
 
-function createRedis() {
-  const { Redis } = require('@upstash/redis');
+function createRedis(): RedisType {
+  // Dynamic require keeps the module out of the bundle when Redis is unconfigured (local dev).
+  // `import type` above gives us the static type without a runtime import.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { Redis } = require('@upstash/redis') as { Redis: new (opts: { url: string; token: string }) => RedisType };
   return new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL,
-    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    url: process.env.UPSTASH_REDIS_REST_URL!,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN!,
   });
 }
 
-function getRedis() {
+function getRedis(): RedisType {
   if (!redisInstance) redisInstance = createRedis();
   return redisInstance;
 }

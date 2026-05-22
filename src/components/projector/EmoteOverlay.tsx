@@ -4,17 +4,9 @@ import { motion } from 'framer-motion';
 import { getPusherClient, getRoomChannel } from '@/lib/pusher-client';
 import Avatar from '@/lib/avatars';
 import { EMOTES } from '@/lib/emotes';
-import type { AvatarId, EmoteId } from '@/types/game';
+import type { EmoteEvent } from '@/types/game';
 
-interface EmotePayload {
-  playerId: string;
-  playerName: string;
-  avatarId: AvatarId;
-  emote: string;
-  timestamp: number;
-}
-
-interface FloatingEmote extends EmotePayload {
+interface FloatingEmote extends EmoteEvent {
   uid: string;
   x: number;
 }
@@ -29,7 +21,7 @@ export default function EmoteOverlay({ code }: Props) {
   useEffect(() => {
     const channel = getPusherClient().subscribe(getRoomChannel(code));
 
-    const onEmote = (payload: EmotePayload) => {
+    const onEmote = (payload: EmoteEvent) => {
       const uid = `${payload.playerId}-${payload.timestamp ?? Date.now()}`;
       const x = 8 + Math.random() * 78;
       const entry: FloatingEmote = { ...payload, uid, x };
@@ -48,7 +40,7 @@ export default function EmoteOverlay({ code }: Props) {
   return (
     <div className="pointer-events-none fixed inset-0 z-[100] overflow-hidden">
       {emotes.map((e) => {
-        const emoteData = EMOTES[e.emote as EmoteId];
+        const emoteData = EMOTES[e.emote];
         if (!emoteData) return null;
         return (
           <motion.div

@@ -1,6 +1,18 @@
 import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { listActiveRooms, getRoom } from '@/lib/redis';
+import type { GameRoom } from '@/types/game';
+
+/** Strip player hands before returning rooms to the admin — hands are private card data. */
+function scrubRoom(room: GameRoom): Omit<GameRoom, 'players'> & { players: Record<string, Omit<GameRoom['players'][string], 'hand'>> } {
+  const players = Object.fromEntries(
+    Object.entries(room.players).map(([id, p]) => {
+      const { hand: _hand, ...rest } = p;
+      return [id, rest];
+    })
+  );
+  return { ...room, players };
+}
 
 function timingSafeStringEqual(a: string, b: string): boolean {
   // Pad to same length to avoid length-based timing leak
@@ -39,7 +51,8 @@ export async function GET(req: NextRequest) {
   if (action === 'rooms') {
     const codes = await listActiveRooms();
     const rooms = await Promise.all(codes.map((c) => getRoom(c)));
-    return NextResponse.json({ rooms: rooms.filter(Boolean) });
+    // Scrub player hands — card data is private and admins don't need it
+    return NextResponse.json({ rooms: rooms.filter(Boolean).map((r) => scrubRoom(r!)) });
   }
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
 }

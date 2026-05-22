@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { getPusherClient, getRoomChannel } from '@/lib/pusher-client';
+import { vibrate } from '@/lib/vibrate';
 import ConnectionBanner from '@/components/ui/ConnectionBanner';
 import MuteButton from '@/components/ui/MuteButton';
 import LogoLockup from '@/components/ui/LogoLockup';
@@ -200,14 +201,14 @@ export default function PlayerView({ code }: Props) {
         return;
       }
       toast.success('Answer submitted!');
-      try { (navigator as Navigator & { vibrate?: (p: number | number[]) => void }).vibrate?.(50); } catch {}
+      vibrate(50);
     } catch {
       toast.error('Network error — please check your connection and try again');
     }
   }
 
   async function handleEmote(emoteId: EmoteId) {
-    try { (navigator as Navigator & { vibrate?: (p: number | number[]) => void }).vibrate?.(30); } catch {}
+    vibrate(30);
     await fetch('/api/game', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

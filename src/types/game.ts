@@ -88,8 +88,8 @@ export interface EmoteEvent {
   playerId: string;
   playerName: string;
   avatarId: AvatarId;
-  emoteId: EmoteId;
-  sentAt: number;
+  emote: EmoteId;       // matches the field name sent by POST /api/game { action: 'emote' }
+  timestamp: number;    // matches the field name sent by the server
 }
 
 export interface GameRoom {
