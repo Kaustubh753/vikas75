@@ -15,16 +15,16 @@ export default function PlayerChallengeReveal({ challenge }: Props) {
       </p>
 
       <div className="w-full max-w-sm animate-slam-in">
-        {/* Physical card image — full width, card aspect ratio */}
+        {/* Physical card image — capped at 50vh so it never fills the full screen */}
         <div
           className="relative w-full rounded-2xl overflow-hidden shadow-2xl"
-          style={{ aspectRatio: '2.5 / 3.5' }}
+          style={{ aspectRatio: '2.5 / 3.5', maxHeight: '50vh' }}
         >
           <Image
             src={getChallengeCardImage(challenge.id)}
             alt={challenge.en}
             fill
-            className="object-cover"
+            className="object-contain"
             priority
             placeholder="blur"
             blurDataURL={BLUR_NAVY}

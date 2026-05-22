@@ -163,18 +163,18 @@ export default function PlayerSubmit({
           </div>
         )}
 
-        {/* Challenge card */}
+        {/* Challenge card — compact horizontal banner */}
         <div className="px-4">
           <div
-            className="rounded-xl border overflow-hidden"
+            className="rounded-xl border overflow-hidden flex gap-3"
             style={{
               background: 'rgba(255,255,255,0.06)',
               borderColor: 'rgba(255,255,255,0.12)',
               boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
             }}
           >
-            {/* Physical card image */}
-            <div className="relative w-full" style={{ aspectRatio: '2.5 / 3.5' }}>
+            {/* Small card thumbnail */}
+            <div className="relative flex-shrink-0" style={{ width: 72, height: 100 }}>
               <Image
                 src={getChallengeCardImage(challenge.id)}
                 alt={challenge.en}
@@ -185,15 +185,15 @@ export default function PlayerSubmit({
                 blurDataURL={BLUR_NAVY}
               />
             </div>
-            {/* Text below */}
-            <div className="p-4">
-              <p className="text-[#FF9933] uppercase mb-2 font-[family-name:var(--font-inter)]" style={{ fontSize: 11, letterSpacing: '0.08em', fontWeight: 500 }}>
+            {/* Text */}
+            <div className="py-3 pr-3 flex flex-col justify-center">
+              <p className="text-[#FF9933] uppercase mb-1 font-[family-name:var(--font-inter)]" style={{ fontSize: 11, letterSpacing: '0.08em', fontWeight: 500 }}>
                 Challenge
               </p>
-              <p className="text-white font-[family-name:var(--font-bebas)] tracking-wide leading-tight" style={{ fontSize: 18 }}>
+              <p className="text-white font-[family-name:var(--font-bebas)] tracking-wide leading-tight" style={{ fontSize: 16 }}>
                 {challenge.en}
               </p>
-              <p className="text-blue-200/80 font-[family-name:var(--font-devanagari)] mt-2 leading-relaxed" style={{ fontSize: 13 }}>
+              <p className="text-blue-200/80 font-[family-name:var(--font-devanagari)] mt-1 leading-relaxed" style={{ fontSize: 12 }}>
                 {challenge.hi}
               </p>
             </div>
@@ -205,7 +205,7 @@ export default function PlayerSubmit({
         </p>
 
         {/* Horizontal scrolling card tray with random tilt */}
-        <div className="overflow-x-auto" style={{ paddingTop: 16, paddingBottom: 16 }}>
+        <div className="overflow-x-auto overflow-y-hidden" style={{ paddingTop: 16, paddingBottom: 16 }}>
           <div className="flex gap-3 px-4" style={{ width: 'max-content' }}>
             {hand.map((card, index) => {
               const isExpanded = expanded === card.id;
