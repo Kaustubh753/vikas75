@@ -1,8 +1,10 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Avatar from '@/lib/avatars';
 import CardBack from '@/components/ui/CardBack';
 import type { GameRoom, Submission } from '@/types/game';
+import { getSchemeCardImage, BLUR_CREAM } from '@/lib/cards';
 
 interface Props { room: GameRoom }
 
@@ -32,24 +34,28 @@ function RevealCard({ sub, isRevealed }: { sub: Submission; isRevealed: boolean 
           WebkitBackfaceVisibility: 'hidden',
           transform: 'rotateY(180deg)',
         }}>
-          <div className="bg-[#faf8f0] rounded-2xl shadow-xl overflow-hidden h-full flex flex-col">
-            <div className="h-1.5 flex flex-shrink-0">
-              <div className="flex-1 bg-[#FF9933]" />
-              <div className="flex-1 bg-white border-t border-gray-100" />
-              <div className="flex-1 bg-[#138808]" />
+          <div className="rounded-2xl shadow-xl overflow-hidden h-full flex flex-col bg-[#0d1b35]">
+            {/* Physical card image — upper ~60% */}
+            <div className="relative flex-1 overflow-hidden">
+              <Image
+                src={getSchemeCardImage(sub.schemeCard.id)}
+                alt={sub.schemeCard.name}
+                fill
+                className="object-cover"
+                loading="lazy"
+                placeholder="blur"
+                blurDataURL={BLUR_CREAM}
+              />
             </div>
-            <div className="p-5 flex flex-col flex-1">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="rounded-lg overflow-hidden flex-shrink-0">
-                  <Avatar id={sub.avatarId} size={36} />
+            {/* Player info + explanation — lower portion */}
+            <div className="p-4 bg-[#0d1b35] flex-shrink-0">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="rounded-md overflow-hidden flex-shrink-0">
+                  <Avatar id={sub.avatarId} size={28} />
                 </div>
-                <p className="font-[family-name:var(--font-inter)] text-[#1a3a6e] font-bold text-sm">{sub.playerName}</p>
+                <p className="font-[family-name:var(--font-inter)] text-white font-bold text-xs">{sub.playerName}</p>
               </div>
-              <p className="font-[family-name:var(--font-bebas)] text-[#1a3a6e] text-lg tracking-wide leading-tight mb-2">
-                {sub.schemeCard.name}
-              </p>
-              <p className="font-[family-name:var(--font-devanagari)] text-[#1a3a6e]/60 text-sm mb-3">{sub.schemeCard.hi}</p>
-              <p className="font-[family-name:var(--font-inter)] text-gray-600 text-xs italic leading-relaxed flex-1">
+              <p className="font-[family-name:var(--font-inter)] text-white/70 text-xs italic leading-relaxed">
                 &ldquo;{sub.explanation}&rdquo;
               </p>
             </div>

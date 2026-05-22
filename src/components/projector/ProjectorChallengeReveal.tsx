@@ -1,8 +1,10 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { getMusicManager } from '@/lib/music';
 import type { GameRoom } from '@/types/game';
+import { getChallengeCardImage, BLUR_NAVY } from '@/lib/cards';
 
 interface Props { room: GameRoom }
 
@@ -69,41 +71,52 @@ export default function ProjectorChallengeReveal({ room }: Props) {
       }
 
       <div
-        className="animate-slam-in bg-[#1a3a6e] rounded-3xl shadow-2xl border border-white/10 flex flex-col items-center text-center"
-        style={{ minWidth: 640, maxWidth: 760, padding: '48px 64px' }}
+        className="animate-slam-in flex gap-12 items-center"
+        style={{ maxWidth: 960 }}
       >
-        <div className="w-full flex h-2 rounded-full overflow-hidden mb-8">
-          <div className="flex-1 bg-[#FF9933]" />
-          <div className="flex-1 bg-white" />
-          <div className="flex-1 bg-[#138808]" />
+        {/* Physical card image — large, centered, drop shadow */}
+        <div
+          className="relative flex-shrink-0 rounded-3xl overflow-hidden"
+          style={{
+            width: 420,
+            aspectRatio: '2.5 / 3.5',
+            boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 2px rgba(255,153,51,0.3)',
+          }}
+        >
+          <Image
+            src={getChallengeCardImage(challenge.id)}
+            alt={challenge.en}
+            fill
+            className="object-cover"
+            priority
+            placeholder="blur"
+            blurDataURL={BLUR_NAVY}
+          />
         </div>
 
-        <p className="text-white/50 text-xs uppercase tracking-[0.4em] font-[family-name:var(--font-inter)] mb-6">
-          Problem Statement
-        </p>
-
-        <h2
-          className="font-[family-name:var(--font-bebas)] text-white leading-tight tracking-wide mb-6"
-          style={{ fontSize: '52px' }}
-        >
-          {challenge.en}
-        </h2>
-
-        <p
-          className="font-[family-name:var(--font-devanagari)] text-blue-200 leading-relaxed"
-          style={{ fontSize: '28px' }}
-        >
-          {challenge.hi}
-        </p>
-
-        <div className="w-full flex h-2 rounded-full overflow-hidden mt-8 mb-4">
-          <div className="flex-1 bg-[#FF9933]" />
-          <div className="flex-1 bg-white" />
-          <div className="flex-1 bg-[#138808]" />
+        {/* Text alongside */}
+        <div className="flex flex-col text-left" style={{ maxWidth: 460 }}>
+          <p className="text-white/50 text-xs uppercase tracking-[0.4em] font-[family-name:var(--font-inter)] mb-5">
+            Problem Statement
+          </p>
+          <h2
+            className="font-[family-name:var(--font-bebas)] text-white leading-tight tracking-wide mb-5"
+            style={{ fontSize: '52px' }}
+          >
+            {challenge.en}
+          </h2>
+          <p
+            className="font-[family-name:var(--font-devanagari)] text-blue-200 leading-relaxed"
+            style={{ fontSize: '26px' }}
+          >
+            {challenge.hi}
+          </p>
+          <div className="flex h-1.5 rounded-full overflow-hidden mt-8" style={{ width: 120 }}>
+            <div className="flex-1 bg-[#FF9933]" />
+            <div className="flex-1 bg-white" />
+            <div className="flex-1 bg-[#138808]" />
+          </div>
         </div>
-        <p className="text-white/30 text-xs uppercase tracking-[0.4em] font-[family-name:var(--font-inter)]">
-          Vikas 75
-        </p>
       </div>
     </div>
   );
