@@ -109,6 +109,7 @@ export interface GameRoom {
   cardSetId: string;
   createdAt: number;
   messages: ChatMessage[]; // last 20 chat messages
+  usedChallengeIds: string[]; // tracks which challenge cards have been drawn this game
 }
 
 // Pusher event map

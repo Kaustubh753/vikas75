@@ -65,6 +65,7 @@ export function createRoom(
     cardSetId: 'vikas75',
     createdAt: Date.now(),
     messages: [],
+    usedChallengeIds: [],
   };
 }
 
@@ -99,9 +100,10 @@ export function addPlayer(room: GameRoom, playerId: string, playerName: string, 
 
 export function startRound(room: GameRoom): GameRoom {
   const nextRound = room.round + 1;
-  const usedIds = challenges.slice(0, nextRound - 1).map((c) => c.id);
+  // Use the per-room tracking of drawn challenge IDs (falls back to empty for old rooms)
+  const usedIds = room.usedChallengeIds ?? [];
   const remainingChallenges = challenges.filter((c) => !usedIds.includes(c.id));
-  // If all challenges exhausted (> 30 rounds), cycle from the beginning
+  // Cycle from the beginning once all 30 are exhausted
   const pool = remainingChallenges.length > 0 ? remainingChallenges : challenges;
   const challenge = shuffle(pool)[0] ?? challenges[0];
 
@@ -119,6 +121,7 @@ export function startRound(room: GameRoom): GameRoom {
     lastVerdict: null,
     timerEndsAt: null,
     players: refreshedPlayers,
+    usedChallengeIds: [...usedIds, challenge.id],
   };
 }
 
@@ -207,6 +210,7 @@ export function getLeaderboard(room: GameRoom): Player[] {
 }
 
 export function allPlayersSubmitted(room: GameRoom): boolean {
-  const playerIds = Object.keys(room.players);
-  return playerIds.length > 0 && playerIds.every((id) => room.submissions[id]);
+  // Only count players who were present before this round started (exclude mid-round late joiners)
+  const activePlayers = Object.values(room.players).filter((p) => p.joinedRound < room.round);
+  return activePlayers.length > 0 && activePlayers.every((p) => room.submissions[p.id]);
 }

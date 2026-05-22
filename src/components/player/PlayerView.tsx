@@ -47,7 +47,6 @@ export default function PlayerView({ code }: Props) {
   const [avatarId, setAvatarId] = useState<AvatarId>('a1');
   const [room, setRoom] = useState<GameRoom | null>(null);
   const [cachedHand, setCachedHand] = useState<SchemeCard[]>([]);
-  const [startLoading, setStartLoading] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [overlay, setOverlay] = useState<OverlayInfo | null>(null);
   const toastedJoin = useRef(false);
@@ -66,6 +65,11 @@ export default function PlayerView({ code }: Props) {
     setPlayerId(pid);
     setPlayerName(pname);
     setAvatarId(avid);
+    // Restore cached hand from previous session (survives page refresh mid-game)
+    try {
+      const savedHand = localStorage.getItem(`vikas75_hand_${code}`);
+      if (savedHand) setCachedHand(JSON.parse(savedHand));
+    } catch { /* ignore */ }
     setHydrated(true);
   }, [code, router]);
 
@@ -74,9 +78,10 @@ export default function PlayerView({ code }: Props) {
     localStorage.removeItem('vikas75_playerName');
     localStorage.removeItem('vikas75_avatarId');
     localStorage.removeItem('vikas75_roomCode');
+    localStorage.removeItem(`vikas75_hand_${code}`);
     if (message) toast(message, { icon: '🏁' });
     router.replace('/');
-  }, [router]);
+  }, [router, code]);
 
   const fetchRoom = useCallback(async () => {
     try {
@@ -100,7 +105,10 @@ export default function PlayerView({ code }: Props) {
       setRoom(r);
       const pid = localStorage.getItem('vikas75_playerId') ?? '';
       if (pid && r.players[pid]?.hand?.length) {
-        setCachedHand(r.players[pid].hand);
+        const hand = r.players[pid].hand;
+        setCachedHand(hand);
+        // Persist so the hand survives a page refresh mid-submission
+        try { localStorage.setItem(`vikas75_hand_${code}`, JSON.stringify(hand)); } catch { /* ignore */ }
       }
       if (!toastedJoin.current && pid && r.players[pid]) {
         toast.success('Joined room!');
@@ -166,20 +174,6 @@ export default function PlayerView({ code }: Props) {
       fetchRoom();
     }
   }, [hydrated, room?.phase, fetchRoom]);
-
-  async function handleStart() {
-    setStartLoading(true);
-    try {
-      await fetch('/api/game', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'advance', code, hostId: playerId }),
-      });
-    } catch {
-      // ignore
-    }
-    setStartLoading(false);
-  }
 
   async function handleSubmit(card: SchemeCard, explanation: string) {
     try {
@@ -312,14 +306,7 @@ export default function PlayerView({ code }: Props) {
 
     switch (phase) {
       case 'lobby':
-        return (
-          <PlayerLobby
-            room={room}
-            playerId={playerId}
-            onStart={handleStart}
-            startLoading={startLoading}
-          />
-        );
+        return <PlayerLobby room={room} playerId={playerId} />;
       case 'challenge-reveal':
         if (room.gameMode === 'friends' && room.currentChallenge) {
           return <PlayerChallengeReveal challenge={room.currentChallenge} />;
@@ -357,7 +344,8 @@ export default function PlayerView({ code }: Props) {
                 localStorage.removeItem('vikas75_playerName');
                 localStorage.removeItem('vikas75_avatarId');
                 localStorage.removeItem('vikas75_roomCode');
-                router.push('/');
+                localStorage.removeItem(`vikas75_hand_${code}`);
+                router.replace('/');
               }}
               className="mt-4 px-8 h-14 bg-[#FF9933] hover:bg-[#e8872a] text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95"
             >

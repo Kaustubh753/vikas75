@@ -10,7 +10,7 @@ interface Props { room: GameRoom }
 
 function RevealCard({ sub, isRevealed }: { sub: Submission; isRevealed: boolean }) {
   return (
-    <div style={{ perspective: 1000, width: 260, height: 320, flexShrink: 0 }}>
+    <div style={{ perspective: 1000, width: 'clamp(160px, 18vw, 260px)', height: 'clamp(200px, 22.5vw, 320px)', flexShrink: 0 }}>
       <div
         style={{
           width: '100%',

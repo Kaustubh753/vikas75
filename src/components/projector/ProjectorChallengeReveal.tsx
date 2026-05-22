@@ -32,14 +32,12 @@ function TimerBar({ total, remaining }: { total: number; remaining: number }) {
   );
 }
 
-function StaticTimerBar({ total }: { total: number }) {
+function AwaitingSubmissionBanner() {
   return (
-    <div className="absolute top-0 left-0 right-0 z-30 h-8 overflow-hidden" style={{ backgroundColor: '#FF9933' }}>
-      <span
-        className="absolute inset-0 flex items-center justify-center font-[family-name:var(--font-inter)] font-bold text-white"
-        style={{ fontSize: 14 }}
-      >
-        {total}s
+    <div className="absolute top-0 left-0 right-0 z-30 h-8 bg-white/10 flex items-center justify-center gap-2">
+      <span className="w-2 h-2 rounded-full bg-[#FF9933] animate-pulse" />
+      <span className="font-[family-name:var(--font-inter)] text-white/60 font-medium" style={{ fontSize: 13, letterSpacing: '0.06em' }}>
+        SUBMISSIONS OPEN WHEN HOST ADVANCES
       </span>
     </div>
   );
@@ -67,7 +65,7 @@ export default function ProjectorChallengeReveal({ room }: Props) {
     <div className="w-full h-full bg-[#1a0d2e] flex items-center justify-center relative overflow-hidden">
       {room.timerEndsAt
         ? <TimerBar total={room.timerDuration} remaining={remaining} />
-        : <StaticTimerBar total={room.timerDuration} />
+        : <AwaitingSubmissionBanner />
       }
 
       <div

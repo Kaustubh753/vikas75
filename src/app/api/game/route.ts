@@ -15,7 +15,7 @@ import {
 } from '@/lib/game-engine';
 import { judgeRound } from '@/lib/ai-judge';
 import { filterText } from '@/lib/word-filter';
-import type { Submission, GameMode, AvatarId, EmoteEvent, ChatMessage, GameRoom } from '@/types/game';
+import type { Submission, GameMode, AvatarId, ChatMessage, GameRoom } from '@/types/game';
 
 // Simple in-memory rate limiter — best-effort (not shared across serverless instances)
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
         const { code, hostId } = body;
         const room = await getRoom(code?.toUpperCase());
         if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
-        if (hostId && room.hostId !== hostId) return NextResponse.json({ error: 'Not the host' }, { status: 403 });
+        if (!hostId || room.hostId !== hostId) return NextResponse.json({ error: 'Not the host' }, { status: 403 });
         // Require at least 2 players before leaving lobby
         if (room.phase === 'lobby' && Object.keys(room.players).length < 2) {
           return NextResponse.json({ error: 'Need at least 2 players to start.' }, { status: 400 });
@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
         await setRoom(updated);
         await broadcastRoom(updated);
         if (updated.phase === 'judging') {
-          after(() => triggerJudge(code).catch(() => {}));
+          after(() => triggerJudge(code.toUpperCase()).catch(() => {}));
         }
         return NextResponse.json({ room: updated });
       }
@@ -160,7 +160,13 @@ export async function POST(req: NextRequest) {
         if (!safeExplanation) {
           return NextResponse.json({ error: 'Explanation is required' }, { status: 400 });
         }
-        const safeSubmission: Submission = { ...submission, explanation: safeExplanation };
+        // Derive trusted fields from server state — ignore client-supplied name/avatarId
+        const safeSubmission: Submission = {
+          ...submission,
+          explanation: safeExplanation,
+          playerName: submittingPlayer.name,
+          avatarId: submittingPlayer.avatarId,
+        };
         const updated = addSubmission(room, safeSubmission);
         await setRoom(updated);
         // Broadcast happens before auto-advance so clients see the submission tick
@@ -192,14 +198,21 @@ export async function POST(req: NextRequest) {
       }
 
       case 'emote': {
-        const { code, playerId, playerName, avatarId, emote } = body as {
+        const { code, playerId, emote } = body as {
           code: string; playerId: string; playerName: string; avatarId: AvatarId; emote: string;
         };
         if (!rateLimit(`emote:${playerId ?? 'anon'}`, 20, 60_000)) {
           return NextResponse.json({ ok: true });
         }
+        const emoteRoom = await getRoom(code?.toUpperCase());
+        const emotePlayer = emoteRoom?.players[playerId];
+        if (!emotePlayer) return NextResponse.json({ ok: true }); // silently drop unknown senders
         await pusherServer.trigger(`game-${code?.toUpperCase()}`, 'emote', {
-          playerId, playerName, avatarId, emote, timestamp: Date.now(),
+          playerId,
+          playerName: emotePlayer.name,
+          avatarId: emotePlayer.avatarId,
+          emote,
+          timestamp: Date.now(),
         });
         return NextResponse.json({ ok: true });
       }
@@ -211,14 +224,17 @@ export async function POST(req: NextRequest) {
         }
         const room = await getRoom(code?.toUpperCase());
         if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+        // Validate sender is an actual room player
+        const chatPlayer = room.players[message?.playerId];
+        if (!chatPlayer) return NextResponse.json({ error: 'Player not in room' }, { status: 403 });
         const rawText = typeof message?.text === 'string' ? message.text.trim() : '';
         const filtered = filterText(rawText);
         if (!filtered) return NextResponse.json({ ok: true });
         const chatMsg: ChatMessage = {
           id: crypto.randomUUID(),
           playerId: message.playerId,
-          playerName: sanitizeName(message.playerName),
-          avatarId: message.avatarId,
+          playerName: chatPlayer.name,        // trust server, not client
+          avatarId: chatPlayer.avatarId,      // trust server, not client
           text: filtered.slice(0, 120),
           sentAt: Date.now(),
         };

@@ -35,7 +35,7 @@ export default function ChatPanel({ messages, onSend, playerId, avatarId, player
       {open && (
         <div
           className="absolute bottom-14 left-0 bg-[#0d1b2e]/95 border border-white/20 rounded-2xl shadow-xl flex flex-col animate-bounce-in overflow-hidden"
-          style={{ width: 'min(260px, calc(100vw - 200px))' }}
+          style={{ width: 'clamp(200px, calc(100vw - 80px), 260px)' }}
         >
           <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
             <span className="text-white/70 text-sm font-[family-name:var(--font-inter)]">Chat</span>

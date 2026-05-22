@@ -53,7 +53,7 @@ The host calls `POST /api/game { action: 'advance' }` at each step. The `judging
 - `src/lib/redis.ts` — Transparent Redis / in-memory fallback.
   - Uses module-level `Map` when `UPSTASH_REDIS_REST_URL` is absent (local dev)
   - Lazily requires `@upstash/redis` to avoid startup crash without env vars
-  - TTL: 6 hours
+  - TTL: 24 hours
   - Exports: `getRoom`, `setRoom`, `deleteRoom`, `listActiveRooms`
 
 - `src/lib/pusher.ts` — `pusherServer` (server-side SDK), `getPusherClient()` (singleton), `getRoomChannel(code)` → `game-${code}`.

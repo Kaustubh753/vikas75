@@ -36,7 +36,7 @@ class MusicManager {
 
   private playTone(name: TrackName) {
     const ctx = this.getCtx();
-    if (!ctx) { console.log(`[MusicManager] Web Audio unavailable for '${name}'`); return; }
+    if (!ctx) return;
     this.stopTone();
     const cfg = TONE_CONFIG[name];
     try {
@@ -53,9 +53,7 @@ class MusicManager {
       if (!cfg.loop) osc.stop(ctx.currentTime + cfg.duration);
       this.toneOsc = osc;
       this.toneGain = gain;
-      console.log(`[MusicManager] tone playing for '${name}' (${cfg.freq}Hz ${cfg.type})`);
-    } catch (e) {
-      console.log(`[MusicManager] tone failed for '${name}':`, e);
+    } catch {
     }
   }
 
@@ -79,28 +77,23 @@ class MusicManager {
   }
 
   play(name: TrackName) {
-    console.log(`[MusicManager] play('${name}') muted=${this._muted} current='${this.current}'`);
     if (this._muted) return;
     if (this.current === name) return;
     this.stop();
     this.current = name;
     const audio = this.load(name);
     if (!audio) {
-      console.log(`[MusicManager] no HTMLAudioElement for '${name}', using tone fallback`);
       this.playTone(name);
       return;
     }
     audio.currentTime = 0;
     audio.play()
-      .then(() => console.log(`[MusicManager] '${name}' playing via HTMLAudioElement`))
-      .catch((err: Error) => {
-        console.log(`[MusicManager] HTMLAudioElement failed for '${name}' (${err.message}), using tone fallback`);
+      .catch(() => {
         this.playTone(name);
       });
   }
 
   stop() {
-    console.log(`[MusicManager] stop() was='${this.current}'`);
     if (this.current) {
       const audio = this.tracks.get(this.current);
       if (audio) { audio.pause(); audio.currentTime = 0; }

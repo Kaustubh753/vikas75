@@ -7,14 +7,11 @@ import type { GameRoom } from '@/types/game';
 interface Props {
   room: GameRoom;
   playerId: string;
-  onStart?: () => void;
-  startLoading?: boolean;
 }
 
-export default function PlayerLobby({ room, playerId, onStart, startLoading }: Props) {
+export default function PlayerLobby({ room, playerId }: Props) {
   const me = room.players[playerId];
   const players = Object.values(room.players);
-  const isHost = playerId === room.hostId;
 
   async function handleShare() {
     const url = `${window.location.origin}/?code=${room.code}`;
@@ -52,19 +49,17 @@ export default function PlayerLobby({ room, playerId, onStart, startLoading }: P
 
       <div className="text-center">
         <p className="text-white/60 text-sm font-[family-name:var(--font-inter)]">
-          {isHost ? 'You are the host' : 'Waiting for host to start…'}
+          Waiting for host to start…
         </p>
-        {!isHost && (
-          <div className="flex gap-1 justify-center mt-2">
-            {[0, 1, 2].map((i) => (
-              <span
-                key={i}
-                className="w-2 h-2 bg-[#FF9933]/60 rounded-full animate-bounce"
-                style={{ animationDelay: `${i * 0.15}s` }}
-              />
-            ))}
-          </div>
-        )}
+        <div className="flex gap-1 justify-center mt-2">
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className="w-2 h-2 bg-[#FF9933]/60 rounded-full animate-bounce"
+              style={{ animationDelay: `${i * 0.15}s` }}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Player list */}
@@ -100,17 +95,6 @@ export default function PlayerLobby({ room, playerId, onStart, startLoading }: P
         Invite Friends
       </button>
 
-      {/* Start button for host */}
-      {isHost && onStart && (
-        <motion.button
-          onClick={onStart}
-          disabled={startLoading || players.length < 2}
-          className="w-full max-w-xs h-14 bg-[#FF9933] hover:bg-[#e8872a] disabled:opacity-40 text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95 animate-pulse-ring"
-          whileTap={{ scale: 0.95 }}
-        >
-          {startLoading ? 'Starting…' : players.length < 2 ? 'Waiting for players…' : 'Start Game →'}
-        </motion.button>
-      )}
     </div>
   );
 }

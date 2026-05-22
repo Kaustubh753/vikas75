@@ -9,7 +9,8 @@ import type { GameRoom } from '@/types/game';
 interface Props { room: GameRoom }
 
 export default function ProjectorWinner({ room }: Props) {
-  const [stage, setStage] = useState(0);
+  // If verdict already exists on mount (mid-phase refresh), skip the suspense stage
+  const [stage, setStage] = useState(() => room.lastVerdict ? 1 : 0);
   const prevRound = useRef(room.round);
 
   const verdict = room.lastVerdict;
@@ -24,13 +25,18 @@ export default function ProjectorWinner({ room }: Props) {
 
   useEffect(() => {
     getMusicManager().play('winner');
+    // If already at stage 1+ (mid-phase refresh), only schedule the stage 2 transition
+    if (stage >= 1) {
+      const t2 = setTimeout(() => setStage(2), 4000);
+      return () => clearTimeout(t2);
+    }
     const t1 = setTimeout(() => {
       try { (navigator as Navigator & { vibrate?: (p: number | number[]) => void }).vibrate?.([100, 50, 100]); } catch {}
       setStage(1);
     }, 4000);
     const t2 = setTimeout(() => setStage(2), 8000);
     return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!verdict) return null;
   const winner = room.players[verdict.winnerId];

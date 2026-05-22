@@ -1,5 +1,4 @@
 'use client';
-import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Avatar from '@/lib/avatars';
 import type { GameRoom } from '@/types/game';
@@ -9,13 +8,6 @@ interface Props { room: GameRoom }
 export default function ProjectorBetweenRounds({ room }: Props) {
   const players = Object.values(room.players).sort((a, b) => b.score - a.score);
   const roundWinner = room.lastVerdict ? room.players[room.lastVerdict.winnerId] : null;
-  const [countdown, setCountdown] = useState(5);
-
-  useEffect(() => {
-    setCountdown(5);
-    const t = setInterval(() => setCountdown((s) => (s > 0 ? s - 1 : 0)), 1000);
-    return () => clearInterval(t);
-  }, [room.round]);
 
   return (
     <div className="w-full h-full bg-[#0d1b35] flex flex-col items-center justify-center gap-10 p-12 relative overflow-hidden">
@@ -71,9 +63,9 @@ export default function ProjectorBetweenRounds({ room }: Props) {
         </motion.p>
       )}
 
-      {/* Compact leaderboard summary */}
-      <div className="w-full max-w-2xl grid grid-cols-3 gap-3">
-        {players.slice(0, 3).map((p, i) => (
+      {/* Full leaderboard — all players */}
+      <div className="w-full max-w-2xl space-y-2">
+        {players.map((p, i) => (
           <div
             key={p.id}
             className={`rounded-xl px-4 py-3 border flex items-center gap-3 ${
@@ -81,7 +73,7 @@ export default function ProjectorBetweenRounds({ room }: Props) {
             }`}
             style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}
           >
-            <span className={`font-[family-name:var(--font-bebas)] text-2xl w-6 ${i === 0 ? 'text-[#FFD700]' : 'text-white/40'}`}>
+            <span className={`font-[family-name:var(--font-bebas)] text-2xl w-7 ${i === 0 ? 'text-[#FFD700]' : 'text-white/40'}`}>
               {i + 1}
             </span>
             <div className="rounded-lg overflow-hidden">
@@ -97,15 +89,10 @@ export default function ProjectorBetweenRounds({ room }: Props) {
         ))}
       </div>
 
-      {/* Countdown */}
-      <div className="text-center">
-        <p className="text-white/60 font-[family-name:var(--font-inter)] uppercase mb-2" style={{ fontSize: 13, letterSpacing: '0.08em', fontWeight: 500 }}>
-          Next round starting in
-        </p>
-        <p className="font-[family-name:var(--font-bebas)] text-[#FF9933] tracking-wide leading-none" style={{ fontSize: 96 }}>
-          {countdown}
-        </p>
-      </div>
+      {/* Waiting indicator — no false countdown */}
+      <p className="text-white/40 font-[family-name:var(--font-inter)] uppercase text-center" style={{ fontSize: 13, letterSpacing: '0.08em', fontWeight: 500 }}>
+        Waiting for host to start Round {room.round + 1}…
+      </p>
 
       <div className="absolute bottom-4 text-center">
         <p className="text-white/20 font-[family-name:var(--font-inter)]" style={{ fontSize: 11 }}>
