@@ -99,9 +99,12 @@ export default function PlayerSubmit({
     setThrowing(true);
     setTimeout(async () => {
       setLoading(true);
-      await onSubmit(selected, explanation.trim());
-      setLoading(false);
-      setThrowing(false);
+      try {
+        await onSubmit(selected, explanation.trim());
+      } finally {
+        setLoading(false);
+        setThrowing(false);
+      }
     }, 600);
   }
 

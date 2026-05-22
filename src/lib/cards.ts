@@ -9,12 +9,14 @@
 /** "/cards/card-076.webp" for id "c001", "/cards/card-105.webp" for "c030", etc. */
 export function getChallengeCardImage(id: string): string {
   const n = parseInt(id.replace(/\D/g, ''), 10);
+  if (isNaN(n) || n < 1 || n > 30) return '/cards/card-076.webp'; // safe fallback
   return `/cards/card-${String(n + 75).padStart(3, '0')}.webp`;
 }
 
 /** "/cards/card-001.webp" for id "s001", "/cards/card-075.webp" for "s075", etc. */
 export function getSchemeCardImage(id: string): string {
   const n = parseInt(id.replace(/\D/g, ''), 10);
+  if (isNaN(n) || n < 1 || n > 75) return '/cards/card-001.webp'; // safe fallback
   return `/cards/card-${String(n).padStart(3, '0')}.webp`;
 }
 

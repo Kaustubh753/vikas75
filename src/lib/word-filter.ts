@@ -17,14 +17,9 @@ function censorWord(word: string): string {
 export function filterText(text: string): string {
   let result = text;
   for (const bad of BAD_WORDS) {
-    // Case-insensitive whole-word match (and partial for bad words over 5 chars)
-    const regex = new RegExp(`\\b${bad}\\w*`, 'gi');
+    // Case-insensitive exact word match — \bword\b avoids false positives like "assets" matching "ass"
+    const regex = new RegExp(`\\b${bad}\\b`, 'gi');
     result = result.replace(regex, (match) => censorWord(match));
   }
   return result;
-}
-
-export function containsBadWord(text: string): boolean {
-  const lower = text.toLowerCase();
-  return BAD_WORDS.some((w) => lower.includes(w));
 }

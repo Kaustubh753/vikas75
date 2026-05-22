@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { after } from 'next/server';
-import { getRoom, setRoom, checkRoomCreationLimit, checkRateLimit } from '@/lib/redis';
+import { getRoom, setRoom, checkRoomCreationLimit, checkRateLimit, acquireLock } from '@/lib/redis';
 import { broadcastRoom, pusherServer, getRoomChannel } from '@/lib/pusher';
 import {
   createRoom,
@@ -52,6 +52,8 @@ export async function POST(req: NextRequest) {
         const safeName = sanitizeName(hostName);
         if (!safeName) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
         if (!hostId || typeof hostId !== 'string') return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+        const VALID_GAME_MODES: GameMode[] = ['crowd', 'friends'];
+        const safeGameMode: GameMode = VALID_GAME_MODES.includes(gameMode) ? gameMode : 'crowd';
 
         // Rate limit: max 10 rooms per IP per hour
         const ip = getIp(req);
@@ -67,7 +69,7 @@ export async function POST(req: NextRequest) {
         }
         if (!roomCode) return NextResponse.json({ error: 'Could not generate unique room code — try again' }, { status: 500 });
 
-        const room = createRoom(hostId, safeName, roomCode, totalRounds, timerDuration, gameMode);
+        const room = createRoom(hostId, safeName, roomCode, totalRounds, timerDuration, safeGameMode);
         await setRoom(room);
         return NextResponse.json({ room });
       }
@@ -149,8 +151,9 @@ export async function POST(req: NextRequest) {
         if (!submittingPlayer) {
           return NextResponse.json({ error: 'Player not in this room' }, { status: 403 });
         }
-        // Validate the submitted card is actually in the player's hand
-        if (!submittingPlayer.hand.some((c) => c.id === submission.schemeCard?.id)) {
+        // Validate the submitted card is actually in the player's hand — use server-side card data
+        const serverCard = submittingPlayer.hand.find((c) => c.id === submission.schemeCard?.id);
+        if (!serverCard) {
           return NextResponse.json({ error: 'Card not in your hand' }, { status: 403 });
         }
         // Sanitize explanation
@@ -160,12 +163,19 @@ export async function POST(req: NextRequest) {
         if (!safeExplanation) {
           return NextResponse.json({ error: 'Explanation is required' }, { status: 400 });
         }
-        // Derive trusted fields from server state — ignore client-supplied name/avatarId
+        // Enforce 25-word limit server-side (mirrors client UI)
+        const wordCount = safeExplanation.split(/\s+/).filter(Boolean).length;
+        if (wordCount > 25) {
+          return NextResponse.json({ error: 'Explanation too long (max 25 words)' }, { status: 400 });
+        }
+        // Build submission entirely from server state — no client-supplied card data or identity
         const safeSubmission: Submission = {
-          ...submission,
-          explanation: safeExplanation,
+          playerId: submission.playerId,
           playerName: submittingPlayer.name,
           avatarId: submittingPlayer.avatarId,
+          schemeCard: serverCard,            // authoritative server-side card object
+          explanation: safeExplanation,
+          submittedAt: typeof submission.submittedAt === 'number' ? submission.submittedAt : Date.now(),
         };
         const updated = addSubmission(room, safeSubmission);
         await setRoom(updated);
@@ -269,6 +279,11 @@ export async function GET(req: NextRequest) {
 }
 
 async function triggerJudge(code: string) {
+  // Distributed lock — prevent double-judging if after() fires more than once
+  const lockKey = `lock:judging:${code}`;
+  const acquired = await acquireLock(lockKey, 60);
+  if (!acquired) return; // Another instance already handling this round
+
   const room = await getRoom(code);
   if (!room || room.phase !== 'judging') return;
   const submissions = Object.values(room.submissions);
@@ -285,7 +300,12 @@ async function triggerJudge(code: string) {
   }
 
   const verdict = await judgeRound(room.currentChallenge!, submissions);
-  const updated = applyVerdict(room, verdict);
+
+  // Re-read room after Claude responds — judging can take several seconds and settings may have changed
+  const freshRoom = await getRoom(code);
+  if (!freshRoom || freshRoom.phase !== 'judging') return;
+
+  const updated = applyVerdict(freshRoom, verdict);
   await setRoom(updated);
   await broadcastRoom(updated);
 }

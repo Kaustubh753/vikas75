@@ -76,6 +76,7 @@ export default function ProjectorView({ code }: Props) {
     channel.bind('game:room-updated', onRoomUpdated);
     return () => {
       channel.unbind('game:room-updated', onRoomUpdated);
+      pusher.unsubscribe(getRoomChannel(code));
     };
   }, [code]);
 

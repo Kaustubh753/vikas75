@@ -3,6 +3,7 @@ import type { GameRoom } from '@/types/game';
 // In-memory store used when Upstash env vars are absent (local dev without Redis)
 const devStore = new Map<string, { value: GameRoom; expiresAt: number }>();
 const devRateStore = new Map<string, { count: number; expiresAt: number }>();
+const devLockStore = new Map<string, number>(); // key → expiresAt timestamp
 
 function isRedisConfigured(): boolean {
   return !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
@@ -137,9 +138,41 @@ export async function listActiveRooms(): Promise<string[]> {
       .map(([k]) => k.replace(ROOM_PREFIX, ''));
   }
   try {
-    const keys: string[] = await getRedis().keys(`${ROOM_PREFIX}*`);
-    return keys.map((k: string) => k.replace(ROOM_PREFIX, ''));
+    const redis = getRedis();
+    const codes: string[] = [];
+    let cursor = 0;
+    do {
+      // SCAN is non-blocking unlike KEYS * — safe for large keyspaces
+      const [nextCursor, keys] = await redis.scan(cursor, { match: `${ROOM_PREFIX}*`, count: 100 });
+      cursor = Number(nextCursor);
+      for (const k of keys as string[]) {
+        codes.push(k.replace(ROOM_PREFIX, ''));
+      }
+    } while (cursor !== 0);
+    return codes;
   } catch {
     return [];
+  }
+}
+
+/**
+ * Acquire a distributed lock using Redis SET NX EX.
+ * Returns true if the lock was acquired, false if already held.
+ * The lock auto-expires after ttlSec seconds — no need to release explicitly.
+ */
+export async function acquireLock(key: string, ttlSec: number): Promise<boolean> {
+  if (!isRedisConfigured()) {
+    const now = Date.now();
+    const expiresAt = devLockStore.get(key) ?? 0;
+    if (expiresAt > now) return false; // lock already held
+    devLockStore.set(key, now + ttlSec * 1000);
+    return true;
+  }
+  try {
+    // SET key 1 NX EX ttl — returns "OK" on success, null if key already exists
+    const result = await getRedis().set(key, '1', { nx: true, ex: ttlSec });
+    return result !== null;
+  } catch {
+    return true; // fail open — don't block judging on Redis errors
   }
 }

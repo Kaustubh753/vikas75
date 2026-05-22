@@ -73,7 +73,7 @@ The host calls `POST /api/game { action: 'advance' }` at each step. The `judging
   - `submit` — adds submission; auto-advances to `reveal` if all players submitted
   - `GET ?code=XXXX` — returns current room state
 
-- `src/app/api/admin/route.ts` — Basic Auth (env vars `ADMIN_USER`/`ADMIN_PASS`). `GET ?action=rooms` lists active room codes.
+- `src/app/api/admin/route.ts` — Basic Auth (env vars `ADMIN_USERNAME`/`ADMIN_PASSWORD`). `GET ?action=rooms` lists active room codes.
 
 ### Pages (all async, all await params/searchParams)
 - `src/app/page.tsx` — Home. Passes `initialCode` from `searchParams.code` to `<HomePage>`.
@@ -123,15 +123,15 @@ The host calls `POST /api/game { action: 'advance' }` at each step. The `judging
 
 | Variable | Required | Purpose |
 |---|---|---|
-| `NEXT_PUBLIC_PUSHER_APP_KEY` | Yes | Pusher client key |
+| `NEXT_PUBLIC_PUSHER_KEY` | Yes | Pusher client key |
 | `NEXT_PUBLIC_PUSHER_CLUSTER` | Yes | e.g. `ap2` (Mumbai) |
 | `PUSHER_APP_ID` | Yes | Pusher server-side |
 | `PUSHER_SECRET` | Yes | Pusher server-side |
 | `UPSTASH_REDIS_REST_URL` | No | Redis URL; falls back to in-memory |
 | `UPSTASH_REDIS_REST_TOKEN` | No | Redis token |
 | `ANTHROPIC_API_KEY` | No | Claude judge; falls back to random |
-| `ADMIN_USER` | No | Admin dashboard Basic Auth |
-| `ADMIN_PASS` | No | Admin dashboard Basic Auth |
+| `ADMIN_USERNAME` | No | Admin dashboard Basic Auth |
+| `ADMIN_PASSWORD` | No | Admin dashboard Basic Auth |
 
 Without Redis env vars, state lives in a module-level `Map` — rooms are lost on server restart and not shared across serverless instances.
 
@@ -178,7 +178,7 @@ Without Redis env vars, state lives in a module-level `Map` — rooms are lost o
 
 ### Infrastructure
 - **In-memory fallback doesn't work across serverless instances** — In production (Vercel), multiple instances will not share the `devStore` Map. Upstash Redis is required for production.
-- **No room cleanup** — `deleteRoom` is never called. Rooms expire after 6 hours via TTL but stale rooms accumulate. Admin route can list them but there's no delete UI.
+- **No room cleanup** — `deleteRoom` is never called. Rooms expire after 24 hours via TTL but stale rooms accumulate. Admin route can list them but there's no delete UI.
 
 ---
 

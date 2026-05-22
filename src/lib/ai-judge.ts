@@ -62,18 +62,22 @@ async function claudeJudge(challenge: ChallengeCard, submissions: Submission[]):
 
   const userMessage = `Challenge Card:\n"${challenge.en}"\n(Hindi: ${challenge.hi})\n\nSubmissions:\n${submissionsText}\n\nRank all players. Respond with JSON only.`;
 
-  const timeout = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error('AI judge timed out')), 8000)
-  );
-  const response = await Promise.race([
-    client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 800,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userMessage }],
-    }),
-    timeout,
-  ]);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  let response: Awaited<ReturnType<typeof client.messages.create>>;
+  try {
+    response = await client.messages.create(
+      {
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 800,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: userMessage }],
+      },
+      { signal: controller.signal }
+    );
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
   const json = text.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim();

@@ -102,7 +102,8 @@ export default function PlayerView({ code }: Props) {
         clearSessionAndGoHome('That game has ended. Start a new one!');
         return;
       }
-      setRoom(r);
+      // Merge messages: keep any locally-accumulated chat not yet in the server snapshot
+      setRoom(prev => ({ ...r, messages: prev?.messages?.length ? prev.messages : (r.messages ?? []) }));
       const pid = localStorage.getItem('vikas75_playerId') ?? '';
       if (pid && r.players[pid]?.hand?.length) {
         const hand = r.players[pid].hand;
@@ -233,20 +234,8 @@ export default function PlayerView({ code }: Props) {
     });
   }
 
-  useEffect(() => {
-    if (!room?.timerEndsAt || room.phase !== 'submission') return;
-    const delay = room.timerEndsAt - Date.now();
-    const fire = () => {
-      fetch('/api/game', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'timer-expire', code }),
-      }).catch(() => {});
-    };
-    if (delay <= 0) { fire(); return; }
-    const t = setTimeout(fire, delay);
-    return () => clearTimeout(t);
-  }, [room?.timerEndsAt, room?.phase, code]);
+  // NOTE: timer-expire is fired by ProjectorView only — avoids N concurrent requests from all players.
+  // The host can always manually advance if no projector is open.
 
   useEffect(() => {
     if (!room || room.phase === 'lobby' || room.phase === 'game-over') return;
@@ -262,11 +251,7 @@ export default function PlayerView({ code }: Props) {
       const remaining = Math.ceil((room.timerEndsAt - Date.now()) / 1000);
       if (remaining > 0 && remaining <= 30 && !visibilityNotifiedRef.current) {
         visibilityNotifiedRef.current = true;
-        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-          new Notification('Vikas 75 — Hurry!', { body: 'Round is ending soon.', icon: '/favicon.svg' });
-        } else {
-          toast('Hurry! Round is ending soon.', { icon: '⏰' });
-        }
+        toast('Hurry! Round is ending soon.', { icon: '⏰' });
       }
     };
     document.addEventListener('visibilitychange', handler);

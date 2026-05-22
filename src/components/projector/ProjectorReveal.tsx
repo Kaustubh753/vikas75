@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Avatar from '@/lib/avatars';
 import CardBack from '@/components/ui/CardBack';
@@ -67,7 +67,9 @@ function RevealCard({ sub, isRevealed }: { sub: Submission; isRevealed: boolean 
 }
 
 export default function ProjectorReveal({ room }: Props) {
-  const submissions = Object.values(room.submissions);
+  // Snapshot submissions on mount — prevent re-ordering mid-animation when Pusher fires room updates
+  const submissionsRef = useRef<Submission[]>(Object.values(room.submissions));
+  const submissions = submissionsRef.current;
   const [revealed, setRevealed] = useState(0);
 
   useEffect(() => {

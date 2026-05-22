@@ -27,6 +27,7 @@ function HomePageInner() {
   const [avatarId, setAvatarId] = useState<AvatarId>('a1');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [savedRoomCode, setSavedRoomCode] = useState<string | null>(null);
   const logoClickCount = useRef(0);
   const logoEasterEggShown = useRef(false);
 
@@ -45,15 +46,18 @@ function HomePageInner() {
   }
 
   useEffect(() => {
-    // Try to restore session
+    // Try to restore session — if a URL code is present the user is deliberately joining a different room,
+    // so skip the auto-redirect and let them join fresh.
+    if (initialCode) return;
     const playerId = localStorage.getItem('vikas75_playerId');
     const playerName = localStorage.getItem('vikas75_playerName');
     const savedAvatarId = localStorage.getItem('vikas75_avatarId') as AvatarId | null;
     const roomCode = localStorage.getItem('vikas75_roomCode');
     if (playerId && playerName && savedAvatarId && roomCode) {
+      setSavedRoomCode(roomCode);
       router.replace(`/room/${roomCode}`);
     }
-  }, [router]);
+  }, [router, initialCode]);
 
   async function handleJoin(e: React.FormEvent) {
     e.preventDefault();
@@ -100,6 +104,23 @@ function HomePageInner() {
 
         {!showJoinForm ? (
           <div className="w-full flex flex-col gap-4 animate-fade-in">
+            {savedRoomCode && (
+              <div className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex flex-col gap-2">
+                <p className="text-white/50 text-xs uppercase tracking-widest font-[family-name:var(--font-inter)]">
+                  Rejoining room {savedRoomCode}…
+                </p>
+                <button
+                  onClick={() => {
+                    ['vikas75_playerId','vikas75_playerName','vikas75_avatarId','vikas75_roomCode']
+                      .forEach(k => localStorage.removeItem(k));
+                    setSavedRoomCode(null);
+                  }}
+                  className="text-[#FF9933] text-xs underline underline-offset-2 text-left font-[family-name:var(--font-inter)]"
+                >
+                  Join a different game instead →
+                </button>
+              </div>
+            )}
             <motion.button
               onClick={() => setShowJoinForm(true)}
               className="w-full h-14 bg-[#FF9933] hover:bg-[#e8872a] text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95"

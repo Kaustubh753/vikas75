@@ -138,13 +138,17 @@ export default function HostDashboard({ code, hostId }: Props) {
   async function handleUpdateSettings() {
     if (!room) return;
     try {
-      await fetch('/api/game', {
+      const res = await fetch('/api/game', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'update-settings', code, hostId, totalRounds: rounds, timerDuration: timer }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error((data as { error?: string }).error || 'Could not update settings');
+      }
     } catch {
-      // ignore
+      toast.error('Network error — could not update settings');
     }
   }
 
@@ -314,8 +318,7 @@ export default function HostDashboard({ code, hostId }: Props) {
                 <input
                   type="range" min={5} max={15} value={rounds}
                   onChange={(e) => setRounds(Number(e.target.value))}
-                  onMouseUp={handleUpdateSettings}
-                  onTouchEnd={handleUpdateSettings}
+                  onPointerUp={handleUpdateSettings}
                   className="w-full accent-[#FF9933]"
                 />
               </div>
@@ -327,8 +330,7 @@ export default function HostDashboard({ code, hostId }: Props) {
                 <input
                   type="range" min={30} max={120} step={5} value={timer}
                   onChange={(e) => setTimer(Number(e.target.value))}
-                  onMouseUp={handleUpdateSettings}
-                  onTouchEnd={handleUpdateSettings}
+                  onPointerUp={handleUpdateSettings}
                   className="w-full accent-[#FF9933]"
                 />
               </div>
