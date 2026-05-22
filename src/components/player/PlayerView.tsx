@@ -69,26 +69,47 @@ export default function PlayerView({ code }: Props) {
     setHydrated(true);
   }, [code, router]);
 
+  const clearSessionAndGoHome = useCallback((message?: string) => {
+    localStorage.removeItem('vikas75_playerId');
+    localStorage.removeItem('vikas75_playerName');
+    localStorage.removeItem('vikas75_avatarId');
+    localStorage.removeItem('vikas75_roomCode');
+    if (message) toast(message, { icon: '🏁' });
+    router.replace('/');
+  }, [router]);
+
   const fetchRoom = useCallback(async () => {
     try {
       const res = await fetch(`/api/game?code=${code}`);
-      if (res.ok) {
-        const data = await res.json();
-        const r: GameRoom = data.room;
-        setRoom(r);
-        const pid = localStorage.getItem('vikas75_playerId') ?? '';
-        if (pid && r.players[pid]?.hand?.length) {
-          setCachedHand(r.players[pid].hand);
-        }
-        if (!toastedJoin.current && pid && r.players[pid]) {
-          toast.success('Joined room!');
-          toastedJoin.current = true;
-        }
+      if (!res.ok) {
+        // Room not found — only clear + redirect during session restore (before first successful join)
+        if (!toastedJoin.current) clearSessionAndGoHome();
+        return;
+      }
+      const data = await res.json();
+      const r: GameRoom = data.room;
+      if (!r) {
+        if (!toastedJoin.current) clearSessionAndGoHome();
+        return;
+      }
+      // Rejoining a finished game — redirect with toast
+      if (!toastedJoin.current && r.phase === 'game-over') {
+        clearSessionAndGoHome('That game has ended. Start a new one!');
+        return;
+      }
+      setRoom(r);
+      const pid = localStorage.getItem('vikas75_playerId') ?? '';
+      if (pid && r.players[pid]?.hand?.length) {
+        setCachedHand(r.players[pid].hand);
+      }
+      if (!toastedJoin.current && pid && r.players[pid]) {
+        toast.success('Joined room!');
+        toastedJoin.current = true;
       }
     } catch {
-      // ignore
+      // ignore network errors
     }
-  }, [code]);
+  }, [code, clearSessionAndGoHome]);
 
   useEffect(() => {
     if (hydrated) fetchRoom();
