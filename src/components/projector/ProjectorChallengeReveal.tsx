@@ -36,7 +36,8 @@ function AwaitingSubmissionBanner() {
   return (
     <div className="absolute top-0 left-0 right-0 z-30 h-8 bg-white/10 flex items-center justify-center gap-2">
       <span className="w-2 h-2 rounded-full bg-[#FF9933] animate-pulse" />
-      <span className="font-[family-name:var(--font-inter)] text-white/60 font-medium" style={{ fontSize: 13, letterSpacing: '0.06em' }}>
+      <span className="font-[family-name:var(--font-inter)] text-white/60 font-medium"
+            style={{ fontSize: 13, letterSpacing: '0.06em' }}>
         SUBMISSIONS OPEN WHEN HOST ADVANCES
       </span>
     </div>
@@ -61,6 +62,18 @@ export default function ProjectorChallengeReveal({ room }: Props) {
 
   if (!challenge) return null;
 
+  // Card at 65vh tall — dramatic and large
+  // Width = 65vh × (413/554) ≈ 48.4vh
+  const cardStyle: React.CSSProperties = {
+    height: '65vh',
+    width: 'calc(65vh * 413 / 554)',
+    position: 'relative',
+    borderRadius: 24,
+    overflow: 'hidden',
+    boxShadow: '0 40px 100px rgba(0,0,0,0.7), 0 0 0 2px rgba(255,153,51,0.4)',
+    flexShrink: 0,
+  };
+
   return (
     <div className="w-full h-full bg-[#1a0d2e] flex items-center justify-center relative overflow-hidden">
       {room.timerEndsAt
@@ -68,54 +81,21 @@ export default function ProjectorChallengeReveal({ room }: Props) {
         : <AwaitingSubmissionBanner />
       }
 
-      <div
-        className="animate-slam-in flex gap-12 items-center"
-        style={{ maxWidth: 960 }}
+      {/* Card centred, filling most of the screen height */}
+      <motion.div
+        style={cardStyle}
+        className="animate-slam-in"
       >
-        {/* Physical card image — large, centered, drop shadow */}
-        <div
-          className="relative flex-shrink-0 rounded-3xl overflow-hidden"
-          style={{
-            width: 420,
-            aspectRatio: '2.5 / 3.5',
-            boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 2px rgba(255,153,51,0.3)',
-          }}
-        >
-          <Image
-            src={getChallengeCardImage(challenge.id)}
-            alt={challenge.en}
-            fill
-            className="object-cover"
-            priority
-            placeholder="blur"
-            blurDataURL={BLUR_NAVY}
-          />
-        </div>
-
-        {/* Text alongside */}
-        <div className="flex flex-col text-left" style={{ maxWidth: 460 }}>
-          <p className="text-white/50 text-xs uppercase tracking-[0.4em] font-[family-name:var(--font-inter)] mb-5">
-            Problem Statement
-          </p>
-          <h2
-            className="font-[family-name:var(--font-bebas)] text-white leading-tight tracking-wide mb-5"
-            style={{ fontSize: '52px' }}
-          >
-            {challenge.en}
-          </h2>
-          <p
-            className="font-[family-name:var(--font-devanagari)] text-blue-200 leading-relaxed"
-            style={{ fontSize: '26px' }}
-          >
-            {challenge.hi}
-          </p>
-          <div className="flex h-1.5 rounded-full overflow-hidden mt-8" style={{ width: 120 }}>
-            <div className="flex-1 bg-[#FF9933]" />
-            <div className="flex-1 bg-white" />
-            <div className="flex-1 bg-[#138808]" />
-          </div>
-        </div>
-      </div>
+        <Image
+          src={getChallengeCardImage(challenge.id)}
+          alt={challenge.en}
+          fill
+          className="object-cover"
+          priority
+          placeholder="blur"
+          blurDataURL={BLUR_NAVY}
+        />
+      </motion.div>
     </div>
   );
 }

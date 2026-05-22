@@ -51,8 +51,9 @@ function TimerBar({ total, endsAt }: { total: number; endsAt: number }) {
 }
 
 const DRAFT_KEY = 'vikas75_draft_explanation';
-
 const MAX_WORDS = 25;
+const CARD_W = 160;
+const CARD_H = 214; // 413:554 ≈ 3:4
 
 function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
@@ -70,7 +71,6 @@ export default function PlayerSubmit({
 }: Props) {
   const [step, setStep] = useState<'select' | 'justify'>(submitted ? 'justify' : 'select');
   const [selected, setSelected] = useState<SchemeCard | null>(submittedCard ?? null);
-  const [expanded, setExpanded] = useState<string | null>(null);
   const [explanation, setExplanation] = useState(submittedExplanation ?? '');
   const [loading, setLoading] = useState(false);
   const [throwing, setThrowing] = useState(false);
@@ -105,15 +105,16 @@ export default function PlayerSubmit({
     }, 600);
   }
 
-  // Guard: hand not yet loaded (race between Pusher broadcast and fetchRoom)
+  // Guard: hand not yet loaded
   if (!submitted && hand.length === 0) {
     return <PlayerWaiting phase="submission" hint="Loading your cards…" />;
   }
 
+  // ── Submitted confirmation ─────────────────────────────────────────────────
   if (submitted && submittedCard) {
     return (
       <motion.div
-        className="flex flex-col items-center gap-6 py-8 px-4"
+        className="flex flex-col items-center gap-5 py-8 px-4"
         initial={{ y: 40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -122,30 +123,31 @@ export default function PlayerSubmit({
         <p className="text-green-400 font-[family-name:var(--font-bebas)] text-2xl tracking-widest">
           SUBMITTED!
         </p>
-        <div className="w-full max-w-sm bg-[#1a3a6e] border border-[#FF9933]/40 rounded-2xl overflow-hidden">
-          <div className="relative w-full" style={{ aspectRatio: '2.5 / 3.5' }}>
-            <Image
-              src={getSchemeCardImage(submittedCard.id)}
-              alt={submittedCard.name}
-              fill
-              className="object-cover"
-              loading="lazy"
-              placeholder="blur"
-              blurDataURL={BLUR_CREAM}
-            />
-          </div>
-          <div className="p-4">
-            <p className="text-[#FF9933] text-xs uppercase tracking-widest mb-1 font-[family-name:var(--font-inter)]">
-              Your Card
-            </p>
-            <p className="text-white font-[family-name:var(--font-bebas)] text-xl tracking-wide mb-1">
-              {submittedCard.name}
-            </p>
-            <p className="text-white/70 text-sm italic font-[family-name:var(--font-inter)]">
-              &ldquo;{submittedExplanation}&rdquo;
-            </p>
-          </div>
+
+        {/* Card image only — no duplicate name/text */}
+        <div
+          className="rounded-2xl overflow-hidden border-2 border-[#FF9933]/60 shadow-xl"
+          style={{ width: CARD_W, height: CARD_H, position: 'relative', flexShrink: 0 }}
+        >
+          <Image
+            src={getSchemeCardImage(submittedCard.id)}
+            alt={submittedCard.name}
+            fill
+            className="object-cover"
+            loading="lazy"
+            placeholder="blur"
+            blurDataURL={BLUR_CREAM}
+          />
         </div>
+
+        {/* Explanation is not in the image — keep it */}
+        <div className="w-full max-w-xs bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+          <p className="text-[#FF9933] text-xs uppercase tracking-widest mb-1 font-[family-name:var(--font-inter)]">Your answer</p>
+          <p className="text-white/80 text-sm italic font-[family-name:var(--font-inter)] leading-relaxed">
+            &ldquo;{submittedExplanation}&rdquo;
+          </p>
+        </div>
+
         <p className="text-white/40 text-sm text-center font-[family-name:var(--font-inter)]">
           Watch the screen!
         </p>
@@ -153,17 +155,18 @@ export default function PlayerSubmit({
     );
   }
 
+  // ── Select step ────────────────────────────────────────────────────────────
   if (step === 'select') {
     return (
-      <div className="flex flex-col gap-6 py-6">
-        {/* Full-width timer bar — sticky at top of scroll area */}
+      <div className="flex flex-col gap-5 py-6">
+        {/* Timer bar — sticky */}
         {timerEndsAt && (
           <div className="sticky top-0 z-10">
             <TimerBar total={timerDuration} endsAt={timerEndsAt} />
           </div>
         )}
 
-        {/* Challenge card — compact horizontal banner */}
+        {/* Challenge banner — thumbnail + text */}
         <div className="px-4">
           <div
             className="rounded-xl border overflow-hidden flex gap-3"
@@ -173,8 +176,7 @@ export default function PlayerSubmit({
               boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
             }}
           >
-            {/* Small card thumbnail */}
-            <div className="relative flex-shrink-0" style={{ width: 72, height: 100 }}>
+            <div className="relative flex-shrink-0" style={{ width: 72, height: 96 }}>
               <Image
                 src={getChallengeCardImage(challenge.id)}
                 alt={challenge.en}
@@ -185,85 +187,66 @@ export default function PlayerSubmit({
                 blurDataURL={BLUR_NAVY}
               />
             </div>
-            {/* Text */}
             <div className="py-3 pr-3 flex flex-col justify-center">
-              <p className="text-[#FF9933] uppercase mb-1 font-[family-name:var(--font-inter)]" style={{ fontSize: 11, letterSpacing: '0.08em', fontWeight: 500 }}>
+              <p className="text-[#FF9933] uppercase mb-1 font-[family-name:var(--font-inter)]"
+                 style={{ fontSize: 10, letterSpacing: '0.08em', fontWeight: 600 }}>
                 Challenge
               </p>
-              <p className="text-white font-[family-name:var(--font-bebas)] tracking-wide leading-tight" style={{ fontSize: 16 }}>
+              <p className="text-white font-[family-name:var(--font-bebas)] tracking-wide leading-tight"
+                 style={{ fontSize: 15 }}>
                 {challenge.en}
               </p>
-              <p className="text-blue-200/80 font-[family-name:var(--font-devanagari)] mt-1 leading-relaxed" style={{ fontSize: 12 }}>
+              <p className="text-blue-200/70 font-[family-name:var(--font-devanagari)] mt-1 leading-relaxed"
+                 style={{ fontSize: 12 }}>
                 {challenge.hi}
               </p>
             </div>
           </div>
         </div>
 
-        <p className="text-white/60 px-4 font-[family-name:var(--font-inter)] uppercase" style={{ fontSize: 11, letterSpacing: '0.08em', fontWeight: 500 }}>
+        <p className="text-white/50 px-4 font-[family-name:var(--font-inter)] uppercase"
+           style={{ fontSize: 11, letterSpacing: '0.08em', fontWeight: 500 }}>
           Your Hand — tap to select
         </p>
 
-        {/* Horizontal scrolling card tray with random tilt */}
-        <div className="overflow-x-auto overflow-y-hidden" style={{ paddingTop: 16, paddingBottom: 16 }}>
+        {/* Card tray — fixed 160×214, image only */}
+        <div className="overflow-x-auto overflow-y-hidden" style={{ paddingTop: 8, paddingBottom: 16 }}>
           <div className="flex gap-3 px-4" style={{ width: 'max-content' }}>
             {hand.map((card, index) => {
-              const isExpanded = expanded === card.id;
               const isSelected = selected?.id === card.id;
-              // Deterministic tilt: -2 to +2 degrees seeded by index
               const tilt = ((index * 137.5) % 4) - 2;
               return (
                 <motion.div
                   key={card.id}
-                  onClick={() => {
-                    setSelected(card);
-                    setExpanded(expanded === card.id ? null : card.id);
-                  }}
-                  className={`relative rounded-xl cursor-pointer flex-shrink-0 overflow-hidden
-                    ${isSelected ? 'border-2 border-[#FF9933]' : 'border border-white/12'}`}
+                  onClick={() => setSelected(card)}
+                  className={`relative cursor-pointer flex-shrink-0 rounded-xl overflow-hidden ${
+                    isSelected ? 'border-2 border-[#FF9933]' : 'border border-white/10'
+                  }`}
                   style={{
-                    width: isExpanded ? 200 : 144,
-                    transformOrigin: 'center',
+                    width: CARD_W,
+                    height: CARD_H,
                     boxShadow: isSelected
-                      ? '0 0 0 2px rgba(255,153,51,0.4), 0 4px 24px rgba(0,0,0,0.3)'
-                      : '0 4px 24px rgba(0,0,0,0.3)',
+                      ? '0 0 0 2px rgba(255,153,51,0.4), 0 8px 32px rgba(0,0,0,0.4)'
+                      : '0 4px 20px rgba(0,0,0,0.35)',
                   }}
-                  initial={{ scale: 0.8, opacity: 0, rotate: tilt }}
+                  initial={{ scale: 0.85, opacity: 0, rotate: tilt }}
                   animate={{ scale: 1, opacity: 1, rotate: isSelected ? 0 : tilt }}
-                  whileHover={{ rotate: 0, scale: 1.02 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 20, delay: index * 0.05 }}
+                  whileHover={{ rotate: 0, scale: 1.03, y: -4 }}
                   whileTap={{ scale: 0.97 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20, delay: index * 0.05 }}
                 >
-                  {/* Card image — always shown, full card width */}
-                  <div className="relative w-full" style={{ aspectRatio: '2.5 / 3.5' }}>
-                    <Image
-                      src={getSchemeCardImage(card.id)}
-                      alt={card.name}
-                      fill
-                      className="object-cover"
-                      loading="lazy"
-                      placeholder="blur"
-                      blurDataURL={BLUR_CREAM}
-                    />
-                  </div>
-
-                  {/* Text — only when expanded/selected */}
-                  {isExpanded && (
-                    <div className="p-3 bg-[#0d1b35]/90">
-                      <p className="font-[family-name:var(--font-inter)] text-white leading-tight mb-1" style={{ fontSize: 13, fontWeight: 600 }}>
-                        {card.name}
-                      </p>
-                      <p className="text-white/50 font-[family-name:var(--font-devanagari)]" style={{ fontSize: 11 }}>
-                        {card.hi}
-                      </p>
-                      <p className="text-white/70 font-[family-name:var(--font-inter)] leading-relaxed mt-2" style={{ fontSize: 12 }}>
-                        {card.desc}
-                      </p>
-                    </div>
-                  )}
-
+                  <Image
+                    src={getSchemeCardImage(card.id)}
+                    alt={card.name}
+                    fill
+                    className="object-cover"
+                    loading="lazy"
+                    placeholder="blur"
+                    blurDataURL={BLUR_CREAM}
+                  />
                   {isSelected && (
-                    <div className="absolute top-2 right-2 w-5 h-5 bg-[#FF9933] rounded-full flex items-center justify-center text-white text-xs font-bold">
+                    <div className="absolute top-2 right-2 w-6 h-6 bg-[#FF9933] rounded-full flex items-center justify-center shadow-lg z-10"
+                         style={{ fontSize: 13, color: '#fff', fontWeight: 700 }}>
                       ✓
                     </div>
                   )}
@@ -277,7 +260,7 @@ export default function PlayerSubmit({
           <motion.button
             onClick={() => selected && setStep('justify')}
             disabled={!selected}
-            className="w-full disabled:opacity-40 disabled:cursor-not-allowed text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl"
+            className="w-full disabled:opacity-40 disabled:cursor-not-allowed text-white font-[family-name:var(--font-bebas)] tracking-widest rounded-xl"
             style={{
               height: 56,
               backgroundColor: '#FF9933',
@@ -293,24 +276,26 @@ export default function PlayerSubmit({
     );
   }
 
-  // Step: justify
+  // ── Justify step ───────────────────────────────────────────────────────────
   return (
     <motion.div
       className="flex flex-col gap-5 py-6 px-4"
       animate={throwing ? { y: -160, scale: 0.5, opacity: 0, rotate: 8 } : { y: 0, scale: 1, opacity: 1, rotate: 0 }}
       transition={{ duration: 0.6, ease: 'easeIn' }}
     >
-      {/* Timer bar in justify step */}
       {timerEndsAt && (
         <div className="sticky top-0 z-10 -mx-4 mb-1">
           <TimerBar total={timerDuration} endsAt={timerEndsAt} />
         </div>
       )}
 
+      {/* Selected card — image only, no text */}
       {selected && (
-        <div className="bg-[#1a3a6e] border border-white/10 rounded-2xl overflow-hidden flex gap-3">
-          {/* Thumbnail */}
-          <div className="relative flex-shrink-0" style={{ width: 72, aspectRatio: '2.5 / 3.5' }}>
+        <div className="flex justify-center">
+          <div
+            className="rounded-2xl overflow-hidden border-2 border-[#FF9933] shadow-xl"
+            style={{ width: CARD_W, height: CARD_H, position: 'relative', flexShrink: 0 }}
+          >
             <Image
               src={getSchemeCardImage(selected.id)}
               alt={selected.name}
@@ -320,15 +305,6 @@ export default function PlayerSubmit({
               placeholder="blur"
               blurDataURL={BLUR_CREAM}
             />
-          </div>
-          <div className="py-3 pr-3 flex flex-col justify-center">
-            <p className="text-[#FF9933] text-xs uppercase tracking-widest mb-1 font-[family-name:var(--font-inter)]">
-              Your Card
-            </p>
-            <p className="font-[family-name:var(--font-bebas)] text-white text-lg tracking-wide">
-              {selected.name}
-            </p>
-            <p className="text-white/50 text-xs font-[family-name:var(--font-devanagari)]">{selected.hi}</p>
           </div>
         </div>
       )}

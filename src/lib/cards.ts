@@ -2,20 +2,20 @@
  * Physical card image helpers.
  *
  * Mapping:
- *   Challenge c001–c030  →  /cards/card-001.webp … card-030.webp
- *   Scheme    s001–s075  →  /cards/card-031.webp … card-105.webp
+ *   Scheme    s001–s075  →  /cards/card-001.webp … card-075.webp
+ *   Challenge c001–c030  →  /cards/card-076.webp … card-105.webp
  */
 
-/** "/cards/card-001.webp" for id "c001", etc. */
+/** "/cards/card-076.webp" for id "c001", "/cards/card-105.webp" for "c030", etc. */
 export function getChallengeCardImage(id: string): string {
   const n = parseInt(id.replace(/\D/g, ''), 10);
-  return `/cards/card-${String(n).padStart(3, '0')}.webp`;
+  return `/cards/card-${String(n + 75).padStart(3, '0')}.webp`;
 }
 
-/** "/cards/card-031.webp" for id "s001", "/cards/card-105.webp" for "s075", etc. */
+/** "/cards/card-001.webp" for id "s001", "/cards/card-075.webp" for "s075", etc. */
 export function getSchemeCardImage(id: string): string {
   const n = parseInt(id.replace(/\D/g, ''), 10);
-  return `/cards/card-${String(n + 30).padStart(3, '0')}.webp`;
+  return `/cards/card-${String(n).padStart(3, '0')}.webp`;
 }
 
 /** 1×1 navy (#0d1b35) SVG — blur placeholder for challenge cards */
