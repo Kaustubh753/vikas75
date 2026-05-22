@@ -14,7 +14,7 @@ interface Props {
   timerDuration: number;
 }
 
-function TimerRing({ total, endsAt }: { total: number; endsAt: number }) {
+function TimerBar({ total, endsAt }: { total: number; endsAt: number }) {
   const [remaining, setRemaining] = useState(Math.max(0, Math.ceil((endsAt - Date.now()) / 1000)));
   useEffect(() => {
     const tick = setInterval(() => {
@@ -22,29 +22,26 @@ function TimerRing({ total, endsAt }: { total: number; endsAt: number }) {
     }, 500);
     return () => clearInterval(tick);
   }, [endsAt]);
-  const r = 30;
-  const circ = 2 * Math.PI * r;
+
   const frac = Math.max(0, remaining / total);
   const urgent = remaining <= 10;
+
   return (
-    <div className={`relative w-16 h-16 flex-shrink-0 ${urgent ? 'animate-pulse' : ''}`}>
-      <svg viewBox="0 0 68 68" className="w-full h-full -rotate-90">
-        <circle cx="34" cy="34" r={r} fill="none" stroke="white" strokeOpacity="0.15" strokeWidth="5" />
-        <circle
-          cx="34" cy="34" r={r} fill="none"
-          stroke={urgent ? '#ef4444' : '#FF9933'}
-          strokeWidth="5"
-          strokeDasharray={circ}
-          strokeDashoffset={circ * (1 - frac)}
-          strokeLinecap="round"
-          style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className={`font-[family-name:var(--font-bebas)] text-xl leading-none ${urgent ? 'text-red-400' : 'text-white'}`}>
-          {remaining}
-        </span>
-      </div>
+    <div className="relative h-1.5 bg-white/10">
+      <motion.div
+        className="absolute left-0 top-0 h-full w-full"
+        style={{ backgroundColor: urgent ? '#ef4444' : '#FF9933', transformOrigin: '0 50%' }}
+        animate={{
+          scaleX: frac,
+          boxShadow: urgent ? '0 0 8px 3px rgba(239,68,68,0.7)' : 'none',
+        }}
+        transition={{ duration: 0.6, ease: 'linear' }}
+      />
+      <span
+        className={`absolute right-2 top-1/2 -translate-y-1/2 font-[family-name:var(--font-bebas)] text-xs leading-none ${urgent ? 'text-red-400 animate-pulse' : 'text-white/50'}`}
+      >
+        {remaining}s
+      </span>
     </div>
   );
 }
@@ -75,7 +72,6 @@ export default function PlayerSubmit({
   const [throwing, setThrowing] = useState(false);
   const didRestoreDraft = useRef(false);
 
-  // Restore in-progress explanation from sessionStorage on mount (survives accidental navigation)
   useEffect(() => {
     if (didRestoreDraft.current || submitted || submittedExplanation) return;
     didRestoreDraft.current = true;
@@ -83,12 +79,10 @@ export default function PlayerSubmit({
     if (draft) setExplanation(draft);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Persist explanation as the player types
   useEffect(() => {
     if (!submitted) sessionStorage.setItem(DRAFT_KEY, explanation);
   }, [explanation, submitted]);
 
-  // Clear draft once submission is confirmed
   useEffect(() => {
     if (submitted) sessionStorage.removeItem(DRAFT_KEY);
   }, [submitted]);
@@ -104,13 +98,17 @@ export default function PlayerSubmit({
       await onSubmit(selected, explanation.trim());
       setLoading(false);
       setThrowing(false);
-    }, 500);
+    }, 600);
   }
 
   if (submitted && submittedCard) {
     return (
-      <div style={{ perspective: 800 }}>
-      <motion.div className="flex flex-col items-center gap-6 py-8 px-4" initial={{ rotateY: 90, opacity: 0 }} animate={{ rotateY: 0, opacity: 1 }} transition={{ duration: 0.4 }}>
+      <motion.div
+        className="flex flex-col items-center gap-6 py-8 px-4"
+        initial={{ y: 40, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+      >
         <div className="w-2 h-2 bg-green-400 rounded-full animate-ping" />
         <p className="text-green-400 font-[family-name:var(--font-bebas)] text-2xl tracking-widest">
           SUBMITTED!
@@ -133,17 +131,23 @@ export default function PlayerSubmit({
           Watch the projector!
         </p>
       </motion.div>
-      </div>
     );
   }
 
   if (step === 'select') {
     return (
       <div className="flex flex-col gap-6 py-6">
-        {/* Challenge card — prominent with extra vertical space */}
-        <div className="px-4 flex items-start justify-between gap-3">
+        {/* Full-width timer bar — sticky at top of scroll area */}
+        {timerEndsAt && (
+          <div className="sticky top-0 z-10">
+            <TimerBar total={timerDuration} endsAt={timerEndsAt} />
+          </div>
+        )}
+
+        {/* Challenge card */}
+        <div className="px-4">
           <div
-            className="flex-1 rounded-xl border p-6"
+            className="rounded-xl border p-6"
             style={{
               background: 'rgba(255,255,255,0.06)',
               borderColor: 'rgba(255,255,255,0.12)',
@@ -160,19 +164,20 @@ export default function PlayerSubmit({
               {challenge.hi}
             </p>
           </div>
-          {timerEndsAt && <TimerRing total={timerDuration} endsAt={timerEndsAt} />}
         </div>
 
         <p className="text-white/60 px-4 font-[family-name:var(--font-inter)] uppercase" style={{ fontSize: 11, letterSpacing: '0.08em', fontWeight: 500 }}>
           Your Hand — tap to select
         </p>
 
-        {/* Horizontal scrolling card tray — compact, expand only when selected */}
+        {/* Horizontal scrolling card tray with random tilt */}
         <div className="overflow-x-auto pb-4">
           <div className="flex gap-3 px-4" style={{ width: 'max-content' }}>
             {hand.map((card, index) => {
               const isExpanded = expanded === card.id;
               const isSelected = selected?.id === card.id;
+              // Deterministic tilt: -2 to +2 degrees seeded by index
+              const tilt = ((index * 137.5) % 4) - 2;
               return (
                 <motion.div
                   key={card.id}
@@ -180,10 +185,8 @@ export default function PlayerSubmit({
                     setSelected(card);
                     setExpanded(expanded === card.id ? null : card.id);
                   }}
-                  className={`relative rounded-xl cursor-pointer transition-all flex-shrink-0 overflow-hidden
-                    ${isSelected
-                      ? 'border-2 border-[#FF9933]'
-                      : 'border border-white/12'}
+                  className={`relative rounded-xl cursor-pointer flex-shrink-0 overflow-hidden
+                    ${isSelected ? 'border-2 border-[#FF9933]' : 'border border-white/12'}
                     ${isExpanded ? 'bg-[#1a4a9e]' : 'bg-[#1a3a6e]'}`}
                   style={{
                     width: isExpanded ? 200 : 144,
@@ -192,8 +195,9 @@ export default function PlayerSubmit({
                       ? '0 0 0 2px rgba(255,153,51,0.4), 0 4px 24px rgba(0,0,0,0.3)'
                       : '0 4px 24px rgba(0,0,0,0.3)',
                   }}
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
+                  initial={{ scale: 0.8, opacity: 0, rotate: tilt }}
+                  animate={{ scale: 1, opacity: 1, rotate: isSelected ? 0 : tilt }}
+                  whileHover={{ rotate: 0, scale: 1.02 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 20, delay: index * 0.05 }}
                   whileTap={{ scale: 0.97 }}
                 >
@@ -225,13 +229,20 @@ export default function PlayerSubmit({
         </div>
 
         <div className="px-4">
-          <button
+          <motion.button
             onClick={() => selected && setStep('justify')}
             disabled={!selected}
-            className="w-full h-14 bg-[#FF9933] hover:bg-[#e8872a] disabled:opacity-40 disabled:cursor-not-allowed text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95"
+            className="w-full disabled:opacity-40 disabled:cursor-not-allowed text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl"
+            style={{
+              height: 56,
+              backgroundColor: '#FF9933',
+              boxShadow: selected ? '0 4px 0 #cc7a00' : 'none',
+              fontSize: 22,
+            }}
+            whileTap={selected ? { y: 4, boxShadow: '0 0 0 #cc7a00' } : {}}
           >
             {selected ? `Play ${selected.name} →` : 'Select a Card First'}
-          </button>
+          </motion.button>
         </div>
       </div>
     );
@@ -239,7 +250,18 @@ export default function PlayerSubmit({
 
   // Step: justify
   return (
-    <div className={`flex flex-col gap-5 py-6 px-4 ${throwing ? 'animate-card-throw' : ''}`}>
+    <motion.div
+      className="flex flex-col gap-5 py-6 px-4"
+      animate={throwing ? { y: -160, scale: 0.5, opacity: 0, rotate: 8 } : { y: 0, scale: 1, opacity: 1, rotate: 0 }}
+      transition={{ duration: 0.6, ease: 'easeIn' }}
+    >
+      {/* Timer bar in justify step */}
+      {timerEndsAt && (
+        <div className="sticky top-0 z-10 -mx-4 mb-1">
+          <TimerBar total={timerDuration} endsAt={timerEndsAt} />
+        </div>
+      )}
+
       {selected && (
         <div className="bg-[#1a3a6e] border border-white/10 rounded-2xl p-4">
           <p className="text-[#FF9933] text-xs uppercase tracking-widest mb-1 font-[family-name:var(--font-inter)]">
@@ -285,9 +307,15 @@ export default function PlayerSubmit({
       <motion.button
         onClick={handleThrow}
         disabled={!explanation.trim() || loading || throwing}
-        className="w-full disabled:opacity-40 disabled:cursor-not-allowed text-white font-[family-name:var(--font-inter)] uppercase tracking-widest rounded-xl transition-all active:scale-95"
-        style={{ height: 48, backgroundColor: '#FF9933', fontSize: 16, fontWeight: 600 }}
-        whileTap={{ scale: 0.95 }}
+        className="w-full disabled:opacity-40 disabled:cursor-not-allowed text-white font-[family-name:var(--font-inter)] uppercase tracking-widest rounded-xl"
+        style={{
+          height: 48,
+          backgroundColor: '#FF9933',
+          boxShadow: '0 4px 0 #cc7a00',
+          fontSize: 16,
+          fontWeight: 600,
+        }}
+        whileTap={{ y: 4, boxShadow: '0 0 0 #cc7a00' }}
       >
         {loading || throwing ? 'Throwing…' : 'Throw Your Card ↑'}
       </motion.button>
@@ -299,6 +327,6 @@ export default function PlayerSubmit({
       >
         ← Change card
       </button>
-    </div>
+    </motion.div>
   );
 }

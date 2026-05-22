@@ -24,7 +24,6 @@ export default function ProjectorLobby({ room }: Props) {
 
   const joinUrl = origin ? `${origin}/?code=${room.code}` : `Join → ${room.code}`;
 
-  // Stable particles — generated once, never on re-render
   const particlesRef = useRef(
     Array.from({ length: 20 }, (_, i) => ({
       id: i,
@@ -40,7 +39,6 @@ export default function ProjectorLobby({ room }: Props) {
 
   return (
     <div className="relative w-full h-full bg-[#0d1b35] flex flex-col overflow-hidden grain-overlay">
-      {/* Floating particles */}
       {particles.map((p) => (
         <div
           key={p.id}
@@ -58,7 +56,6 @@ export default function ProjectorLobby({ room }: Props) {
       ))}
 
       <div className="relative z-10 flex flex-1 items-center justify-between px-12 py-8">
-        {/* Left: QR code */}
         <div className="flex flex-col items-center gap-4">
           {origin && (
             <>
@@ -75,7 +72,6 @@ export default function ProjectorLobby({ room }: Props) {
           </p>
         </div>
 
-        {/* Center: Logo */}
         <div className="flex flex-col items-center gap-6">
           <LogoLockup size="lg" />
           <div className="w-48 h-1.5 flex rounded-full overflow-hidden">
@@ -88,7 +84,6 @@ export default function ProjectorLobby({ room }: Props) {
           </p>
         </div>
 
-        {/* Right: Room code */}
         <div className="flex flex-col items-center gap-2">
           <p className="text-white/40 text-sm uppercase tracking-widest font-[family-name:var(--font-inter)]">
             Room Code
@@ -102,7 +97,6 @@ export default function ProjectorLobby({ room }: Props) {
         </div>
       </div>
 
-      {/* Players area */}
       {players.length > 0 && (
         <div className="relative z-10 px-12 pb-4">
           <p className="text-white/40 text-xs uppercase tracking-widest mb-3 font-[family-name:var(--font-inter)]">
@@ -112,24 +106,33 @@ export default function ProjectorLobby({ room }: Props) {
             {players.map((p, i) => (
               <motion.div
                 key={p.id}
-                className="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2"
                 initial={{ opacity: 0, scale: 0.5 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 20, delay: i * 0.08 }}
               >
-                <div className="rounded-lg overflow-hidden">
-                  <Avatar id={p.avatarId} size={32} />
-                </div>
-                <span className="text-white text-sm font-[family-name:var(--font-inter)]">
-                  {p.name}
-                </span>
+                <motion.div
+                  className="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2"
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                    delay: i * 0.3,
+                  }}
+                >
+                  <div className="rounded-lg overflow-hidden">
+                    <Avatar id={p.avatarId} size={32} />
+                  </div>
+                  <span className="text-white text-sm font-[family-name:var(--font-inter)]">
+                    {p.name}
+                  </span>
+                </motion.div>
               </motion.div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Footer */}
       <div className="relative z-10 border-t border-white/10 px-12 py-4 flex items-center justify-between">
         <p className="text-white/30 text-xs font-[family-name:var(--font-inter)]">
           An initiative of the Office of Shri Sujeet Kumar

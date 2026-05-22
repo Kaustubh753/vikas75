@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getPusherClient, getRoomChannel } from '@/lib/pusher-client';
 import EmoteOverlay from '@/components/projector/EmoteOverlay';
@@ -17,8 +17,40 @@ import type { GameRoom } from '@/types/game';
 
 interface Props { code: string }
 
+const PHASE_BG: Record<string, string> = {
+  lobby: '#0d1b35',
+  'challenge-reveal': '#1a0d2e',
+  submission: '#0d1b35',
+  reveal: '#1a2a0d',
+  judging: '#0d1b2e',
+  winner: '#2a1a00',
+  'between-rounds': '#0d1b35',
+  'game-over': '#1a0d00',
+};
+
+// Full-screen interstitials before key phases
+const PHASE_TRANSITIONS: Partial<Record<string, string>> = {
+  'challenge-reveal': 'GET READY',
+  reveal: "LET'S SEE WHAT\nYOU PLAYED",
+  winner: 'AND THE\nWINNER IS...',
+};
+
+type OverlayInfo = { text: string; color: string; initial: { y?: number; x?: number; scale?: number } };
+
+function getOverlay(phase: string, round: number): OverlayInfo | null {
+  if (phase === 'challenge-reveal') return { text: `ROUND ${round}`, color: '#FF9933', initial: { y: -80, scale: 1.3 } };
+  if (phase === 'submission') return { text: 'ALL IN', color: '#FF9933', initial: { y: 80, scale: 1 } };
+  if (phase === 'reveal') return { text: "TIME'S UP", color: '#ef4444', initial: { x: 120, scale: 1 } };
+  return null;
+}
+
 export default function ProjectorView({ code }: Props) {
   const [room, setRoom] = useState<GameRoom | null>(null);
+  const [transitionText, setTransitionText] = useState<string | null>(null);
+  const [overlay, setOverlay] = useState<OverlayInfo | null>(null);
+  const prevPhaseRef = useRef<string | undefined>(undefined);
+  const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const overlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     fetch(`/api/game?code=${code}`)
@@ -27,7 +59,6 @@ export default function ProjectorView({ code }: Props) {
       .catch(() => {});
   }, [code]);
 
-  // Polling fallback — syncs state if Pusher drops or the projector loads mid-game
   useEffect(() => {
     const poll = setInterval(() => {
       fetch(`/api/game?code=${code}`)
@@ -45,11 +76,38 @@ export default function ProjectorView({ code }: Props) {
     channel.bind('game:room-updated', onRoomUpdated);
     return () => {
       channel.unbind('game:room-updated', onRoomUpdated);
-      // Do NOT call pusher.unsubscribe here — EmoteOverlay shares this channel and must keep receiving game:emote
     };
   }, [code]);
 
-  // Backup timer-expire trigger — projector is always connected, so this is more reliable than player phones
+  // Phase transition overlays
+  useEffect(() => {
+    if (!room) return;
+    const prev = prevPhaseRef.current;
+    prevPhaseRef.current = room.phase;
+    if (prev === undefined || prev === room.phase) return;
+
+    // Full-screen interstitial (#6)
+    const interstitial = PHASE_TRANSITIONS[room.phase];
+    if (interstitial) {
+      setTransitionText(interstitial);
+      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+      transitionTimerRef.current = setTimeout(() => setTransitionText(null), 1500);
+    }
+
+    // Brief text overlay (#8)
+    const ov = getOverlay(room.phase, room.round);
+    if (ov) {
+      setOverlay(ov);
+      if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+      overlayTimerRef.current = setTimeout(() => setOverlay(null), 1200);
+    }
+
+    return () => {
+      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+      if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+    };
+  }, [room?.phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const timerExpire = useCallback(() => {
     fetch('/api/game', {
       method: 'POST',
@@ -94,8 +152,12 @@ export default function ProjectorView({ code }: Props) {
   }
 
   return (
-    <div className="w-screen h-screen overflow-hidden relative">
-      {/* Portrait orientation guard — hidden in landscape via CSS media query in globals.css */}
+    <motion.div
+      className="w-screen h-screen overflow-hidden relative"
+      animate={{ backgroundColor: PHASE_BG[room.phase] ?? '#0d1b35' }}
+      transition={{ duration: 0.8, ease: 'easeInOut' }}
+    >
+      {/* Portrait orientation guard */}
       <div className="portrait-lock">
         <span style={{ fontSize: 64 }}>🔄</span>
         <p className="font-[family-name:var(--font-bebas)] text-white text-3xl tracking-wide text-center px-8">
@@ -115,8 +177,63 @@ export default function ProjectorView({ code }: Props) {
           {renderPhase()}
         </motion.div>
       </AnimatePresence>
+
+      {/* Full-screen interstitial — "GET READY", "LET'S SEE WHAT YOU PLAYED", etc. */}
+      <AnimatePresence>
+        {transitionText && (
+          <motion.div
+            key={`interstitial-${transitionText}`}
+            className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none"
+            style={{ background: 'rgba(13, 27, 53, 0.88)' }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <motion.p
+              className="font-[family-name:var(--font-bebas)] text-white text-center whitespace-pre-line"
+              style={{ fontSize: 'min(15vw, 120px)', lineHeight: 1.1, textShadow: '0 4px 40px rgba(0,0,0,0.8)' }}
+              initial={{ scale: 1.4, y: -40, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
+            >
+              {transitionText}
+            </motion.p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Brief text overlay — "ROUND 1", "ALL IN", "TIME'S UP" */}
+      <AnimatePresence>
+        {overlay && !transitionText && (
+          <motion.div
+            key={`overlay-${overlay.text}`}
+            className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.p
+              className="font-[family-name:var(--font-bebas)] tracking-widest text-center"
+              style={{
+                fontSize: 'min(20vw, 160px)',
+                color: overlay.color,
+                textShadow: '0 6px 30px rgba(0,0,0,0.7)',
+                lineHeight: 1,
+              }}
+              initial={{ ...overlay.initial, opacity: 0 }}
+              animate={{ y: 0, x: 0, scale: 1, opacity: 1 }}
+              exit={{ scale: 0.85, opacity: 0 }}
+              transition={{ duration: 0.45, ease: [0.34, 1.56, 0.64, 1] }}
+            >
+              {overlay.text}
+            </motion.p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <EmoteOverlay code={code} />
       <MuteButton />
-    </div>
+    </motion.div>
   );
 }
