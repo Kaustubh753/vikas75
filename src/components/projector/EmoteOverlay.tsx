@@ -1,12 +1,20 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { getPusherClient, getRoomChannel } from '@/lib/pusher-client';
 import Avatar from '@/lib/avatars';
 import { EMOTES } from '@/lib/emotes';
-import type { EmoteEvent } from '@/types/game';
+import type { AvatarId, EmoteId } from '@/types/game';
 
-interface FloatingEmote extends EmoteEvent {
+interface EmotePayload {
+  playerId: string;
+  playerName: string;
+  avatarId: AvatarId;
+  emote: string;
+  timestamp: number;
+}
+
+interface FloatingEmote extends EmotePayload {
   uid: string;
   x: number;
 }
@@ -19,48 +27,53 @@ export default function EmoteOverlay({ code }: Props) {
   const [emotes, setEmotes] = useState<FloatingEmote[]>([]);
 
   useEffect(() => {
-    const channelName = getRoomChannel(code);
-    console.log('EMOTE OVERLAY mounting, subscribing to', channelName);
-    const pusher = getPusherClient();
-    const channel = pusher.subscribe(channelName);
-    const onEmote = (event: EmoteEvent) => {
-      console.log('EMOTE EVENT RECEIVED', event);
-      const uid = `${event.playerId}-${Date.now()}`;
-      const x = 10 + Math.random() * 80;
-      setEmotes((prev) => [...prev, { ...event, uid, x }]);
+    const channel = getPusherClient().subscribe(getRoomChannel(code));
+
+    const onEmote = (payload: EmotePayload) => {
+      const uid = `${payload.playerId}-${payload.timestamp ?? Date.now()}`;
+      const x = 8 + Math.random() * 78;
+      const entry: FloatingEmote = { ...payload, uid, x };
+      setEmotes((prev) => [...prev, entry]);
       setTimeout(() => {
         setEmotes((prev) => prev.filter((e) => e.uid !== uid));
-      }, 5000);
+      }, 5200);
     };
-    channel.bind('game:emote', onEmote);
+
+    channel.bind('emote', onEmote);
     return () => {
-      channel.unbind('game:emote', onEmote);
+      channel.unbind('emote', onEmote);
     };
   }, [code]);
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[100] overflow-hidden">
-      <AnimatePresence>
       {emotes.map((e) => {
-        const emote = EMOTES[e.emoteId];
+        const emoteData = EMOTES[e.emote as EmoteId];
+        if (!emoteData) return null;
         return (
           <motion.div
             key={e.uid}
-            className="absolute bottom-20"
-            style={{ left: `${e.x}%` }}
-            initial={{ opacity: 0, y: 60, scale: 0.5 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -40, scale: 0.8 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+            className="absolute"
+            style={{ left: `${e.x}%`, bottom: '15%' }}
+            initial={{ opacity: 0, y: 60, scale: 0.4 }}
+            animate={{
+              opacity: [0, 1, 1, 1, 0],
+              y: [60, 0, -80, -180, -300],
+              scale: [0.4, 1, 1, 1, 0.85],
+            }}
+            transition={{ duration: 5, times: [0, 0.1, 0.4, 0.75, 1], ease: 'easeOut' }}
           >
-            <div className="bg-black/70 backdrop-blur-sm rounded-2xl px-4 py-3 flex flex-col items-center gap-1 w-44">
-              <span className="text-4xl">{emote.emoji}</span>
-              <span className="text-white font-[family-name:var(--font-bebas)] text-lg tracking-wide">
-                {emote.label}
+            <div
+              className="bg-black/75 backdrop-blur-sm rounded-2xl px-5 py-4 flex flex-col items-center gap-2 shadow-2xl"
+              style={{ minWidth: 160 }}
+            >
+              <span style={{ fontSize: 48 }}>{emoteData.emoji}</span>
+              <span className="text-white font-[family-name:var(--font-bebas)] text-xl tracking-wide">
+                {emoteData.label}
               </span>
               <div className="flex items-center gap-2">
                 <div className="rounded-md overflow-hidden">
-                  <Avatar id={e.avatarId} size={20} />
+                  <Avatar id={e.avatarId} size={22} />
                 </div>
                 <span className="text-white/60 text-xs font-[family-name:var(--font-inter)]">
                   {e.playerName}
@@ -70,7 +83,6 @@ export default function EmoteOverlay({ code }: Props) {
           </motion.div>
         );
       })}
-      </AnimatePresence>
     </div>
   );
 }

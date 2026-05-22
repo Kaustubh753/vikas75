@@ -219,7 +219,10 @@ export default function PlayerView({ code }: Props) {
       body: JSON.stringify({
         action: 'emote',
         code,
-        emote: { playerId, playerName, avatarId, emoteId, sentAt: Date.now() },
+        playerId,
+        playerName,
+        avatarId,
+        emote: emoteId,
       }),
     });
   }

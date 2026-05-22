@@ -27,7 +27,7 @@ function TimerBar({ total, endsAt }: { total: number; endsAt: number }) {
   const urgent = remaining <= 10;
 
   return (
-    <div className="relative h-1.5 bg-white/10">
+    <div className="relative h-6 bg-white/10 overflow-hidden">
       <motion.div
         className="absolute left-0 top-0 h-full w-full"
         style={{ backgroundColor: urgent ? '#ef4444' : '#FF9933', transformOrigin: '0 50%' }}
@@ -35,10 +35,11 @@ function TimerBar({ total, endsAt }: { total: number; endsAt: number }) {
           scaleX: frac,
           boxShadow: urgent ? '0 0 8px 3px rgba(239,68,68,0.7)' : 'none',
         }}
-        transition={{ duration: 0.6, ease: 'linear' }}
+        transition={{ type: 'spring', stiffness: 100, damping: 20 }}
       />
       <span
-        className={`absolute right-2 top-1/2 -translate-y-1/2 font-[family-name:var(--font-bebas)] text-xs leading-none ${urgent ? 'text-red-400 animate-pulse' : 'text-white/50'}`}
+        className={`absolute inset-0 flex items-center justify-center font-[family-name:var(--font-inter)] font-bold text-white leading-none ${urgent ? 'animate-pulse' : ''}`}
+        style={{ fontSize: 12, zIndex: 1 }}
       >
         {remaining}s
       </span>
@@ -128,7 +129,7 @@ export default function PlayerSubmit({
           </p>
         </div>
         <p className="text-white/40 text-sm text-center font-[family-name:var(--font-inter)]">
-          Watch the projector!
+          Watch the screen!
         </p>
       </motion.div>
     );
@@ -171,7 +172,7 @@ export default function PlayerSubmit({
         </p>
 
         {/* Horizontal scrolling card tray with random tilt */}
-        <div className="overflow-x-auto pb-4">
+        <div className="overflow-x-auto" style={{ paddingTop: 16, paddingBottom: 16 }}>
           <div className="flex gap-3 px-4" style={{ width: 'max-content' }}>
             {hand.map((card, index) => {
               const isExpanded = expanded === card.id;
@@ -191,6 +192,7 @@ export default function PlayerSubmit({
                   style={{
                     width: isExpanded ? 200 : 144,
                     minHeight: isExpanded ? 200 : 112,
+                    transformOrigin: 'center',
                     boxShadow: isSelected
                       ? '0 0 0 2px rgba(255,153,51,0.4), 0 4px 24px rgba(0,0,0,0.3)'
                       : '0 4px 24px rgba(0,0,0,0.3)',

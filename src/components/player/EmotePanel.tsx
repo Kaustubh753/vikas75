@@ -11,6 +11,7 @@ const RATE_LIMIT_MS = 5000;
 
 export default function EmotePanel({ onEmote }: Props) {
   const [open, setOpen] = useState(false);
+  const [lastSent, setLastSent] = useState<EmoteId | null>(null);
   const lastEmoteAt = useRef<number>(0);
 
   function handleEmote(id: EmoteId) {
@@ -18,6 +19,8 @@ export default function EmotePanel({ onEmote }: Props) {
     if (now - lastEmoteAt.current < RATE_LIMIT_MS) return;
     lastEmoteAt.current = now;
     onEmote(id);
+    setLastSent(id);
+    setTimeout(() => setLastSent(null), 1500);
     setOpen(false);
   }
 
@@ -42,6 +45,15 @@ export default function EmotePanel({ onEmote }: Props) {
           })}
         </div>
       )}
+
+      {/* Brief sent confirmation */}
+      {lastSent && (
+        <div className="bg-black/80 rounded-xl px-3 py-1.5 flex items-center gap-2 animate-bounce-in">
+          <span className="text-lg">{EMOTES[lastSent].emoji}</span>
+          <span className="text-white/80 text-xs font-[family-name:var(--font-inter)]">Sent!</span>
+        </div>
+      )}
+
       <button
         onClick={() => setOpen((o) => !o)}
         className="w-12 h-12 rounded-full bg-[#FF9933] hover:bg-[#e8872a] flex items-center justify-center text-2xl shadow-lg transition-all active:scale-95"

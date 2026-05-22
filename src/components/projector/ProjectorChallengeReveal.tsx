@@ -10,32 +10,35 @@ function TimerBar({ total, remaining }: { total: number; remaining: number }) {
   const frac = Math.max(0, remaining / total);
   const urgent = remaining <= 10;
   return (
-    <div className="absolute top-0 left-0 right-0 z-30">
-      <div className="relative h-2 bg-white/10">
-        <motion.div
-          className="absolute left-0 top-0 h-full w-full origin-left"
-          style={{ backgroundColor: urgent ? '#ef4444' : '#FF9933', transformOrigin: '0 50%' }}
-          animate={{
-            scaleX: frac,
-            boxShadow: urgent ? '0 0 14px 4px rgba(239,68,68,0.7)' : 'none',
-          }}
-          transition={{ duration: 0.8, ease: 'linear' }}
-        />
-      </div>
-      <div className={`absolute right-6 font-[family-name:var(--font-bebas)] text-4xl leading-none ${urgent ? 'text-red-400 animate-pulse' : 'text-white/60'}`} style={{ top: 10 }}>
-        {remaining}
-      </div>
+    <div className="absolute top-0 left-0 right-0 z-30 h-8 bg-white/10 overflow-hidden">
+      <motion.div
+        className="absolute left-0 top-0 h-full w-full"
+        style={{ backgroundColor: urgent ? '#ef4444' : '#FF9933', transformOrigin: '0 50%' }}
+        animate={{
+          scaleX: frac,
+          boxShadow: urgent ? '0 0 16px 6px rgba(239,68,68,0.7)' : 'none',
+        }}
+        transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+      />
+      <span
+        className={`absolute inset-0 flex items-center justify-center font-[family-name:var(--font-inter)] font-bold text-white ${urgent ? 'animate-pulse' : ''}`}
+        style={{ fontSize: 14, zIndex: 1 }}
+      >
+        {remaining}s
+      </span>
     </div>
   );
 }
 
 function StaticTimerBar({ total }: { total: number }) {
   return (
-    <div className="absolute top-0 left-0 right-0 z-30">
-      <div className="h-2 bg-[#FF9933]" />
-      <div className="absolute right-6 font-[family-name:var(--font-bebas)] text-4xl leading-none text-white/60" style={{ top: 10 }}>
-        {total}
-      </div>
+    <div className="absolute top-0 left-0 right-0 z-30 h-8 overflow-hidden" style={{ backgroundColor: '#FF9933' }}>
+      <span
+        className="absolute inset-0 flex items-center justify-center font-[family-name:var(--font-inter)] font-bold text-white"
+        style={{ fontSize: 14 }}
+      >
+        {total}s
+      </span>
     </div>
   );
 }

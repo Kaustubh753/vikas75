@@ -40,7 +40,7 @@ export default function PlayerWaiting({ phase, hint }: Props) {
       )}
       {!hint && phase === 'submission' && (
         <p className="text-white/30 text-xs text-center font-[family-name:var(--font-inter)]">
-          Watch the projector screen
+          Watch the screen
         </p>
       )}
     </div>
