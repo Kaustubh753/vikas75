@@ -129,7 +129,9 @@ export async function POST(req: NextRequest) {
         if (room.phase !== 'lobby') return NextResponse.json({ error: 'Can only update settings in lobby' }, { status: 400 });
         const safeRounds = typeof totalRounds === 'number' ? Math.max(1, Math.min(50, Math.round(totalRounds))) : room.totalRounds;
         const safeTimer = typeof timerDuration === 'number' ? Math.max(10, Math.min(300, Math.round(timerDuration))) : room.timerDuration;
-        const updated = updateSettings(room, { totalRounds: safeRounds, timerDuration: safeTimer, gameMode });
+        const VALID_MODES: GameMode[] = ['crowd', 'friends'];
+        const safeGameMode: GameMode = VALID_MODES.includes(gameMode as GameMode) ? (gameMode as GameMode) : room.gameMode;
+        const updated = updateSettings(room, { totalRounds: safeRounds, timerDuration: safeTimer, gameMode: safeGameMode });
         await setRoom(updated);
         await broadcastRoom(updated);
         return NextResponse.json({ room: updated });

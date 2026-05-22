@@ -84,9 +84,9 @@ The host calls `POST /api/game { action: 'advance' }` at each step. The `judging
 - `src/app/admin/dashboard/page.tsx` — Admin dashboard.
 
 ### Player Components
-- `src/components/player/HomePage.tsx` — Join/create screen. Uses `<CodeInput>`. Stores `vikas75_playerId` and `vikas75_playerName` in sessionStorage on join. Host redirected to `/host/[code]?h=[hostId]`.
+- `src/components/player/HomePage.tsx` — Join/create screen. Uses `<CodeInput>`. Stores `vikas75_playerId` and `vikas75_playerName` in localStorage on join. Host redirected to `/host/[code]?h=[hostId]`.
 - `src/components/player/HostPanel.tsx` — Host controls. Accepts `hostId` as prop (from URL, not sessionStorage). Shows advance button with phase-appropriate label, error display, player list, leaderboard.
-- `src/components/player/PlayerView.tsx` — Player state machine. Reads identity from sessionStorage in `useEffect` only (avoids hydration mismatch). Redirects to `/?code=${code}` if no identity found.
+- `src/components/player/PlayerView.tsx` — Player state machine. Reads identity from localStorage in `useEffect` only (avoids hydration mismatch). Redirects to `/?code=${code}` if no identity found.
 - `src/components/player/PlayerSubmit.tsx` — Card selection + explanation. Horizontal scroll tray; second tap expands card to 220px; char counter; bonus point hint (≤1 sentence).
 - `src/components/player/PlayerLobby.tsx` — Waiting in lobby, shows player list.
 - `src/components/player/PlayerWaiting.tsx` — Generic waiting screen with pulsing dots.
@@ -167,7 +167,6 @@ Without Redis env vars, state lives in a module-level `Map` — rooms are lost o
 - **Timer is UI-only** — `timerEndsAt` is set but the server never auto-advances when it expires. The host must manually click "End Submissions". A cron/webhook or client-side `setTimeout` that calls `advance` is needed.
 - **Players who join mid-game don't get fresh hands between rounds** — `joinedRound` is stored but hands are not refreshed on `between-rounds`. Late joiners keep their original hand indefinitely.
 - **No reconnection handling** — If a player refreshes during `submission`, they lose their selected card state (but can re-submit). `PlayerView` redirects home if sessionStorage is gone (incognito, cleared storage).
-- **Duplicate room codes** — `generateRoomCode()` doesn't check Redis for collisions. Probability is low (24^4 = 331,776 possibilities) but not zero.
 - **`allPlayersSubmitted` includes late joiners** — If a player joins during `challenge-reveal`, they're expected to submit before auto-advance triggers. Consider excluding players with `joinedRound === room.round`.
 - **No submission timer auto-advance** — Related to timer issue above.
 
