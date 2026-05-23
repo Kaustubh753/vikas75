@@ -22,8 +22,8 @@ const DEFAULT_TIMER_DURATION = 90; // seconds
 const MAX_CHAT_MESSAGES = 20;
 
 export function generateRoomCode(): string {
-  // No I, O (too similar to 1, 0) — charset matches the validation allowlist in api/game/route.ts
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  // No I, O — too similar to 1 and 0 on a projector screen
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
   return Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
