@@ -51,7 +51,8 @@ function useFanScale() {
 
   useEffect(() => {
     const update = () => {
-      setScale(Math.min(window.innerWidth / 1440, window.innerHeight / 900));
+      // Multiply by 0.9 so the card fan matches the 90%-zoom proportions at native 100%
+      setScale(Math.min(window.innerWidth / 1440, window.innerHeight / 900) * 0.9);
     };
     update();
     window.addEventListener('resize', update);
@@ -306,7 +307,7 @@ function HowToPlay() {
         background: 'linear-gradient(180deg,rgba(255,153,51,.05) 0%,rgba(255,153,51,0) 22%),linear-gradient(180deg,rgba(5,11,28,.85) 0%,rgba(2,6,18,.9) 100%)',
         border: '1px solid rgba(255,153,51,.22)',
         borderRadius: 12,
-        padding: 'clamp(20px, 1.8vw, 28px) clamp(16px, 1.5vw, 22px)',
+        padding: 'clamp(16px, 1.5vw, 22px) clamp(12px, 1.2vw, 18px)',
         display: 'flex', flexDirection: 'column',
         boxShadow: '0 24px 48px rgba(0,0,0,.45),0 6px 14px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,153,51,.18),inset 0 0 0 1px rgba(255,255,255,.02)',
         backdropFilter: 'blur(8px)',
@@ -315,7 +316,7 @@ function HowToPlay() {
       }}
     >
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
         <div style={{ fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500, fontSize: 'clamp(8px, 0.76vw, 11px)', color: 'rgba(250,248,240,.7)', letterSpacing: '0.22em', textTransform: 'uppercase' }}>
           How to play
         </div>
@@ -346,20 +347,20 @@ function HowToPlay() {
             }}>
               <div style={{
                 fontFamily: 'var(--font-yatra),var(--font-inter),sans-serif',
-                fontSize: 'clamp(32px, 3.6vw, 52px)', lineHeight: 1, color: '#FF9933', letterSpacing: '-0.01em',
+                fontSize: 'clamp(26px, 3vw, 44px)', lineHeight: 1, color: '#FF9933', letterSpacing: '-0.01em',
               }}>
                 {s.num}
               </div>
               <div style={{
                 fontFamily: 'var(--font-inter),sans-serif',
-                fontWeight: 700, fontSize: 'clamp(14px, 1.5vw, 22px)', lineHeight: 1.15,
+                fontWeight: 700, fontSize: 'clamp(12px, 1.3vw, 19px)', lineHeight: 1.15,
                 letterSpacing: '-0.005em', color: '#fff',
               }}>
                 {s.title}
               </div>
               <div style={{
                 fontFamily: 'var(--font-inter),sans-serif',
-                fontWeight: 400, fontSize: 'clamp(11px, 0.97vw, 14px)', lineHeight: 1.6,
+                fontWeight: 400, fontSize: 'clamp(10px, 0.88vw, 13px)', lineHeight: 1.6,
                 color: 'rgba(250,248,240,.7)',
               }}>
                 {s.body}
@@ -370,7 +371,7 @@ function HowToPlay() {
       </div>
 
       {/* Dot nav — centred, each dot navigates directly to that slide */}
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 18, paddingTop: 16, borderTop: '1px solid rgba(250,248,240,.14)' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(250,248,240,.14)' }}>
         {HTP_STEPS.map((_, i) => (
           <button
             key={i}
@@ -566,12 +567,12 @@ function LandingPage() {
 
   const btnBase: React.CSSProperties = {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    height: 'clamp(44px, 5vh, 60px)',
-    padding: '0 32px',
+    height: 'clamp(38px, 4.2vh, 52px)',
+    padding: '0 24px',
     width: '100%',
     borderRadius: 6, border: '1.5px solid transparent',
     fontFamily: 'var(--font-inter),sans-serif',
-    fontWeight: 600, fontSize: 'clamp(11px, 1.1vw, 16px)',
+    fontWeight: 600, fontSize: 'clamp(10px, 0.95vw, 13px)',
     letterSpacing: '0.14em', textTransform: 'uppercase',
     cursor: 'pointer',
     transition: 'transform .15s ease, background .15s ease, box-shadow .15s ease, border-color .15s ease',
@@ -604,26 +605,26 @@ function LandingPage() {
       <div style={{
         position: 'relative', zIndex: 3,
         width: '100%', height: '100%',
-        padding: 'clamp(28px, 4.5vh, 60px) clamp(36px, 5vw, 72px) clamp(20px, 3vh, 40px)',
+        padding: 'clamp(20px, 3.5vh, 48px) clamp(24px, 3.5vw, 56px) clamp(14px, 2.2vh, 30px)',
         display: 'grid',
-        gridTemplateColumns: 'minmax(260px, 27vw) 1fr minmax(270px, 25vw)',
+        gridTemplateColumns: 'minmax(220px, 24vw) 1fr minmax(230px, 22vw)',
         gridTemplateRows: '1fr auto',
-        gap: '0 clamp(16px, 2.2vw, 32px)',
+        gap: '0 clamp(12px, 1.8vw, 24px)',
         alignItems: 'stretch',
         boxSizing: 'border-box',
       }}>
 
         {/* ── LEFT: logo + CTAs ─────────────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 36, zIndex: 5, alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 28, zIndex: 5, alignItems: 'flex-start' }}>
           {/* Logo unit with saffron left bar */}
-          <div style={{ display: 'inline-flex', flexDirection: 'column', position: 'relative', paddingLeft: 18, alignItems: 'stretch' }}>
+          <div style={{ display: 'inline-flex', flexDirection: 'column', position: 'relative', paddingLeft: 16, alignItems: 'stretch' }}>
             <div style={{ position: 'absolute', left: 0, top: 6, bottom: 6, width: 2, background: '#FF9933' }} />
             <div style={{
               fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500,
-              fontSize: 'clamp(9px, 0.76vw, 11px)',
+              fontSize: 'clamp(8px, 0.68vw, 10px)',
               letterSpacing: '0.08em', textTransform: 'uppercase',
               color: 'rgba(250,248,240,.7)', lineHeight: 1.4,
-              marginBottom: 16, whiteSpace: 'nowrap',
+              marginBottom: 12, whiteSpace: 'nowrap',
             }}>
               An initiative of the Office of Shri Sujeet Kumar
             </div>
@@ -631,7 +632,7 @@ function LandingPage() {
               <h1 style={{
                 fontFamily: 'var(--font-yatra),var(--font-bebas),sans-serif',
                 fontWeight: 400,
-                fontSize: 'clamp(52px, 6.25vw, 90px)',
+                fontSize: 'clamp(44px, 5.5vw, 78px)',
                 lineHeight: 0.9,
                 letterSpacing: '-0.01em', color: '#fff',
                 margin: 0, whiteSpace: 'nowrap',
@@ -642,17 +643,17 @@ function LandingPage() {
             <div style={{
               fontFamily: 'var(--font-inter),sans-serif',
               fontWeight: 400,
-              fontSize: 'clamp(14px, 1.52vw, 22px)',
+              fontSize: 'clamp(12px, 1.3vw, 19px)',
               lineHeight: 1.35,
               color: '#FF9933', letterSpacing: '-0.005em',
-              marginTop: 16, whiteSpace: 'nowrap',
+              marginTop: 12, whiteSpace: 'nowrap',
             }}>
               The best answer isn&apos;t always right
             </div>
           </div>
 
           {/* CTA buttons */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
             <button
               style={{ ...btnBase, background: '#FF9933', color: '#1a1208', borderColor: '#FF9933' }}
               onMouseEnter={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = '#e6862b'; b.style.transform = 'translateY(-1px)'; b.style.boxShadow = '0 6px 24px rgba(255,153,51,.32)'; }}
