@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { getPusherClient, getRoomChannel } from '@/lib/pusher-client';
 import Avatar from '@/lib/avatars';
@@ -17,6 +17,8 @@ interface Props {
 
 export default function EmoteOverlay({ code }: Props) {
   const [emotes, setEmotes] = useState<FloatingEmote[]>([]);
+  // Track pending removal timers so they can be cleared on unmount
+  const timersRef = React.useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
     const channel = getPusherClient().subscribe(getRoomChannel(code));
@@ -26,15 +28,20 @@ export default function EmoteOverlay({ code }: Props) {
       const x = 8 + Math.random() * 78;
       const entry: FloatingEmote = { ...payload, uid, x };
       setEmotes((prev) => [...prev, entry]);
-      setTimeout(() => {
+      const t = setTimeout(() => {
         setEmotes((prev) => prev.filter((e) => e.uid !== uid));
+        timersRef.current = timersRef.current.filter((id) => id !== t);
       }, 5200);
+      timersRef.current.push(t);
     };
 
     channel.bind('emote', onEmote);
     return () => {
       channel.unbind('emote', onEmote);
       getPusherClient().unsubscribe(getRoomChannel(code));
+      // Clear all pending removal timers to avoid setState on unmounted component
+      timersRef.current.forEach(clearTimeout);
+      timersRef.current = [];
     };
   }, [code]);
 

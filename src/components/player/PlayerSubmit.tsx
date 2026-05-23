@@ -76,8 +76,12 @@ export default function PlayerSubmit({
   const [throwing, setThrowing] = useState(false);
   const didRestoreDraft = useRef(false);
 
+  // Restore draft explanation once on mount — intentionally runs only once
+  // (submitted/submittedExplanation are stable on first render when restoring from sessionStorage)
+  const submittedRef = useRef(submitted);
+  const submittedExplanationRef = useRef(submittedExplanation);
   useEffect(() => {
-    if (didRestoreDraft.current || submitted || submittedExplanation) return;
+    if (didRestoreDraft.current || submittedRef.current || submittedExplanationRef.current) return;
     didRestoreDraft.current = true;
     const draft = sessionStorage.getItem(DRAFT_KEY);
     if (draft) setExplanation(draft);

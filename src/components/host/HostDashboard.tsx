@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
@@ -48,10 +48,54 @@ export default function HostDashboard({ code, hostId }: Props) {
   const [origin, setOrigin] = useState('');
   const [rounds, setRounds] = useState(10);
   const [timer, setTimer] = useState(60);
+  const settingsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setOrigin(window.location.origin);
+    return () => {
+      // Clean up debounce timer on unmount
+      if (settingsDebounceRef.current) clearTimeout(settingsDebounceRef.current);
+    };
   }, []);
+
+  const fetchRoom = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/game?code=${code}`);
+      if (res.ok) {
+        const data = await res.json();
+        setRoom(data.room);
+        setRounds(data.room.totalRounds);
+        setTimer(data.room.timerDuration);
+      }
+    } catch {
+      // ignore
+    }
+  }, [code]);
+
+  useEffect(() => {
+    if (!hostId) return;
+    fetchRoom();
+  }, [fetchRoom, hostId]);
+
+  useEffect(() => {
+    if (!hostId) return;
+    const pusher = getPusherClient();
+    const channel = pusher.subscribe(getRoomChannel(code));
+    const onRoomUpdated = (updated: GameRoom) => setRoom(updated);
+    channel.bind('game:room-updated', onRoomUpdated);
+    return () => {
+      channel.unbind('game:room-updated', onRoomUpdated);
+      pusher.unsubscribe(getRoomChannel(code));
+    };
+  }, [code, hostId]);
+
+  // Warn before leaving during an active game
+  useEffect(() => {
+    if (!room || room.phase === 'lobby' || room.phase === 'game-over') return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [room?.phase]);
 
   // Guard: if hostId is absent the advance button will always 403 — show a clear error immediately
   if (!hostId) {
@@ -73,43 +117,6 @@ export default function HostDashboard({ code, hostId }: Props) {
       </div>
     );
   }
-
-  const fetchRoom = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/game?code=${code}`);
-      if (res.ok) {
-        const data = await res.json();
-        setRoom(data.room);
-        setRounds(data.room.totalRounds);
-        setTimer(data.room.timerDuration);
-      }
-    } catch {
-      // ignore
-    }
-  }, [code]);
-
-  useEffect(() => {
-    fetchRoom();
-  }, [fetchRoom]);
-
-  useEffect(() => {
-    const pusher = getPusherClient();
-    const channel = pusher.subscribe(getRoomChannel(code));
-    const onRoomUpdated = (updated: GameRoom) => setRoom(updated);
-    channel.bind('game:room-updated', onRoomUpdated);
-    return () => {
-      channel.unbind('game:room-updated', onRoomUpdated);
-      pusher.unsubscribe(getRoomChannel(code));
-    };
-  }, [code]);
-
-  // Warn before leaving during an active game
-  useEffect(() => {
-    if (!room || room.phase === 'lobby' || room.phase === 'game-over') return;
-    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [room?.phase]);
 
   async function handleAdvance() {
     if (!room) return;
@@ -155,8 +162,30 @@ export default function HostDashboard({ code, hostId }: Props) {
     }
   }
 
+  // Debounced settings save — prevents a flood of API calls when dragging the slider
+  function scheduleSettingsUpdate(nextRounds: number, nextTimer: number) {
+    if (settingsDebounceRef.current) clearTimeout(settingsDebounceRef.current);
+    settingsDebounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/game', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'update-settings', code, hostId, totalRounds: nextRounds, timerDuration: nextTimer }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          toast.error((data as { error?: string }).error || 'Could not update settings');
+        }
+      } catch {
+        toast.error('Network error — could not update settings');
+      }
+    }, 400);
+  }
+
+  // Kept for the onPointerUp / onKeyUp handlers that fire after dragging stops
   async function handleUpdateSettings() {
     if (!room) return;
+    if (settingsDebounceRef.current) clearTimeout(settingsDebounceRef.current);
     try {
       const res = await fetch('/api/game', {
         method: 'POST',
@@ -337,9 +366,10 @@ export default function HostDashboard({ code, hostId }: Props) {
                 </div>
                 <input
                   type="range" min={5} max={15} value={rounds}
-                  onChange={(e) => setRounds(Number(e.target.value))}
+                  onChange={(e) => { const v = Number(e.target.value); setRounds(v); scheduleSettingsUpdate(v, timer); }}
                   onPointerUp={handleUpdateSettings}
                   onKeyUp={handleUpdateSettings}
+                  aria-label="Number of rounds"
                   className="w-full accent-[#FF9933]"
                 />
               </div>
@@ -350,9 +380,10 @@ export default function HostDashboard({ code, hostId }: Props) {
                 </div>
                 <input
                   type="range" min={30} max={120} step={5} value={timer}
-                  onChange={(e) => setTimer(Number(e.target.value))}
+                  onChange={(e) => { const v = Number(e.target.value); setTimer(v); scheduleSettingsUpdate(rounds, v); }}
                   onPointerUp={handleUpdateSettings}
                   onKeyUp={handleUpdateSettings}
+                  aria-label="Timer duration in seconds"
                   className="w-full accent-[#FF9933]"
                 />
               </div>

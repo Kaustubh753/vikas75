@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { EMOTES, EMOTE_IDS } from '@/lib/emotes';
 import type { EmoteId } from '@/types/game';
 
@@ -13,6 +13,12 @@ export default function EmotePanel({ onEmote }: Props) {
   const [open, setOpen] = useState(false);
   const [lastSent, setLastSent] = useState<EmoteId | null>(null);
   const lastEmoteAt = useRef<number>(0);
+  const lastSentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear pending timer on unmount to avoid setState on unmounted component
+  useEffect(() => () => {
+    if (lastSentTimerRef.current) clearTimeout(lastSentTimerRef.current);
+  }, []);
 
   function handleEmote(id: EmoteId) {
     const now = Date.now();
@@ -20,7 +26,8 @@ export default function EmotePanel({ onEmote }: Props) {
     lastEmoteAt.current = now;
     onEmote(id);
     setLastSent(id);
-    setTimeout(() => setLastSent(null), 1500);
+    if (lastSentTimerRef.current) clearTimeout(lastSentTimerRef.current);
+    lastSentTimerRef.current = setTimeout(() => setLastSent(null), 1500);
     setOpen(false);
   }
 

@@ -409,21 +409,22 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
 
   async function handleJoin(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim() || code.length !== 4) return;
+    const trimmedCode = code.replace(/\s/g, '');
+    if (!name.trim() || trimmedCode.length !== 4) return;
     setLoading(true); setError('');
     const playerId = crypto.randomUUID();
     try {
       const res = await fetch('/api/game', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'join', code, playerId, playerName: name.trim(), avatarId }),
+        body: JSON.stringify({ action: 'join', code: trimmedCode, playerId, playerName: name.trim(), avatarId }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Could not join room'); setLoading(false); return; }
       localStorage.setItem('vikas75_playerId',  playerId);
       localStorage.setItem('vikas75_playerName', name.trim());
       localStorage.setItem('vikas75_avatarId',   avatarId);
-      localStorage.setItem('vikas75_roomCode',   code);
-      router.push(`/room/${code}`);
+      localStorage.setItem('vikas75_roomCode',   trimmedCode);
+      router.push(`/room/${trimmedCode}`);
     } catch {
       setError('Network error. Please try again.');
       setLoading(false);
@@ -482,9 +483,10 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
                 onChange={e => {
                   // Exclude I and O — generateRoomCode never produces them (too similar to 1 and 0)
                   const ch = e.target.value.slice(-1).toUpperCase().replace(/[^ABCDEFGHJKLMNPQRSTUVWXYZ23456789]/g, '');
-                  const arr = [...(code + '    ').slice(0, 4)];
+                  // Maintain full 4-slot array so editing slot i never collapses other slots
+                  const arr = [code[0] ?? '', code[1] ?? '', code[2] ?? '', code[3] ?? ''];
                   arr[i] = ch;
-                  setCode(arr.join('').replace(/ /g, '').slice(0, 4));
+                  setCode(arr.join(''));
                   if (ch) slotsRef.current[i + 1]?.focus();
                 }}
                 onKeyDown={e => {

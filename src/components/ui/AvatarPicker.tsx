@@ -23,7 +23,7 @@ export default function AvatarPicker({ value, onChange, disabled }: Props) {
             disabled={disabled}
             aria-label={`${AVATAR_NAMES[id]}${value === id ? ' (selected)' : ''}`}
             aria-pressed={value === id}
-            className={`relative rounded-xl overflow-hidden transition-all active:scale-95 focus:outline-none
+            className={`relative rounded-xl overflow-hidden transition-all active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF9933]
               ${
                 value === id
                   ? 'ring-2 ring-[#FF9933] scale-105 shadow-lg shadow-[#FF9933]/30'

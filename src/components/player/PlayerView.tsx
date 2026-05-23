@@ -164,6 +164,11 @@ export default function PlayerView({ code }: Props) {
     };
   }, [code, hydrated]);
 
+  // Clean up overlay timer on unmount
+  useEffect(() => () => {
+    if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+  }, []);
+
   // Toast + overlay on phase change
   useEffect(() => {
     if (!room) return;

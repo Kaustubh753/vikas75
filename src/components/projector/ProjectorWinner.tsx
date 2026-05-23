@@ -43,7 +43,8 @@ export default function ProjectorWinner({ room }: Props) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps — intentional one-shot on mount
 
   if (!verdict) return null;
-  const winner = room.players[verdict.winnerId];
+  // winner may be absent if the player disconnected/was removed between judging and display
+  const winner = room.players[verdict.winnerId] ?? null;
 
   return (
     <div className="w-full h-full bg-[#0d1b35] flex flex-col items-center justify-center overflow-hidden relative">

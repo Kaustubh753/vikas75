@@ -78,6 +78,7 @@ export async function POST(req: NextRequest) {
         const { code, playerId, playerName, avatarId } = body as {
           code: string; playerId: string; playerName: string; avatarId: AvatarId;
         };
+        if (!code || typeof code !== 'string') return NextResponse.json({ error: 'Room code is required' }, { status: 400 });
         const ip = getIp(req);
         if (!(await checkRateLimit(`ratelimit:join:${ip}`, 15, 60))) {
           return NextResponse.json({ error: 'Too many requests — slow down' }, { status: 429 });
@@ -214,16 +215,26 @@ export async function POST(req: NextRequest) {
 
       case 'timer-expire': {
         const { code } = body;
-        const room = await getRoom(code?.toUpperCase());
-        if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
-        // Idempotent — only act if still in submission and timer has actually elapsed
-        if (room.phase !== 'submission') return NextResponse.json({ ok: true });
-        if (!room.timerEndsAt || Date.now() < room.timerEndsAt) return NextResponse.json({ ok: true });
-        // Advance to reveal — players who didn't submit are simply skipped (no entry in submissions)
-        const revealed = advancePhase(room);
-        await setRoom(revealed);
-        await broadcastRoom(revealed);
-        return NextResponse.json({ ok: true });
+        if (!code || typeof code !== 'string') return NextResponse.json({ ok: true });
+        const upperCode = code.toUpperCase();
+        // Distributed lock — prevent multiple concurrent timer-expire calls from double-advancing
+        const timerLock = `lock:timer-expire:${upperCode}`;
+        const lockAcquired = await acquireLock(timerLock, 10);
+        if (!lockAcquired) return NextResponse.json({ ok: true });
+        try {
+          const room = await getRoom(upperCode);
+          if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+          // Idempotent — only act if still in submission and timer has actually elapsed
+          if (room.phase !== 'submission') return NextResponse.json({ ok: true });
+          if (!room.timerEndsAt || Date.now() < room.timerEndsAt) return NextResponse.json({ ok: true });
+          // Advance to reveal — players who didn't submit are simply skipped (no entry in submissions)
+          const revealed = advancePhase(room);
+          await setRoom(revealed);
+          await broadcastRoom(revealed);
+          return NextResponse.json({ ok: true });
+        } finally {
+          await releaseLock(timerLock);
+        }
       }
 
       case 'emote': {

@@ -111,6 +111,7 @@ export default function HostSetupPage() {
             max={15}
             value={rounds}
             onChange={(e) => setRounds(Number(e.target.value))}
+            aria-label="Number of rounds"
             className="w-full accent-[#FF9933]"
           />
           <div className="flex justify-between text-white/30 text-xs mt-1 font-[family-name:var(--font-inter)]">
@@ -136,6 +137,7 @@ export default function HostSetupPage() {
             step={5}
             value={timer}
             onChange={(e) => setTimer(Number(e.target.value))}
+            aria-label="Timer duration in seconds"
             className="w-full accent-[#FF9933]"
           />
           <div className="flex justify-between text-white/30 text-xs mt-1 font-[family-name:var(--font-inter)]">

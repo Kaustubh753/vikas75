@@ -44,10 +44,11 @@ export default function AdminPage() {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-white/50 text-xs uppercase tracking-widest mb-1 font-[family-name:var(--font-inter)]">
+            <label htmlFor="admin-username" className="block text-white/50 text-xs uppercase tracking-widest mb-1 font-[family-name:var(--font-inter)]">
               Username
             </label>
             <input
+              id="admin-username"
               type="text"
               value={user}
               onChange={(e) => setUser(e.target.value)}
@@ -56,10 +57,11 @@ export default function AdminPage() {
             />
           </div>
           <div>
-            <label className="block text-white/50 text-xs uppercase tracking-widest mb-1 font-[family-name:var(--font-inter)]">
+            <label htmlFor="admin-password" className="block text-white/50 text-xs uppercase tracking-widest mb-1 font-[family-name:var(--font-inter)]">
               Password
             </label>
             <input
+              id="admin-password"
               type="password"
               value={pass}
               onChange={(e) => setPass(e.target.value)}
