@@ -107,41 +107,34 @@ function cardFilter(status: string) {
 // ScaledStage — scales a 1440×900 canvas to fit any viewport
 // ─────────────────────────────────────────────────────────────
 function ScaledStage({ children }: { children: React.ReactNode }) {
-  const stageRef = useRef<HTMLDivElement>(null);
-
-  const fit = useCallback(() => {
-    const el = stageRef.current;
-    if (!el) return;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const s  = Math.min(vw / 1440, vh / 900);
-    // Translate to centre the scaled stage in the viewport.
-    // Math: visual size = 1440*s × 900*s; offset = (viewport - visual) / 2
-    // transform-origin is top-left, so the translation is applied first.
-    const tx = (vw - 1440 * s) / 2;
-    const ty = (vh - 900  * s) / 2;
-    el.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
-  }, []);
+  // zoom scales BOTH visual paint AND CSS layout size — unlike transform:scale()
+  // which only affects paint. This means the element can never overflow the
+  // flex container, no matter how narrow the viewport.
+  const [zoom, setZoom] = useState(1);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    fit();
-    window.addEventListener('resize', fit);
-    return () => window.removeEventListener('resize', fit);
-  }, [fit]);
+    const update = () => {
+      setZoom(Math.min(window.innerWidth / 1440, window.innerHeight / 900));
+      setReady(true);
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: '#000', overflow: 'hidden' }}>
+    <div style={{ position: 'fixed', inset: 0, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div
-        ref={stageRef}
         style={{
           width: 1440, height: 900,
-          position: 'absolute',
-          top: 0, left: 0,
-          transformOrigin: '0 0',   // top-left — keeps translate maths simple
+          flexShrink: 0,
+          zoom,
+          visibility: ready ? 'visible' : 'hidden',
           background: '#07101f',
           overflow: 'hidden',
           isolation: 'isolate',
-        }}
+        } as React.CSSProperties}
       >
         {/* Warm saffron key light from top */}
         <div style={{
