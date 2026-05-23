@@ -108,20 +108,27 @@ function cardFilter(status: string) {
 // ─────────────────────────────────────────────────────────────
 function ScaledStage({ children }: { children: React.ReactNode }) {
   const stageRef = useRef<HTMLDivElement>(null);
+
   const fit = useCallback(() => {
     const el = stageRef.current;
     if (!el) return;
-    const s = Math.min(window.innerWidth / 1440, window.innerHeight / 900);
-    // Keep translate(-50%,-50%) so the stage stays centred regardless of scale.
-    // Using absolute positioning means CSS layout width (1440 px) never overflows
-    // the viewport — only the visual paint area is affected by the scale.
-    el.style.transform = `translate(-50%, -50%) scale(${s})`;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const s  = Math.min(vw / 1440, vh / 900);
+    // Translate to centre the scaled stage in the viewport.
+    // Math: visual size = 1440*s × 900*s; offset = (viewport - visual) / 2
+    // transform-origin is top-left, so the translation is applied first.
+    const tx = (vw - 1440 * s) / 2;
+    const ty = (vh - 900  * s) / 2;
+    el.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
   }, []);
+
   useEffect(() => {
     fit();
     window.addEventListener('resize', fit);
     return () => window.removeEventListener('resize', fit);
   }, [fit]);
+
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#000', overflow: 'hidden' }}>
       <div
@@ -129,10 +136,8 @@ function ScaledStage({ children }: { children: React.ReactNode }) {
         style={{
           width: 1440, height: 900,
           position: 'absolute',
-          top: '50%', left: '50%',
-          // initial transform before JS runs — centred, no scale yet
-          transform: 'translate(-50%, -50%)',
-          transformOrigin: 'center center',
+          top: 0, left: 0,
+          transformOrigin: '0 0',   // top-left — keeps translate maths simple
           background: '#07101f',
           overflow: 'hidden',
           isolation: 'isolate',
