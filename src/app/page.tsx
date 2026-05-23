@@ -6,17 +6,18 @@ import toast from 'react-hot-toast';
 import { FaGlobe, FaInstagram, FaXTwitter, FaLinkedin, FaFacebook, FaYoutube } from 'react-icons/fa6';
 import type { AvatarId } from '@/types/game';
 import AvatarPicker from '@/components/ui/AvatarPicker';
+import CodeInput from '@/components/ui/CodeInput';
 
 // ─────────────────────────────────────────────────────────────
 // Card data — real game card images
 // ─────────────────────────────────────────────────────────────
 const CARDS = [
-  { src: '/cards/card-076.webp', kind: 'challenge' as const, id: 'challenge' },
-  { src: '/cards/card-001.webp', kind: 'scheme'    as const, id: 'jan-dhan' },
-  { src: '/cards/card-003.webp', kind: 'scheme'    as const, id: 'make-in-india' },
-  { src: '/cards/card-002.webp', kind: 'scheme'    as const, id: 'skill-india' },
-  { src: '/cards/card-004.webp', kind: 'scheme'    as const, id: 'swachh-bharat' },
-  { src: '/cards/card-007.webp', kind: 'scheme'    as const, id: 'indradhanush' },
+  { src: '/cards/card-001.webp', kind: 'challenge' as const, id: 'challenge' },    // c001 — blue problem card
+  { src: '/cards/card-031.webp', kind: 'scheme'    as const, id: 'jan-dhan' },     // s001
+  { src: '/cards/card-033.webp', kind: 'scheme'    as const, id: 'make-in-india' }, // s003
+  { src: '/cards/card-032.webp', kind: 'scheme'    as const, id: 'skill-india' },  // s002
+  { src: '/cards/card-034.webp', kind: 'scheme'    as const, id: 'swachh-bharat' }, // s004
+  { src: '/cards/card-037.webp', kind: 'scheme'    as const, id: 'indradhanush' }, // s007
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -43,16 +44,28 @@ const SOCIAL_LINKS = [
 ];
 
 // ─────────────────────────────────────────────────────────────
+// useFanScale — computes scale from viewport vs 1440×900 baseline
+// ─────────────────────────────────────────────────────────────
+function useFanScale() {
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const update = () => {
+      setScale(Math.min(window.innerWidth / 1440, window.innerHeight / 900));
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  return scale;
+}
+
+// ─────────────────────────────────────────────────────────────
 // Card visual-state
 // Single click → lifts card (selected). Click again → deselects.
 // NO second-click "full card" state.
-// Card size: 248 × 332  (≈ 5/6 of design's 296 × 397)
 // ─────────────────────────────────────────────────────────────
-const CW   = 248;
-const CH   = 332;
-const CHL_Y  = -175;
-const HAND_Y = 150;
-
 type CardState = {
   x: number; y: number; r: number; s: number;
   status: string; pivot: 'center' | 'bottom'; clickable: boolean;
@@ -63,15 +76,19 @@ function getCardState(
   dealt: Set<string>,
   pickedId: string | null,
   hoverId: string | null,
+  scale: number,
 ): CardState {
   const card = CARDS[idx];
   const isChl = card.kind === 'challenge';
   const t = (idx - 1) - 2;
 
+  const CHL_Y  = Math.round(-175 * scale);
+  const HAND_Y = Math.round(150 * scale);
+
   if (!dealt.has(card.id))
     return isChl
-      ? { x: 0,      y: 800, r: -3,    s: 0.9,  status: '', pivot: 'center', clickable: false }
-      : { x: t * 25, y: 800, r: t * 5, s: 0.85, status: '', pivot: 'bottom', clickable: false };
+      ? { x: 0,                     y: 900, r: -3,    s: 0.9,  status: '', pivot: 'center', clickable: false }
+      : { x: t * Math.round(25 * scale), y: 900, r: t * 5, s: 0.85, status: '', pivot: 'bottom', clickable: false };
 
   if (isChl)
     return { x: 0, y: CHL_Y, r: -1.5, s: 0.95, status: pickedId ? 'is-dim' : '', pivot: 'center', clickable: false };
@@ -79,16 +96,18 @@ function getCardState(
   const isPicked    = pickedId === card.id;
   const otherPicked = !!pickedId && pickedId !== card.id;
   const hovered     = hoverId === card.id && !pickedId;
+  const spread60    = t * Math.round(60 * scale);
+  const arc5        = Math.abs(t) * Math.round(5 * scale);
 
   if (isPicked)
-    return { x: t * 50, y: HAND_Y - 90, r: t * 3, s: 1.04, status: 'is-front', pivot: 'bottom', clickable: true };
+    return { x: t * Math.round(50 * scale), y: HAND_Y - Math.round(90 * scale), r: t * 3, s: 1.04, status: 'is-front', pivot: 'bottom', clickable: true };
 
   if (otherPicked)
-    return { x: t * 105, y: HAND_Y + 55, r: t * 9, s: 0.76, status: 'is-dim', pivot: 'bottom', clickable: true };
+    return { x: t * Math.round(105 * scale), y: HAND_Y + Math.round(55 * scale), r: t * 9, s: 0.76, status: 'is-dim', pivot: 'bottom', clickable: true };
 
   return {
-    x: t * 60,
-    y: HAND_Y + Math.abs(t) * 5 + (hovered ? -22 : 0),
+    x: spread60,
+    y: HAND_Y + arc5 + (hovered ? -Math.round(22 * scale) : 0),
     r: t * 7,
     s: 0.92 + (hovered ? 0.02 : 0),
     status: hovered ? 'is-hover' : '',
@@ -104,65 +123,19 @@ function cardFilter(status: string) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// ScaledStage — scales a 1440×900 canvas to fit any viewport
-// ─────────────────────────────────────────────────────────────
-function ScaledStage({ children }: { children: React.ReactNode }) {
-  // zoom scales BOTH visual paint AND CSS layout size — unlike transform:scale()
-  // which only affects paint. This means the element can never overflow the
-  // flex container, no matter how narrow the viewport.
-  const [zoom, setZoom] = useState(1);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    const update = () => {
-      setZoom(Math.min(window.innerWidth / 1440, window.innerHeight / 900));
-      setReady(true);
-    };
-    update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
-  }, []);
-
-  return (
-    <div style={{ position: 'fixed', inset: 0, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div
-        style={{
-          width: 1440, height: 900,
-          flexShrink: 0,
-          zoom,
-          visibility: ready ? 'visible' : 'hidden',
-          background: '#07101f',
-          overflow: 'hidden',
-          isolation: 'isolate',
-        } as React.CSSProperties}
-      >
-        {/* Warm saffron key light from top */}
-        <div style={{
-          position: 'absolute', left: '50%', top: -360,
-          width: 1200, height: 900,
-          transform: 'translateX(-50%)',
-          background: 'radial-gradient(ellipse at center,rgba(255,153,51,.16) 0%,rgba(255,153,51,.06) 28%,rgba(255,153,51,0) 60%)',
-          pointerEvents: 'none', zIndex: 0,
-        }} />
-        {/* Film grain */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")`,
-          opacity: 0.12, mixBlendMode: 'overlay', pointerEvents: 'none', zIndex: 1,
-        }} />
-        {children}
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
-// HeroFan — entry animation + hover only, no click selection
+// HeroFan — entry animation + hover + click select/deselect
 // ─────────────────────────────────────────────────────────────
 function HeroFan() {
+  const scale = useFanScale();
   const [dealt, setDealt]     = useState<Set<string>>(() => new Set());
   const [pickedId, setPicked] = useState<string | null>(null);
   const [hoverId, setHover]   = useState<string | null>(null);
+
+  const CW = Math.round(248 * scale);
+  const CH = Math.round(332 * scale);
+  const stageW = Math.round(620 * scale);
+  const stageH = Math.round(760 * scale);
+  const borderRadius = Math.round(14 * scale);
 
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
@@ -182,17 +155,18 @@ function HeroFan() {
   };
 
   return (
-    <div style={{ position: 'relative', width: 620, height: 760, overflow: 'visible' }}>
+    <div style={{ position: 'relative', width: stageW, height: stageH, overflow: 'visible' }}>
       {/* Focal warm glow */}
       <div style={{
-        position: 'absolute', left: '50%', top: 60,
-        width: 460, height: 400, transform: 'translateX(-50%)',
+        position: 'absolute', left: '50%', top: Math.round(60 * scale),
+        width: Math.round(460 * scale), height: Math.round(400 * scale),
+        transform: 'translateX(-50%)',
         background: 'radial-gradient(ellipse at center,rgba(255,153,51,.14) 0%,rgba(255,215,0,.06) 30%,rgba(255,153,51,0) 60%)',
         pointerEvents: 'none', zIndex: 0, filter: 'blur(2px)',
       }} />
 
       {CARDS.map((card, idx) => {
-        const st = getCardState(idx, dealt, pickedId, hoverId);
+        const st = getCardState(idx, dealt, pickedId, hoverId, scale);
         const tf = `translate(-50%,-50%) translate(${st.x}px,${st.y}px) rotate(${st.r}deg) scale(${st.s})`;
         const zIndex = st.status === 'is-front' ? 50 : 10 + idx;
         return (
@@ -217,7 +191,7 @@ function HeroFan() {
             <img
               src={card.src} alt=""
               draggable={false}
-              style={{ width: '100%', height: '100%', display: 'block', borderRadius: 14, objectFit: 'cover' }}
+              style={{ width: '100%', height: '100%', display: 'block', borderRadius, objectFit: 'cover' }}
             />
           </div>
         );
@@ -291,28 +265,30 @@ function HowToPlay() {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       style={{
-        width: 340,
+        width: '100%',
         background: 'linear-gradient(180deg,rgba(255,153,51,.05) 0%,rgba(255,153,51,0) 22%),linear-gradient(180deg,rgba(5,11,28,.85) 0%,rgba(2,6,18,.9) 100%)',
         border: '1px solid rgba(255,153,51,.22)',
         borderRadius: 12,
-        padding: '26px 22px 20px',
+        padding: 'clamp(20px, 1.8vw, 28px) clamp(16px, 1.5vw, 22px)',
         display: 'flex', flexDirection: 'column',
         boxShadow: '0 24px 48px rgba(0,0,0,.45),0 6px 14px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,153,51,.18),inset 0 0 0 1px rgba(255,255,255,.02)',
         backdropFilter: 'blur(8px)',
+        height: '100%',
+        boxSizing: 'border-box',
       }}
     >
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-        <div style={{ fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500, fontSize: 11, color: 'rgba(250,248,240,.7)', letterSpacing: '0.22em', textTransform: 'uppercase' }}>
+        <div style={{ fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500, fontSize: 'clamp(8px, 0.76vw, 11px)', color: 'rgba(250,248,240,.7)', letterSpacing: '0.22em', textTransform: 'uppercase' }}>
           How to play
         </div>
-        <div style={{ fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500, fontSize: 11, color: '#FF9933', letterSpacing: '0.14em' }}>
+        <div style={{ fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500, fontSize: 'clamp(8px, 0.76vw, 11px)', color: '#FF9933', letterSpacing: '0.14em' }}>
           {String(step + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}
         </div>
       </div>
 
       {/* Carousel body */}
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 248 }}>
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 200 }}>
         {/* Prev / Next arrows — overlaid on the slide content */}
         {arrowBtn('prev', prev)}
         {arrowBtn('next', next)}
@@ -333,20 +309,20 @@ function HowToPlay() {
             }}>
               <div style={{
                 fontFamily: 'var(--font-yatra),var(--font-inter),sans-serif',
-                fontSize: 52, lineHeight: 1, color: '#FF9933', letterSpacing: '-0.01em',
+                fontSize: 'clamp(32px, 3.6vw, 52px)', lineHeight: 1, color: '#FF9933', letterSpacing: '-0.01em',
               }}>
                 {s.num}
               </div>
               <div style={{
                 fontFamily: 'var(--font-inter),sans-serif',
-                fontWeight: 700, fontSize: 22, lineHeight: 1.15,
+                fontWeight: 700, fontSize: 'clamp(14px, 1.5vw, 22px)', lineHeight: 1.15,
                 letterSpacing: '-0.005em', color: '#fff',
               }}>
                 {s.title}
               </div>
               <div style={{
                 fontFamily: 'var(--font-inter),sans-serif',
-                fontWeight: 400, fontSize: 14, lineHeight: 1.6,
+                fontWeight: 400, fontSize: 'clamp(11px, 0.97vw, 14px)', lineHeight: 1.6,
                 color: 'rgba(250,248,240,.7)',
               }}>
                 {s.body}
@@ -519,7 +495,7 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
 }
 
 // ─────────────────────────────────────────────────────────────
-// Full-page landing layout
+// Full-page landing layout — fully responsive, no fixed canvas
 // ─────────────────────────────────────────────────────────────
 function LandingPage() {
   const router = useRouter();
@@ -552,26 +528,51 @@ function LandingPage() {
 
   const btnBase: React.CSSProperties = {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    height: 60, padding: '0 32px', width: 360,
+    height: 'clamp(44px, 5vh, 60px)',
+    padding: '0 32px',
+    width: '100%',
     borderRadius: 6, border: '1.5px solid transparent',
     fontFamily: 'var(--font-inter),sans-serif',
-    fontWeight: 600, fontSize: 16,
+    fontWeight: 600, fontSize: 'clamp(11px, 1.1vw, 16px)',
     letterSpacing: '0.14em', textTransform: 'uppercase',
     cursor: 'pointer',
     transition: 'transform .15s ease, background .15s ease, box-shadow .15s ease, border-color .15s ease',
   };
 
   return (
-    <ScaledStage>
+    /* Outer container — fills viewport, no scrollbars */
+    <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', isolation: 'isolate' }}>
+
+      {/* Dark background */}
+      <div style={{ position: 'absolute', inset: 0, background: '#07101f', zIndex: 0 }} />
+
+      {/* Warm saffron radial-gradient light from top */}
       <div style={{
-        position: 'relative', zIndex: 2,
+        position: 'absolute', left: '50%', top: '-25%',
+        width: '83vw', height: '100vh',
+        transform: 'translateX(-50%)',
+        background: 'radial-gradient(ellipse at center,rgba(255,153,51,.16) 0%,rgba(255,153,51,.06) 28%,rgba(255,153,51,0) 60%)',
+        pointerEvents: 'none', zIndex: 1,
+      }} />
+
+      {/* Film grain SVG overlay */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")`,
+        opacity: 0.12, mixBlendMode: 'overlay', pointerEvents: 'none', zIndex: 2,
+      }} />
+
+      {/* 3-column grid */}
+      <div style={{
+        position: 'relative', zIndex: 3,
         width: '100%', height: '100%',
-        padding: '60px 68px 36px',
+        padding: 'clamp(28px, 4.5vh, 60px) clamp(36px, 5vw, 72px) clamp(20px, 3vh, 40px)',
         display: 'grid',
-        gridTemplateColumns: '420px 1fr 360px',
+        gridTemplateColumns: 'minmax(260px, 27vw) 1fr minmax(270px, 25vw)',
         gridTemplateRows: '1fr auto',
-        gap: '0 32px',
+        gap: '0 clamp(16px, 2.2vw, 32px)',
         alignItems: 'stretch',
+        boxSizing: 'border-box',
       }}>
 
         {/* ── LEFT: logo + CTAs ─────────────────────────────────── */}
@@ -580,7 +581,8 @@ function LandingPage() {
           <div style={{ display: 'inline-flex', flexDirection: 'column', position: 'relative', paddingLeft: 18, alignItems: 'stretch' }}>
             <div style={{ position: 'absolute', left: 0, top: 6, bottom: 6, width: 2, background: '#FF9933' }} />
             <div style={{
-              fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500, fontSize: 11,
+              fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500,
+              fontSize: 'clamp(9px, 0.76vw, 11px)',
               letterSpacing: '0.08em', textTransform: 'uppercase',
               color: 'rgba(250,248,240,.7)', lineHeight: 1.4,
               marginBottom: 16, whiteSpace: 'nowrap',
@@ -590,7 +592,9 @@ function LandingPage() {
             <button onClick={handleLogoClick} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' }}>
               <h1 style={{
                 fontFamily: 'var(--font-yatra),var(--font-bebas),sans-serif',
-                fontWeight: 400, fontSize: 88, lineHeight: 0.9,
+                fontWeight: 400,
+                fontSize: 'clamp(52px, 6.25vw, 90px)',
+                lineHeight: 0.9,
                 letterSpacing: '-0.01em', color: '#fff',
                 margin: 0, whiteSpace: 'nowrap',
               }}>
@@ -599,7 +603,9 @@ function LandingPage() {
             </button>
             <div style={{
               fontFamily: 'var(--font-inter),sans-serif',
-              fontWeight: 400, fontSize: 20, lineHeight: 1.35,
+              fontWeight: 400,
+              fontSize: 'clamp(14px, 1.52vw, 22px)',
+              lineHeight: 1.35,
               color: '#FF9933', letterSpacing: '-0.005em',
               marginTop: 16, whiteSpace: 'nowrap',
             }}>
@@ -635,7 +641,7 @@ function LandingPage() {
         </div>
 
         {/* ── RIGHT: How To Play ───────────────────────────────── */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', zIndex: 5 }}>
+        <div style={{ display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end', zIndex: 5 }}>
           <HowToPlay />
         </div>
 
@@ -649,20 +655,20 @@ function LandingPage() {
           <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
             {SOCIAL_LINKS.map(({ label, href, Icon }) => (
               <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label}
-                style={{ width: 20, height: 20, color: 'rgba(250,248,240,.6)', transition: 'color .15s ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{ color: 'rgba(250,248,240,.6)', transition: 'color .15s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(14px, 1.25vw, 18px)' }}
                 onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = '#FF9933'}
                 onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(250,248,240,.6)'}
               >
-                <Icon size={18} />
+                <Icon />
               </a>
             ))}
           </div>
-          <div style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(250,248,240,.4)' }}>
+          <div style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 'clamp(9px, 0.76vw, 11px)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(250,248,240,.4)' }}>
             © 2026 · Vikas 75 · all rounds reserved
           </div>
         </div>
       </div>
-    </ScaledStage>
+    </div>
   );
 }
 
