@@ -83,11 +83,13 @@ The host calls `POST /api/game { action: 'advance' }` at each step. The `judging
 - `src/app/admin/page.tsx` — Admin login.
 - `src/app/admin/dashboard/page.tsx` — Admin dashboard.
 
+### Host Components
+- `src/components/host/HostDashboard.tsx` — Host controls. Accepts `hostId` as prop (from URL, not localStorage). Shows advance button with phase-appropriate label, error display, player list, leaderboard, game settings sliders.
+
 ### Player Components
-- `src/components/player/HomePage.tsx` — Join/create screen. Uses `<CodeInput>`. Stores `vikas75_playerId` and `vikas75_playerName` in localStorage on join. Host redirected to `/host/[code]?h=[hostId]`.
-- `src/components/player/HostPanel.tsx` — Host controls. Accepts `hostId` as prop (from URL, not sessionStorage). Shows advance button with phase-appropriate label, error display, player list, leaderboard.
-- `src/components/player/PlayerView.tsx` — Player state machine. Reads identity from localStorage in `useEffect` only (avoids hydration mismatch). Redirects to `/?code=${code}` if no identity found.
-- `src/components/player/PlayerSubmit.tsx` — Card selection + explanation. Horizontal scroll tray; second tap expands card to 220px; char counter; bonus point hint (≤1 sentence).
+- `src/app/page.tsx` — Home page (join/create screen). Uses `<CodeInput>`. Stores `vikas75_playerId`, `vikas75_playerName`, `vikas75_avatarId` in localStorage on join. Host redirected to `/host/[code]?h=[hostId]`.
+- `src/components/player/PlayerView.tsx` — Player state machine. Reads identity from localStorage in `useEffect` only (avoids hydration mismatch). Redirects to `/?code=${code}` if no identity found. Polls `/api/game` every 30 s as Pusher fallback.
+- `src/components/player/PlayerSubmit.tsx` — Card selection + explanation. Horizontal scroll tray; 160×214 card images; word counter (25-word cap); bonus point hint (≤1 sentence).
 - `src/components/player/PlayerLobby.tsx` — Waiting in lobby, shows player list.
 - `src/components/player/PlayerWaiting.tsx` — Generic waiting screen with pulsing dots.
 
@@ -114,7 +116,7 @@ The host calls `POST /api/game { action: 'advance' }` at each step. The `judging
 - `src/components/cards/SchemeCard.tsx` — Visual card component.
 
 ### Styles and Config
-- `src/app/layout.tsx` — Loads Inter, Oswald, Noto Sans Devanagari from Google Fonts as CSS custom properties: `--font-oswald`, `--font-devanagari`, `--font-inter`.
+- `src/app/layout.tsx` — Loads Bebas Neue, Inter, Noto Sans Devanagari from Google Fonts as CSS custom properties: `--font-bebas`, `--font-inter`, `--font-devanagari`.
 - `src/app/globals.css` — `@keyframes slide-up`, `@keyframes fade-in`, `.animate-slide-up`, `.animate-fade-in`.
 
 ---

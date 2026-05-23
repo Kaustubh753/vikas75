@@ -12,6 +12,9 @@ const devanagari = Noto_Sans_Devanagari({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ?? 'https://vikas75.vercel.app'
+  ),
   title: 'Vikas 75',
   description: 'The India Governance Card Game',
   openGraph: {

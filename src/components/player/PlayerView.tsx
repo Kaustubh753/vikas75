@@ -125,6 +125,13 @@ export default function PlayerView({ code }: Props) {
     if (hydrated) fetchRoom();
   }, [hydrated, fetchRoom]);
 
+  // 30 s fallback poll — keeps player state fresh if Pusher drops
+  useEffect(() => {
+    if (!hydrated) return;
+    const id = setInterval(fetchRoom, 30_000);
+    return () => clearInterval(id);
+  }, [hydrated, fetchRoom]);
+
   useEffect(() => {
     if (!hydrated) return;
     const pusher = getPusherClient();
