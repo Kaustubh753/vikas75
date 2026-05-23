@@ -85,8 +85,8 @@ function getCardState(
   const isChl = card.kind === 'challenge';
   const t = (idx - 1) - 2;
 
-  const CHL_Y  = Math.round(-175 * scale);
-  const HAND_Y = Math.round(150 * scale);
+  const CHL_Y  = Math.round(-200 * scale);
+  const HAND_Y = Math.round(153 * scale);
 
   if (!dealt.has(card.id))
     return isChl
