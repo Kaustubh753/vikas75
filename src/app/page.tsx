@@ -43,36 +43,49 @@ const SOCIAL_LINKS = [
 ];
 
 // ─────────────────────────────────────────────────────────────
-// Card visual-state — entry animation + hover only, no click states
+// Card visual-state
+// Single click → lifts card (selected). Click again → deselects.
+// NO second-click "full card" state.
 // Card size: 248 × 332  (≈ 5/6 of design's 296 × 397)
 // ─────────────────────────────────────────────────────────────
 const CW   = 248;
 const CH   = 332;
-const CHL_Y  = -175; // challenge card resting y-offset from stage center
-const HAND_Y = 150;  // scheme hand resting y-offset from stage center
+const CHL_Y  = -175;
+const HAND_Y = 150;
 
 type CardState = {
   x: number; y: number; r: number; s: number;
-  status: string; pivot: 'center' | 'bottom';
+  status: string; pivot: 'center' | 'bottom'; clickable: boolean;
 };
 
-function getCardState(idx: number, dealt: Set<string>, hoverId: string | null): CardState {
+function getCardState(
+  idx: number,
+  dealt: Set<string>,
+  pickedId: string | null,
+  hoverId: string | null,
+): CardState {
   const card = CARDS[idx];
   const isChl = card.kind === 'challenge';
-  const t = (idx - 1) - 2; // –2 … +2 for the 5 scheme slots
+  const t = (idx - 1) - 2;
 
-  // Not yet dealt — sitting off-stage below
   if (!dealt.has(card.id))
     return isChl
-      ? { x: 0,      y: 800, r: -3,    s: 0.9,  status: '', pivot: 'center' }
-      : { x: t * 25, y: 800, r: t * 5, s: 0.85, status: '', pivot: 'bottom' };
+      ? { x: 0,      y: 800, r: -3,    s: 0.9,  status: '', pivot: 'center', clickable: false }
+      : { x: t * 25, y: 800, r: t * 5, s: 0.85, status: '', pivot: 'bottom', clickable: false };
 
-  // Challenge card — always at top, dim during entry, normal thereafter
   if (isChl)
-    return { x: 0, y: CHL_Y, r: -1.5, s: 0.95, status: '', pivot: 'center' };
+    return { x: 0, y: CHL_Y, r: -1.5, s: 0.95, status: pickedId ? 'is-dim' : '', pivot: 'center', clickable: false };
 
-  // Scheme cards — fan hand + hover lift
-  const hovered = hoverId === card.id;
+  const isPicked    = pickedId === card.id;
+  const otherPicked = !!pickedId && pickedId !== card.id;
+  const hovered     = hoverId === card.id && !pickedId;
+
+  if (isPicked)
+    return { x: t * 50, y: HAND_Y - 90, r: t * 3, s: 1.04, status: 'is-front', pivot: 'bottom', clickable: true };
+
+  if (otherPicked)
+    return { x: t * 105, y: HAND_Y + 55, r: t * 9, s: 0.76, status: 'is-dim', pivot: 'bottom', clickable: true };
+
   return {
     x: t * 60,
     y: HAND_Y + Math.abs(t) * 5 + (hovered ? -22 : 0),
@@ -80,6 +93,7 @@ function getCardState(idx: number, dealt: Set<string>, hoverId: string | null): 
     s: 0.92 + (hovered ? 0.02 : 0),
     status: hovered ? 'is-hover' : '',
     pivot: 'bottom',
+    clickable: true,
   };
 }
 
@@ -98,7 +112,10 @@ function ScaledStage({ children }: { children: React.ReactNode }) {
     const el = stageRef.current;
     if (!el) return;
     const s = Math.min(window.innerWidth / 1440, window.innerHeight / 900);
-    el.style.transform = `scale(${s})`;
+    // Keep translate(-50%,-50%) so the stage stays centred regardless of scale.
+    // Using absolute positioning means CSS layout width (1440 px) never overflows
+    // the viewport — only the visual paint area is affected by the scale.
+    el.style.transform = `translate(-50%, -50%) scale(${s})`;
   }, []);
   useEffect(() => {
     fit();
@@ -106,15 +123,18 @@ function ScaledStage({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('resize', fit);
   }, [fit]);
   return (
-    <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000' }}>
+    <div style={{ position: 'fixed', inset: 0, background: '#000', overflow: 'hidden' }}>
       <div
         ref={stageRef}
         style={{
           width: 1440, height: 900,
-          position: 'relative',
+          position: 'absolute',
+          top: '50%', left: '50%',
+          // initial transform before JS runs — centred, no scale yet
+          transform: 'translate(-50%, -50%)',
+          transformOrigin: 'center center',
           background: '#07101f',
           overflow: 'hidden',
-          transformOrigin: 'center center',
           isolation: 'isolate',
         }}
       >
@@ -142,8 +162,9 @@ function ScaledStage({ children }: { children: React.ReactNode }) {
 // HeroFan — entry animation + hover only, no click selection
 // ─────────────────────────────────────────────────────────────
 function HeroFan() {
-  const [dealt, setDealt] = useState<Set<string>>(() => new Set());
-  const [hoverId, setHover] = useState<string | null>(null);
+  const [dealt, setDealt]     = useState<Set<string>>(() => new Set());
+  const [pickedId, setPicked] = useState<string | null>(null);
+  const [hoverId, setHover]   = useState<string | null>(null);
 
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
@@ -153,6 +174,14 @@ function HeroFan() {
     });
     return () => timers.forEach(clearTimeout);
   }, []);
+
+  // Single click: select / deselect. No second "play full-card" state.
+  const handleClick = (cardId: string) => {
+    const card = CARDS.find(c => c.id === cardId);
+    if (!card || card.kind !== 'scheme') return;
+    setPicked(prev => prev === cardId ? null : cardId);
+    setHover(null);
+  };
 
   return (
     <div style={{ position: 'relative', width: 620, height: 760, overflow: 'visible' }}>
@@ -165,14 +194,14 @@ function HeroFan() {
       }} />
 
       {CARDS.map((card, idx) => {
-        const st = getCardState(idx, dealt, hoverId);
+        const st = getCardState(idx, dealt, pickedId, hoverId);
         const tf = `translate(-50%,-50%) translate(${st.x}px,${st.y}px) rotate(${st.r}deg) scale(${st.s})`;
-        const zIndex = 10 + idx;
-        const isScheme = card.kind === 'scheme';
+        const zIndex = st.status === 'is-front' ? 50 : 10 + idx;
         return (
           <div
             key={card.id}
-            onMouseEnter={() => isScheme && setHover(card.id)}
+            onClick={() => st.clickable && handleClick(card.id)}
+            onMouseEnter={() => st.clickable && card.kind === 'scheme' && setHover(card.id)}
             onMouseLeave={() => setHover(null)}
             style={{
               position: 'absolute', left: '50%', top: '50%',
@@ -183,7 +212,7 @@ function HeroFan() {
               transition: 'transform .9s cubic-bezier(.2,.75,.25,1), filter .8s ease',
               willChange: 'transform, filter',
               zIndex,
-              cursor: isScheme ? 'default' : 'default',
+              cursor: st.clickable && card.kind === 'scheme' ? 'pointer' : 'default',
             }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
