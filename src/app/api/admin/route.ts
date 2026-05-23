@@ -39,13 +39,18 @@ function checkAuth(req: NextRequest): boolean {
   const user = decoded.slice(0, colonIdx);
   const pass = decoded.slice(colonIdx + 1);
 
-  // Use timing-safe comparison to prevent brute-force timing attacks
-  return timingSafeStringEqual(user, expectedUser) && timingSafeStringEqual(pass, expectedPass);
+  // Evaluate BOTH comparisons before combining — prevents timing attacks via && short-circuit
+  const userMatch = timingSafeStringEqual(user, expectedUser);
+  const passMatch = timingSafeStringEqual(pass, expectedPass);
+  return userMatch && passMatch;
 }
 
 export async function GET(req: NextRequest) {
   if (!checkAuth(req)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401, headers: { 'WWW-Authenticate': 'Basic realm="Vikas75 Admin"' } }
+    );
   }
   const action = req.nextUrl.searchParams.get('action');
   if (action === 'rooms') {

@@ -112,9 +112,9 @@ export interface GameRoom {
   usedChallengeIds: string[]; // tracks which challenge cards have been drawn this game
 }
 
-// Pusher event map
+// Pusher event map — event names must match server triggers in api/game/route.ts exactly
 export type PusherEventMap = {
   'game:room-updated': GameRoom;
-  'game:emote': EmoteEvent;
+  'emote': EmoteEvent;        // NOTE: emote fires without 'game:' prefix (see route.ts emote handler)
   'game:chat': ChatMessage;
 };

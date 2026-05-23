@@ -82,9 +82,11 @@ export async function POST(req: NextRequest) {
         if (!(await checkRateLimit(`ratelimit:join:${ip}`, 15, 60))) {
           return NextResponse.json({ error: 'Too many requests — slow down' }, { status: 429 });
         }
-        const safeName = sanitizeName(playerName);
+        const safeName = filterText(sanitizeName(playerName));
         if (!safeName) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
         if (!playerId || typeof playerId !== 'string') return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+        const VALID_AVATAR_IDS: AvatarId[] = ['a1','a2','a3','a4','a5','a6','a7','a8','a9'];
+        const safeAvatarId: AvatarId = VALID_AVATAR_IDS.includes(avatarId) ? avatarId : 'a1';
         const room = await getRoom(code?.toUpperCase());
         if (!room) return NextResponse.json({ error: 'Room not found — check your code' }, { status: 404 });
         // Idempotent rejoin — always allowed even during submission phase
@@ -94,7 +96,7 @@ export async function POST(req: NextRequest) {
         if (room.phase === 'submission') {
           return NextResponse.json({ error: 'Round in progress — join after this round ends' }, { status: 400 });
         }
-        const updated = addPlayer(room, playerId, safeName, avatarId ?? 'a1');
+        const updated = addPlayer(room, playerId, safeName, safeAvatarId);
         await setRoom(updated);
         await broadcastRoom(updated);
         return NextResponse.json({ room: updated });
@@ -139,6 +141,12 @@ export async function POST(req: NextRequest) {
 
       case 'submit': {
         const { code, submission } = body as { code: string; submission: Submission };
+        // Distributed lock — prevents concurrent submissions from the same room overwriting each other
+        const submitLock = `lock:submit:${code?.toUpperCase()}`;
+        const lockAcquired = await acquireLock(submitLock, 5);
+        if (!lockAcquired) {
+          return NextResponse.json({ error: 'Conflict — please try again' }, { status: 409 });
+        }
         const room = await getRoom(code?.toUpperCase());
         if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
         if (room.phase !== 'submission') {
@@ -158,9 +166,9 @@ export async function POST(req: NextRequest) {
         if (!serverCard) {
           return NextResponse.json({ error: 'Card not in your hand' }, { status: 403 });
         }
-        // Sanitize explanation
+        // Sanitize and filter explanation
         const safeExplanation = typeof submission.explanation === 'string'
-          ? submission.explanation.trim().slice(0, 200)
+          ? filterText(submission.explanation.trim().slice(0, 200))
           : '';
         if (!safeExplanation) {
           return NextResponse.json({ error: 'Explanation is required' }, { status: 400 });
@@ -177,7 +185,7 @@ export async function POST(req: NextRequest) {
           avatarId: submittingPlayer.avatarId,
           schemeCard: serverCard,            // authoritative server-side card object
           explanation: safeExplanation,
-          submittedAt: typeof submission.submittedAt === 'number' ? submission.submittedAt : Date.now(),
+          submittedAt: Date.now(),           // always server-side timestamp — never trust client
         };
         const updated = addSubmission(room, safeSubmission);
         await setRoom(updated);
@@ -219,7 +227,7 @@ export async function POST(req: NextRequest) {
         const emoteRoom = await getRoom(code?.toUpperCase());
         const emotePlayer = emoteRoom?.players[playerId];
         if (!emotePlayer) return NextResponse.json({ ok: true }); // silently drop unknown senders
-        await pusherServer.trigger(`game-${code?.toUpperCase()}`, 'emote', {
+        await pusherServer.trigger(getRoomChannel(code?.toUpperCase() ?? ''), 'emote', {
           playerId,
           playerName: emotePlayer.name,
           avatarId: emotePlayer.avatarId,
@@ -288,6 +296,10 @@ async function triggerJudge(code: string) {
 
   const room = await getRoom(code);
   if (!room || room.phase !== 'judging') return;
+  if (!room.currentChallenge) {
+    console.error('[triggerJudge] currentChallenge is null in judging phase — skipping');
+    return;
+  }
   const submissions = Object.values(room.submissions);
 
   // No submissions — skip to next phase without a verdict
@@ -301,7 +313,7 @@ async function triggerJudge(code: string) {
     return;
   }
 
-  const verdict = await judgeRound(room.currentChallenge!, submissions);
+  const verdict = await judgeRound(room.currentChallenge, submissions);
 
   // Re-read room after Claude responds — judging can take several seconds and settings may have changed
   const freshRoom = await getRoom(code);

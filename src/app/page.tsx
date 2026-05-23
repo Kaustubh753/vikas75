@@ -442,7 +442,8 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
                 maxLength={1} inputMode="text"
                 aria-label={`Room code character ${i + 1}`}
                 onChange={e => {
-                  const ch = e.target.value.slice(-1).toUpperCase().replace(/[^A-Z0-9]/g, '');
+                  // Exclude I and O — generateRoomCode never produces them (too similar to 1 and 0)
+                  const ch = e.target.value.slice(-1).toUpperCase().replace(/[^ABCDEFGHJKLMNPQRSTUVWXYZ23456789]/g, '');
                   const arr = [...(code + '    ').slice(0, 4)];
                   arr[i] = ch;
                   setCode(arr.join('').replace(/ /g, '').slice(0, 4));

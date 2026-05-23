@@ -68,7 +68,7 @@ async function claudeJudge(challenge: ChallengeCard, submissions: Submission[]):
   try {
     response = await client.messages.create(
       {
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5',
         max_tokens: 800,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userMessage }],
@@ -94,10 +94,13 @@ function buildVerdict(
   rankingsRaw: Array<{ playerId: string; judgeScore: number; judgeComment: string; bonusPoint: boolean }>,
   reasoning: string,
 ): JudgeVerdict {
-  // Validate Claude ranked every submitted player and no unknown IDs
+  // Validate Claude ranked every submitted player, no unknown IDs, and scores are valid numbers
   const submissionIds = new Set(submissions.map((s) => s.playerId));
   for (const r of rankingsRaw) {
     if (!submissionIds.has(r.playerId)) throw new Error(`Unknown player ${r.playerId} in rankings`);
+    if (typeof r.judgeScore !== 'number' || isNaN(r.judgeScore) || r.judgeScore < 1 || r.judgeScore > 10) {
+      throw new Error(`Invalid judgeScore ${r.judgeScore} for player ${r.playerId} — must be 1–10`);
+    }
   }
   if (rankingsRaw.length < submissions.length) {
     throw new Error(`Judge omitted ${submissions.length - rankingsRaw.length} player(s) from rankings`);
@@ -140,7 +143,8 @@ function fallbackJudge(submissions: Submission[]): JudgeVerdict {
   const reasoning = FALLBACK_VERDICTS[Math.floor(Math.random() * FALLBACK_VERDICTS.length)];
 
   const rankings: PlayerRanking[] = shuffled.map((sub, i) => {
-    const judgeScore = Math.max(1, 10 - i * Math.floor(10 / shuffled.length));
+    // Distribute scores evenly across [1, 10] regardless of player count
+    const judgeScore = shuffled.length === 1 ? 10 : Math.round(10 - (9 * i) / (shuffled.length - 1));
     const gamePoints = i === 0 ? 3 : i === 1 ? 2 : i === 2 ? 1 : 0;
     // Match Claude's bonus point rule: single sentence or less
     const bonusPoint = sub.explanation.trim().split(/[.!?]/).filter(Boolean).length <= 1;

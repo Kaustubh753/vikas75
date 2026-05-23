@@ -36,7 +36,6 @@ function getAdvanceLabel(room: GameRoom): string {
     case 'winner':
       return room.round < room.totalRounds ? 'Next Round →' : 'Final Results →';
     case 'between-rounds': return `Start Round ${room.round + 1} →`;
-    case 'game-over': return 'New Game';
     default: return 'Advance →';
   }
 }

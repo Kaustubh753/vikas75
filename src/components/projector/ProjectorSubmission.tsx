@@ -37,7 +37,10 @@ function TimerRing({ total, remaining }: { total: number; remaining: number }) {
 }
 
 export default function ProjectorSubmission({ room }: Props) {
-  const [remaining, setRemaining] = useState(room.timerDuration);
+  // Initialize to actual remaining time (not full duration) in case projector opens mid-round
+  const [remaining, setRemaining] = useState(() =>
+    room.timerEndsAt ? Math.max(0, Math.ceil((room.timerEndsAt - Date.now()) / 1000)) : room.timerDuration
+  );
   const challenge = room.currentChallenge;
   const players = Object.values(room.players);
   const submittedIds = new Set(Object.keys(room.submissions));

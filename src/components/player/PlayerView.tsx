@@ -103,8 +103,13 @@ export default function PlayerView({ code }: Props) {
         clearSessionAndGoHome('That game has ended. Start a new one!');
         return;
       }
-      // Merge messages: keep any locally-accumulated chat not yet in the server snapshot
-      setRoom(prev => ({ ...r, messages: prev?.messages?.length ? prev.messages : (r.messages ?? []) }));
+      // Merge messages: deduplicate by id so server's authoritative list wins without dropping local-only messages
+      setRoom(prev => {
+        const serverMsgs = r.messages ?? [];
+        const localMsgs = prev?.messages ?? [];
+        const merged = [...serverMsgs, ...localMsgs.filter(m => !serverMsgs.find(s => s.id === m.id))];
+        return { ...r, messages: merged.slice(-20) };
+      });
       const pid = localStorage.getItem('vikas75_playerId') ?? '';
       if (pid && r.players[pid]?.hand?.length) {
         const hand = r.players[pid].hand;
