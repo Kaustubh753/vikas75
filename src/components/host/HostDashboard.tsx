@@ -48,6 +48,7 @@ export default function HostDashboard({ code, hostId }: Props) {
   const [origin, setOrigin] = useState('');
   const [rounds, setRounds] = useState(10);
   const [timer, setTimer] = useState(60);
+  const [musicMuted, setMusicMuted] = useState(false);
   const settingsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -198,6 +199,20 @@ export default function HostDashboard({ code, hostId }: Props) {
       }
     } catch {
       toast.error('Network error — could not update settings');
+    }
+  }
+
+  async function handleMusicToggle() {
+    const nextMuted = !musicMuted;
+    setMusicMuted(nextMuted);
+    try {
+      await fetch('/api/game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'music-toggle', code, muted: nextMuted }),
+      });
+    } catch {
+      // fire-and-forget — non-critical
     }
   }
 
@@ -390,6 +405,33 @@ export default function HostDashboard({ code, hostId }: Props) {
             </div>
           </div>
         )}
+
+        {/* Music control — projector lobby music */}
+        <div
+          className="rounded-xl p-4 mb-4 flex items-center justify-between"
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}
+        >
+          <div>
+            <p className="text-white font-[family-name:var(--font-inter)]" style={{ fontSize: 14, fontWeight: 600 }}>
+              Projector Music
+            </p>
+            <p className="text-white/40 font-[family-name:var(--font-inter)]" style={{ fontSize: 12 }}>
+              {musicMuted ? 'Muted on projector' : 'Playing on projector'}
+            </p>
+          </div>
+          <button
+            onClick={handleMusicToggle}
+            className="w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95"
+            style={{
+              background: musicMuted ? 'rgba(255,255,255,0.08)' : 'rgba(255,153,51,0.2)',
+              border: `1.5px solid ${musicMuted ? 'rgba(255,255,255,0.15)' : '#FF9933'}`,
+              fontSize: 20,
+            }}
+            aria-label={musicMuted ? 'Unmute projector music' : 'Mute projector music'}
+          >
+            {musicMuted ? '🔇' : '🔊'}
+          </button>
+        </div>
 
         {/* Projector link — collapsed */}
         {origin && (

@@ -286,6 +286,15 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
+      case 'music-toggle': {
+        const { code, muted } = body as { code: string; muted: boolean };
+        if (!code || typeof code !== 'string') {
+          return NextResponse.json({ error: 'Room code required' }, { status: 400 });
+        }
+        await pusherServer.trigger(getRoomChannel(code.toUpperCase()), 'music:toggle', { muted: Boolean(muted) });
+        return NextResponse.json({ ok: true });
+      }
+
       default:
         return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
     }

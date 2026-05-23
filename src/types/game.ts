@@ -117,4 +117,5 @@ export type PusherEventMap = {
   'game:room-updated': GameRoom;
   'emote': EmoteEvent;        // NOTE: emote fires without 'game:' prefix (see route.ts emote handler)
   'game:chat': ChatMessage;
+  'music:toggle': { muted: boolean };
 };

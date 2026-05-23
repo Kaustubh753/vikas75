@@ -1,8 +1,8 @@
 'use client';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Avatar from '@/lib/avatars';
-import { getMusicManager } from '@/lib/music';
+import { getLobbyMusic } from '@/lib/music-manager';
 import type { GameRoom } from '@/types/game';
 import { FaGlobe, FaInstagram, FaXTwitter, FaLinkedin, FaFacebook, FaYoutube } from 'react-icons/fa6';
 
@@ -28,7 +28,7 @@ export default function ProjectorLobby({ room }: Props) {
 
   useEffect(() => {
     setOrigin(window.location.origin);
-    getMusicManager().play('lobby');
+    getLobbyMusic().autoPlay();
     const update = () => setWinW(window.innerWidth);
     update();
     window.addEventListener('resize', update);
@@ -53,10 +53,6 @@ export default function ProjectorLobby({ room }: Props) {
     backdropFilter: 'blur(8px)',
     boxSizing: 'border-box',
   };
-
-  // Stable particle list for the useMemo dep
-  const _particles = useMemo(() => null, []);
-  void _particles;
 
   return (
     <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', isolation: 'isolate' }}>

@@ -15,6 +15,7 @@ import PlayerSubmit from '@/components/player/PlayerSubmit';
 import PlayerWaiting from '@/components/player/PlayerWaiting';
 import EmotePanel from '@/components/player/EmotePanel';
 import ChatPanel from '@/components/player/ChatPanel';
+import { getLobbyMusic } from '@/lib/music-manager';
 import type { GameRoom, SchemeCard, EmoteId, AvatarId, ChatMessage } from '@/types/game';
 
 interface Props {
@@ -50,6 +51,7 @@ export default function PlayerView({ code }: Props) {
   const [cachedHand, setCachedHand] = useState<SchemeCard[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [overlay, setOverlay] = useState<OverlayInfo | null>(null);
+  const [musicOn, setMusicOn] = useState(false);
   const toastedJoin = useRef(false);
   const prevPhaseRef = useRef<string | null>(null);
   const visibilityNotifiedRef = useRef(false);
@@ -66,6 +68,8 @@ export default function PlayerView({ code }: Props) {
     setPlayerId(pid);
     setPlayerName(pname);
     setAvatarId(avid);
+    // Sync music toggle state from localStorage
+    setMusicOn(localStorage.getItem('vikas75-music-enabled') === 'true');
     // Restore cached hand from previous session (survives page refresh mid-game)
     try {
       const savedHand = localStorage.getItem(`vikas75_hand_${code}`);
@@ -378,13 +382,33 @@ export default function PlayerView({ code }: Props) {
 
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <LogoLockup size="sm" />
-        <div className="text-right">
-          <p className="text-white/40 text-[10px] uppercase tracking-widest font-[family-name:var(--font-inter)]">
-            Round
-          </p>
-          <p className="font-[family-name:var(--font-bebas)] text-white text-xl">
-            {room.round}/{room.totalRounds}
-          </p>
+        <div className="flex items-center gap-3">
+          {/* Per-device lobby music toggle — independent, no Pusher */}
+          {phase !== 'game-over' && (
+            <button
+              onClick={() => {
+                const next = getLobbyMusic().toggle();
+                setMusicOn(next);
+              }}
+              className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95"
+              style={{
+                background: musicOn ? 'rgba(255,153,51,0.18)' : 'rgba(255,255,255,0.08)',
+                border: `1px solid ${musicOn ? 'rgba(255,153,51,0.5)' : 'rgba(255,255,255,0.15)'}`,
+                fontSize: 16,
+              }}
+              aria-label={musicOn ? 'Turn off music' : 'Turn on music'}
+            >
+              {musicOn ? '🔊' : '🔇'}
+            </button>
+          )}
+          <div className="text-right">
+            <p className="text-white/40 text-[10px] uppercase tracking-widest font-[family-name:var(--font-inter)]">
+              Round
+            </p>
+            <p className="font-[family-name:var(--font-bebas)] text-white text-xl">
+              {room.round}/{room.totalRounds}
+            </p>
+          </div>
         </div>
       </div>
 

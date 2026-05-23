@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getPusherClient, getRoomChannel } from '@/lib/pusher-client';
+import { getLobbyMusic } from '@/lib/music-manager';
 import EmoteOverlay from '@/components/projector/EmoteOverlay';
 import MuteButton from '@/components/ui/MuteButton';
 import ProjectorLobby from '@/components/projector/ProjectorLobby';
@@ -75,9 +76,12 @@ export default function ProjectorView({ code }: Props) {
     const pusher = getPusherClient();
     const channel = pusher.subscribe(getRoomChannel(code));
     const onRoomUpdated = (updated: GameRoom) => setRoom(updated);
+    const onMusicToggle = (payload: { muted: boolean }) => getLobbyMusic().forceMute(payload.muted);
     channel.bind('game:room-updated', onRoomUpdated);
+    channel.bind('music:toggle', onMusicToggle);
     return () => {
       channel.unbind('game:room-updated', onRoomUpdated);
+      channel.unbind('music:toggle', onMusicToggle);
       pusher.unsubscribe(getRoomChannel(code));
     };
   }, [code]);
@@ -88,6 +92,11 @@ export default function ProjectorView({ code }: Props) {
     const prev = prevPhaseRef.current;
     prevPhaseRef.current = room.phase;
     if (prev === undefined || prev === room.phase) return;
+
+    // Fade out lobby music when leaving the lobby
+    if (prev === 'lobby') {
+      getLobbyMusic().stop();
+    }
 
     // Full-screen interstitial (#6)
     const interstitial = PHASE_TRANSITIONS[room.phase];
