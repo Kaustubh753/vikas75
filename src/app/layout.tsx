@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Bebas_Neue, Inter, Noto_Sans_Devanagari } from 'next/font/google';
+import { Bebas_Neue, Inter, Noto_Sans_Devanagari, Yatra_One } from 'next/font/google';
 import './globals.css';
 import ToasterProvider from '@/components/ui/ToasterProvider';
 
@@ -10,6 +10,7 @@ const devanagari = Noto_Sans_Devanagari({
   variable: '--font-devanagari',
   weight: ['400', '500'],
 });
+const yatra = Yatra_One({ weight: '400', subsets: ['latin'], variable: '--font-yatra' });
 
 export const metadata: Metadata = {
   metadataBase: new URL(
@@ -33,7 +34,7 @@ export const viewport: Viewport = { themeColor: '#1a3a6e' };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${bebas.variable} ${inter.variable} ${devanagari.variable}`}>
+      <body className={`${bebas.variable} ${inter.variable} ${devanagari.variable} ${yatra.variable}`}>
         <ToasterProvider />
         {children}
       </body>
