@@ -56,7 +56,7 @@ export default function ProjectorChallengeReveal({ room }: Props) {
     if (!room.timerEndsAt) return;
     const tick = setInterval(() => {
       setRemaining(Math.max(0, Math.ceil((room.timerEndsAt! - Date.now()) / 1000)));
-    }, 500);
+    }, 1000);
     return () => clearInterval(tick);
   }, [room.timerEndsAt]);
 
@@ -90,6 +90,7 @@ export default function ProjectorChallengeReveal({ room }: Props) {
           src={getChallengeCardImage(challenge.id)}
           alt={challenge.en}
           fill
+          sizes="48vw"
           className="object-cover"
           priority
           placeholder="blur"

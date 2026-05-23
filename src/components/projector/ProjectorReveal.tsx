@@ -41,6 +41,7 @@ function RevealCard({ sub, isRevealed }: { sub: Submission; isRevealed: boolean 
                 src={getSchemeCardImage(sub.schemeCard.id)}
                 alt={sub.schemeCard.name}
                 fill
+                sizes="(min-width: 1440px) 260px, 18vw"
                 className="object-cover"
                 loading="lazy"
                 placeholder="blur"

@@ -63,7 +63,7 @@ async function claudeJudge(challenge: ChallengeCard, submissions: Submission[]):
   const userMessage = `Challenge Card:\n"${challenge.en}"\n(Hindi: ${challenge.hi})\n\nSubmissions:\n${submissionsText}\n\nRank all players. Respond with JSON only.`;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  const timeoutId = setTimeout(() => controller.abort(), 15_000); // 15s — Claude Sonnet p95 latency is ~5s; 8s was too aggressive
   let response: Awaited<ReturnType<typeof client.messages.create>>;
   try {
     response = await client.messages.create(

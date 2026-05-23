@@ -60,12 +60,14 @@ export default function ProjectorView({ code }: Props) {
   }, [code]);
 
   useEffect(() => {
+    // 30-second heartbeat — Pusher is the real-time channel; this is a fallback for
+    // dropped Pusher connections only. 5s was unnecessarily aggressive.
     const poll = setInterval(() => {
       fetch(`/api/game?code=${code}`)
         .then((r) => r.json())
         .then((d) => { if (d.room) setRoom(d.room); })
         .catch(() => {});
-    }, 5000);
+    }, 30_000);
     return () => clearInterval(poll);
   }, [code]);
 

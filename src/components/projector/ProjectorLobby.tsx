@@ -1,7 +1,14 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { QRCodeSVG } from 'qrcode.react';
+import dynamic from 'next/dynamic';
+
+// qrcode.react is only needed on the projector screen — lazy-load it so it never
+// enters the player-phone or host bundle.
+const QRCodeSVG = dynamic(
+  () => import('qrcode.react').then((m) => ({ default: m.QRCodeSVG })),
+  { ssr: false }
+);
 import LogoLockup from '@/components/ui/LogoLockup';
 import SocialLinks from '@/components/ui/SocialLinks';
 import CountUp from '@/components/ui/CountUp';

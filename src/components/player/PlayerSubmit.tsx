@@ -22,7 +22,7 @@ function TimerBar({ total, endsAt }: { total: number; endsAt: number }) {
   useEffect(() => {
     const tick = setInterval(() => {
       setRemaining(Math.max(0, Math.ceil((endsAt - Date.now()) / 1000)));
-    }, 500);
+    }, 1000); // 1s is sufficient — displayed value is already integer seconds
     return () => clearInterval(tick);
   }, [endsAt]);
 
@@ -136,6 +136,7 @@ export default function PlayerSubmit({
             src={getSchemeCardImage(submittedCard.id)}
             alt={submittedCard.name}
             fill
+            sizes="160px"
             className="object-cover"
             loading="lazy"
             placeholder="blur"
@@ -184,6 +185,7 @@ export default function PlayerSubmit({
                 src={getChallengeCardImage(challenge.id)}
                 alt={challenge.en}
                 fill
+                sizes="72px"
                 className="object-cover"
                 priority
                 placeholder="blur"
@@ -242,6 +244,7 @@ export default function PlayerSubmit({
                     src={getSchemeCardImage(card.id)}
                     alt={card.name}
                     fill
+                    sizes="160px"
                     className="object-cover"
                     loading="lazy"
                     placeholder="blur"
@@ -303,6 +306,7 @@ export default function PlayerSubmit({
               src={getSchemeCardImage(selected.id)}
               alt={selected.name}
               fill
+              sizes="160px"
               className="object-cover"
               loading="lazy"
               placeholder="blur"

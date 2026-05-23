@@ -177,7 +177,7 @@ export default function PlayerView({ code }: Props) {
     }
   }, [hydrated, room?.phase, fetchRoom]);
 
-  async function handleSubmit(card: SchemeCard, explanation: string) {
+  const handleSubmit = useCallback(async (card: SchemeCard, explanation: string) => {
     try {
       const res = await fetch('/api/game', {
         method: 'POST',
@@ -205,9 +205,9 @@ export default function PlayerView({ code }: Props) {
     } catch {
       toast.error('Network error — please check your connection and try again');
     }
-  }
+  }, [code, playerId, playerName, avatarId]);
 
-  async function handleEmote(emoteId: EmoteId) {
+  const handleEmote = useCallback(async (emoteId: EmoteId) => {
     vibrate(30);
     await fetch('/api/game', {
       method: 'POST',
@@ -221,9 +221,9 @@ export default function PlayerView({ code }: Props) {
         emote: emoteId,
       }),
     });
-  }
+  }, [code, playerId, playerName, avatarId]);
 
-  async function handleChat(text: string) {
+  const handleChat = useCallback(async (text: string) => {
     await fetch('/api/game', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -233,7 +233,7 @@ export default function PlayerView({ code }: Props) {
         message: { playerId, playerName, avatarId, text },
       }),
     });
-  }
+  }, [code, playerId, playerName, avatarId]);
 
   // NOTE: timer-expire is fired by ProjectorView only — avoids N concurrent requests from all players.
   // The host can always manually advance if no projector is open.

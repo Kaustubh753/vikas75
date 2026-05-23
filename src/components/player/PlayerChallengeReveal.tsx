@@ -27,6 +27,7 @@ export default function PlayerChallengeReveal({ challenge }: Props) {
           src={getChallengeCardImage(challenge.id)}
           alt={challenge.en}
           fill
+          sizes="280px"
           className="object-cover"
           priority
           placeholder="blur"
