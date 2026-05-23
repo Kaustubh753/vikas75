@@ -221,30 +221,34 @@ export default function PlayerView({ code }: Props) {
 
   const handleEmote = useCallback(async (emoteId: EmoteId) => {
     vibrate(30);
-    await fetch('/api/game', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'emote',
-        code,
-        playerId,
-        playerName,
-        avatarId,
-        emote: emoteId,
-      }),
-    });
+    try {
+      await fetch('/api/game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'emote',
+          code,
+          playerId,
+          playerName,
+          avatarId,
+          emote: emoteId,
+        }),
+      });
+    } catch { /* fire-and-forget — emotes are non-critical */ }
   }, [code, playerId, playerName, avatarId]);
 
   const handleChat = useCallback(async (text: string) => {
-    await fetch('/api/game', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'chat',
-        code,
-        message: { playerId, playerName, avatarId, text },
-      }),
-    });
+    try {
+      await fetch('/api/game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'chat',
+          code,
+          message: { playerId, playerName, avatarId, text },
+        }),
+      });
+    } catch { /* fire-and-forget — chat is non-critical */ }
   }, [code, playerId, playerName, avatarId]);
 
   // NOTE: timer-expire is fired by ProjectorView only — avoids N concurrent requests from all players.
@@ -403,6 +407,8 @@ export default function PlayerView({ code }: Props) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            aria-live="assertive"
+            aria-atomic="true"
           >
             <motion.p
               className="font-[family-name:var(--font-bebas)] tracking-widest text-center"

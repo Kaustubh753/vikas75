@@ -53,6 +53,27 @@ export default function HostDashboard({ code, hostId }: Props) {
     setOrigin(window.location.origin);
   }, []);
 
+  // Guard: if hostId is absent the advance button will always 403 — show a clear error immediately
+  if (!hostId) {
+    return (
+      <div className="min-h-screen bg-[#0d1b35] flex flex-col items-center justify-center gap-4 px-4">
+        <p className="text-4xl">⚠️</p>
+        <p className="text-white font-[family-name:var(--font-bebas)] text-2xl tracking-wide text-center">
+          Invalid Host Link
+        </p>
+        <p className="text-white/50 text-sm text-center font-[family-name:var(--font-inter)] max-w-xs">
+          This link is missing the host key. Use the original link that was shown when you created the room.
+        </p>
+        <button
+          onClick={() => router.replace('/host/setup')}
+          className="mt-4 px-8 h-12 bg-[#FF9933] text-white font-[family-name:var(--font-bebas)] text-xl tracking-widest rounded-xl"
+        >
+          Create New Room
+        </button>
+      </div>
+    );
+  }
+
   const fetchRoom = useCallback(async () => {
     try {
       const res = await fetch(`/api/game?code=${code}`);
@@ -318,6 +339,7 @@ export default function HostDashboard({ code, hostId }: Props) {
                   type="range" min={5} max={15} value={rounds}
                   onChange={(e) => setRounds(Number(e.target.value))}
                   onPointerUp={handleUpdateSettings}
+                  onKeyUp={handleUpdateSettings}
                   className="w-full accent-[#FF9933]"
                 />
               </div>
@@ -330,6 +352,7 @@ export default function HostDashboard({ code, hostId }: Props) {
                   type="range" min={30} max={120} step={5} value={timer}
                   onChange={(e) => setTimer(Number(e.target.value))}
                   onPointerUp={handleUpdateSettings}
+                  onKeyUp={handleUpdateSettings}
                   className="w-full accent-[#FF9933]"
                 />
               </div>

@@ -46,7 +46,10 @@ function AwaitingSubmissionBanner() {
 
 export default function ProjectorChallengeReveal({ room }: Props) {
   const challenge = room.currentChallenge;
-  const [remaining, setRemaining] = useState(room.timerDuration);
+  // Initialize to actual remaining time so a mid-round open shows the correct countdown
+  const [remaining, setRemaining] = useState(() =>
+    room.timerEndsAt ? Math.max(0, Math.ceil((room.timerEndsAt - Date.now()) / 1000)) : room.timerDuration
+  );
 
   useEffect(() => {
     getMusicManager().play('challenge');

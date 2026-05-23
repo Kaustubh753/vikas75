@@ -11,6 +11,8 @@ const OPTIONAL_SERVER_VARS: Record<string, string> = {
   ANTHROPIC_API_KEY: 'Claude AI judge — random fallback judge will be used',
   ADMIN_USERNAME: 'Admin dashboard — admin panel will be inaccessible',
   ADMIN_PASSWORD: 'Admin dashboard — admin panel will be inaccessible',
+  NEXT_PUBLIC_PUSHER_KEY: 'Pusher client key — real-time updates will not work for players',
+  NEXT_PUBLIC_PUSHER_CLUSTER: 'Pusher cluster — real-time updates will not work for players',
 };
 
 export function validateEnv(): void {

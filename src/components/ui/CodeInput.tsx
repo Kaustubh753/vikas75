@@ -18,7 +18,8 @@ export default function CodeInput({ value, onChange, disabled }: Props) {
   }
 
   function handleChange(i: number, e: React.ChangeEvent<HTMLInputElement>) {
-    const raw = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+    // Exclude I and O — room codes never contain them (too similar to 1 and 0)
+    const raw = e.target.value.toUpperCase().replace(/[^ABCDEFGHJKLMNPQRSTUVWXYZ23456789]/g, '');
     if (!raw) {
       const n = [...chars];
       n[i] = '';
@@ -52,7 +53,7 @@ export default function CodeInput({ value, onChange, disabled }: Props) {
     const t = e.clipboardData
       .getData('text')
       .toUpperCase()
-      .replace(/[^A-Z]/g, '')
+      .replace(/[^ABCDEFGHJKLMNPQRSTUVWXYZ23456789]/g, '')
       .slice(0, 4);
     emit([t[0] ?? '', t[1] ?? '', t[2] ?? '', t[3] ?? '']);
     setTimeout(() => refs.current[Math.min(t.length, 3)]?.focus(), 0);

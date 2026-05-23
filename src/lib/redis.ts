@@ -160,6 +160,22 @@ export async function listActiveRooms(): Promise<string[]> {
 }
 
 /**
+ * Release a distributed lock acquired with acquireLock.
+ * Safe to call even if the lock has already expired.
+ */
+export async function releaseLock(key: string): Promise<void> {
+  if (!isRedisConfigured()) {
+    devLockStore.delete(key);
+    return;
+  }
+  try {
+    await getRedis().del(key);
+  } catch {
+    // Best-effort — lock will auto-expire anyway
+  }
+}
+
+/**
  * Acquire a distributed lock using Redis SET NX EX.
  * Returns true if the lock was acquired, false if already held.
  * The lock auto-expires after ttlSec seconds — no need to release explicitly.

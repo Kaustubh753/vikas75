@@ -112,14 +112,13 @@ export default function AdminDashboard() {
                       </p>
                     </div>
                     <div className="flex gap-2">
-                      <a
-                        href={`/host/${room.code}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-[#FF9933] hover:underline font-[family-name:var(--font-inter)]"
+                      {/* Host link is view-only — hostId (required for controls) is not stored server-side */}
+                      <span
+                        className="text-xs text-white/30 font-[family-name:var(--font-inter)]"
+                        title="Host controls require the original ?h= link from the host's browser"
                       >
-                        Host →
-                      </a>
+                        Host (no link)
+                      </span>
                       <a
                         href={`/projector/${room.code}`}
                         target="_blank"

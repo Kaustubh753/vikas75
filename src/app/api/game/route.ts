@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { after } from 'next/server';
-import { getRoom, setRoom, checkRoomCreationLimit, checkRateLimit, acquireLock } from '@/lib/redis';
+import { getRoom, setRoom, checkRoomCreationLimit, checkRateLimit, acquireLock, releaseLock } from '@/lib/redis';
 import { broadcastRoom, pusherServer, getRoomChannel } from '@/lib/pusher';
 import {
   createRoom,
@@ -141,66 +141,75 @@ export async function POST(req: NextRequest) {
 
       case 'submit': {
         const { code, submission } = body as { code: string; submission: Submission };
-        // Distributed lock — prevents concurrent submissions from the same room overwriting each other
+        // Input guard — playerId must be a non-empty string
+        if (!submission?.playerId || typeof submission.playerId !== 'string') {
+          return NextResponse.json({ error: 'Invalid submission' }, { status: 400 });
+        }
+        // Distributed lock — prevents concurrent submissions overwriting each other.
+        // Lock is always released in the finally block so validation failures don't block the room.
         const submitLock = `lock:submit:${code?.toUpperCase()}`;
         const lockAcquired = await acquireLock(submitLock, 5);
         if (!lockAcquired) {
           return NextResponse.json({ error: 'Conflict — please try again' }, { status: 409 });
         }
-        const room = await getRoom(code?.toUpperCase());
-        if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
-        if (room.phase !== 'submission') {
-          return NextResponse.json({ error: 'Not in submission phase' }, { status: 400 });
-        }
-        // Idempotent — double submission is a no-op
-        if (room.submissions[submission.playerId]) {
-          return NextResponse.json({ ok: true });
-        }
-        // Validate submitter is an active player
-        const submittingPlayer = room.players[submission.playerId];
-        if (!submittingPlayer) {
-          return NextResponse.json({ error: 'Player not in this room' }, { status: 403 });
-        }
-        // Validate the submitted card is actually in the player's hand — use server-side card data
-        const serverCard = submittingPlayer.hand.find((c) => c.id === submission.schemeCard?.id);
-        if (!serverCard) {
-          return NextResponse.json({ error: 'Card not in your hand' }, { status: 403 });
-        }
-        // Sanitize and filter explanation
-        const safeExplanation = typeof submission.explanation === 'string'
-          ? filterText(submission.explanation.trim().slice(0, 200))
-          : '';
-        if (!safeExplanation) {
-          return NextResponse.json({ error: 'Explanation is required' }, { status: 400 });
-        }
-        // Enforce 25-word limit server-side (mirrors client UI)
-        const wordCount = safeExplanation.split(/\s+/).filter(Boolean).length;
-        if (wordCount > 25) {
-          return NextResponse.json({ error: 'Explanation too long (max 25 words)' }, { status: 400 });
-        }
-        // Build submission entirely from server state — no client-supplied card data or identity
-        const safeSubmission: Submission = {
-          playerId: submission.playerId,
-          playerName: submittingPlayer.name,
-          avatarId: submittingPlayer.avatarId,
-          schemeCard: serverCard,            // authoritative server-side card object
-          explanation: safeExplanation,
-          submittedAt: Date.now(),           // always server-side timestamp — never trust client
-        };
-        const updated = addSubmission(room, safeSubmission);
-        await setRoom(updated);
-        // Broadcast happens before auto-advance so clients see the submission tick
-        await broadcastRoom(updated);
-        if (allPlayersSubmitted(updated)) {
-          // Re-read after write to reduce concurrent auto-advance race window
-          const fresh = await getRoom(code.toUpperCase());
-          if (fresh?.phase === 'submission') {
-            const revealed = advancePhase(fresh);
-            await setRoom(revealed);
-            await broadcastRoom(revealed);
+        try {
+          const room = await getRoom(code?.toUpperCase());
+          if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+          if (room.phase !== 'submission') {
+            return NextResponse.json({ error: 'Not in submission phase' }, { status: 400 });
           }
+          // Idempotent — double submission is a no-op
+          if (room.submissions[submission.playerId]) {
+            return NextResponse.json({ ok: true });
+          }
+          // Validate submitter is an active player
+          const submittingPlayer = room.players[submission.playerId];
+          if (!submittingPlayer) {
+            return NextResponse.json({ error: 'Player not in this room' }, { status: 403 });
+          }
+          // Validate the submitted card is actually in the player's hand — use server-side card data
+          const serverCard = submittingPlayer.hand.find((c) => c.id === submission.schemeCard?.id);
+          if (!serverCard) {
+            return NextResponse.json({ error: 'Card not in your hand' }, { status: 403 });
+          }
+          // Sanitize and filter explanation
+          const safeExplanation = typeof submission.explanation === 'string'
+            ? filterText(submission.explanation.trim().slice(0, 200))
+            : '';
+          if (!safeExplanation) {
+            return NextResponse.json({ error: 'Explanation is required' }, { status: 400 });
+          }
+          // Enforce 25-word limit server-side (mirrors client UI)
+          const wordCount = safeExplanation.split(/\s+/).filter(Boolean).length;
+          if (wordCount > 25) {
+            return NextResponse.json({ error: 'Explanation too long (max 25 words)' }, { status: 400 });
+          }
+          // Build submission entirely from server state — no client-supplied card data or identity
+          const safeSubmission: Submission = {
+            playerId: submission.playerId,
+            playerName: submittingPlayer.name,
+            avatarId: submittingPlayer.avatarId,
+            schemeCard: serverCard,            // authoritative server-side card object
+            explanation: safeExplanation,
+            submittedAt: Date.now(),           // always server-side timestamp — never trust client
+          };
+          const updated = addSubmission(room, safeSubmission);
+          await setRoom(updated);
+          // Broadcast happens before auto-advance so clients see the submission tick
+          await broadcastRoom(updated);
+          if (allPlayersSubmitted(updated)) {
+            // Re-read after write to reduce concurrent auto-advance race window
+            const fresh = await getRoom(code.toUpperCase());
+            if (fresh?.phase === 'submission') {
+              const revealed = advancePhase(fresh);
+              await setRoom(revealed);
+              await broadcastRoom(revealed);
+            }
+          }
+          return NextResponse.json({ ok: true });
+        } finally {
+          await releaseLock(submitLock);
         }
-        return NextResponse.json({ ok: true });
       }
 
       case 'timer-expire': {
@@ -224,6 +233,8 @@ export async function POST(req: NextRequest) {
         if (!rateLimit(`emote:${playerId ?? 'anon'}`, 20, 60_000)) {
           return NextResponse.json({ ok: true });
         }
+        const VALID_EMOTES = ['masterstroke','aatmanirbhar','vishwaguru','fakir','antinational','56inch'];
+        if (!emote || !VALID_EMOTES.includes(emote)) return NextResponse.json({ ok: true });
         const emoteRoom = await getRoom(code?.toUpperCase());
         const emotePlayer = emoteRoom?.players[playerId];
         if (!emotePlayer) return NextResponse.json({ ok: true }); // silently drop unknown senders

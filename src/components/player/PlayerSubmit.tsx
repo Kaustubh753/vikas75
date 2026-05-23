@@ -97,15 +97,22 @@ export default function PlayerSubmit({
   async function handleThrow() {
     if (!selected || !explanation.trim() || loading) return;
     setThrowing(true);
+    const mountedRef = { current: true };
+    // Cleanup on unmount — prevents setState on unmounted component
+    const cleanup = () => { mountedRef.current = false; };
     setTimeout(async () => {
+      if (!mountedRef.current) return;
       setLoading(true);
       try {
         await onSubmit(selected, explanation.trim());
       } finally {
-        setLoading(false);
-        setThrowing(false);
+        if (mountedRef.current) {
+          setLoading(false);
+          setThrowing(false);
+        }
       }
     }, 600);
+    return cleanup;
   }
 
   // Guard: hand not yet loaded

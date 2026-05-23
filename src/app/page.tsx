@@ -207,6 +207,7 @@ function HowToPlay() {
   const [step, setStep] = useState(0);
   const [paused, setPaused] = useState(false);
   const total = HTP_STEPS.length;
+  const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (paused) return;
@@ -214,10 +215,14 @@ function HowToPlay() {
     return () => clearTimeout(t);
   }, [step, paused, total]);
 
+  // Clean up pause timer on unmount
+  useEffect(() => () => { if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current); }, []);
+
   const goTo = useCallback((i: number) => {
     setStep(i);
     setPaused(true);
-    setTimeout(() => setPaused(false), 6500);
+    if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+    pauseTimerRef.current = setTimeout(() => setPaused(false), 6500);
   }, []);
 
   const prev = () => goTo((step - 1 + total) % total);

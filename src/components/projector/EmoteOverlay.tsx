@@ -34,6 +34,7 @@ export default function EmoteOverlay({ code }: Props) {
     channel.bind('emote', onEmote);
     return () => {
       channel.unbind('emote', onEmote);
+      getPusherClient().unsubscribe(getRoomChannel(code));
     };
   }, [code]);
 

@@ -37,8 +37,6 @@ export default function HostSetupPage() {
         return;
       }
       const roomCode: string = data.room.code;
-      localStorage.setItem('vikas75_hostId', hostId);
-      localStorage.setItem('vikas75_hostCode', roomCode);
       router.push(`/host/${roomCode}?h=${hostId}`);
     } catch {
       setError('Network error. Please try again.');

@@ -26,7 +26,7 @@ export default function AvatarPicker({ value, onChange, disabled }: Props) {
             className={`relative rounded-xl overflow-hidden transition-all active:scale-95 focus:outline-none
               ${
                 value === id
-                  ? 'ring-3 ring-[#FF9933] scale-105 shadow-lg shadow-[#FF9933]/30'
+                  ? 'ring-2 ring-[#FF9933] scale-105 shadow-lg shadow-[#FF9933]/30'
                   : 'ring-1 ring-white/10 opacity-70 hover:opacity-100'
               }`}
             style={{ background: AVATAR_BACKGROUNDS[id] }}

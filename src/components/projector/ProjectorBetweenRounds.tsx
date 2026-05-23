@@ -69,7 +69,7 @@ export default function ProjectorBetweenRounds({ room }: Props) {
           <div
             key={p.id}
             className={`rounded-xl px-4 py-3 border flex items-center gap-3 ${
-              i === 0 ? 'border-[#FFD700]/40 bg-[#FFD700]/5' : 'border-white/12 bg-white/[0.06]'
+              i === 0 ? 'border-[#FFD700]/40 bg-[#FFD700]/5' : 'border-white/[0.12] bg-white/[0.06]'
             }`}
             style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}
           >
