@@ -76,6 +76,8 @@ function getCardState(
   dealt: Set<string>,
   pickedId: string | null,
   hoverId: string | null,
+  chlPicked: boolean,
+  chlHovered: boolean,
   scale: number,
 ): CardState {
   const card = CARDS[idx];
@@ -87,11 +89,16 @@ function getCardState(
 
   if (!dealt.has(card.id))
     return isChl
-      ? { x: 0,                     y: 900, r: -3,    s: 0.9,  status: '', pivot: 'center', clickable: false }
+      ? { x: 0,                          y: 900, r: -3,    s: 0.9,  status: '', pivot: 'center', clickable: false }
       : { x: t * Math.round(25 * scale), y: 900, r: t * 5, s: 0.85, status: '', pivot: 'bottom', clickable: false };
 
-  if (isChl)
-    return { x: 0, y: CHL_Y, r: -1.5, s: 0.95, status: pickedId ? 'is-dim' : '', pivot: 'center', clickable: false };
+  if (isChl) {
+    if (chlPicked)
+      return { x: 0, y: CHL_Y - Math.round(38 * scale), r: 0, s: 1.12, status: 'is-chl-front', pivot: 'center', clickable: true };
+    if (chlHovered)
+      return { x: 0, y: CHL_Y - Math.round(10 * scale), r: -0.5, s: 1.03, status: 'is-chl-hover', pivot: 'center', clickable: true };
+    return { x: 0, y: CHL_Y, r: -1.5, s: 0.95, status: '', pivot: 'center', clickable: true };
+  }
 
   const isPicked    = pickedId === card.id;
   const otherPicked = !!pickedId && pickedId !== card.id;
@@ -117,9 +124,20 @@ function getCardState(
 }
 
 function cardFilter(status: string) {
-  if (status === 'is-hover')
-    return 'drop-shadow(0 0 18px rgba(255,215,0,.4)) drop-shadow(0 26px 32px rgba(0,0,0,.55)) drop-shadow(0 8px 14px rgba(0,0,0,.45))';
-  return 'drop-shadow(0 22px 30px rgba(0,0,0,.55)) drop-shadow(0 7px 12px rgba(0,0,0,.45))';
+  switch (status) {
+    case 'is-chl-front':
+      // Blue/navy glow to match the challenge card colour
+      return 'drop-shadow(0 0 28px rgba(99,149,255,.7)) drop-shadow(0 0 10px rgba(99,149,255,.4)) drop-shadow(0 32px 44px rgba(0,0,0,.65)) drop-shadow(0 10px 18px rgba(0,0,0,.5))';
+    case 'is-chl-hover':
+      return 'drop-shadow(0 0 16px rgba(99,149,255,.4)) drop-shadow(0 28px 34px rgba(0,0,0,.58)) drop-shadow(0 8px 14px rgba(0,0,0,.45))';
+    case 'is-front':
+      // Gold glow for selected scheme card
+      return 'drop-shadow(0 0 22px rgba(255,215,0,.55)) drop-shadow(0 0 8px rgba(255,215,0,.3)) drop-shadow(0 28px 38px rgba(0,0,0,.6)) drop-shadow(0 8px 16px rgba(0,0,0,.5))';
+    case 'is-hover':
+      return 'drop-shadow(0 0 18px rgba(255,215,0,.4)) drop-shadow(0 26px 32px rgba(0,0,0,.55)) drop-shadow(0 8px 14px rgba(0,0,0,.45))';
+    default:
+      return 'drop-shadow(0 22px 30px rgba(0,0,0,.55)) drop-shadow(0 7px 12px rgba(0,0,0,.45))';
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -127,9 +145,11 @@ function cardFilter(status: string) {
 // ─────────────────────────────────────────────────────────────
 function HeroFan() {
   const scale = useFanScale();
-  const [dealt, setDealt]     = useState<Set<string>>(() => new Set());
-  const [pickedId, setPicked] = useState<string | null>(null);
-  const [hoverId, setHover]   = useState<string | null>(null);
+  const [dealt, setDealt]           = useState<Set<string>>(() => new Set());
+  const [pickedId, setPicked]       = useState<string | null>(null);
+  const [hoverId, setHover]         = useState<string | null>(null);
+  const [chlPicked, setChlPicked]   = useState(false);
+  const [chlHovered, setChlHovered] = useState(false);
 
   const CW = Math.round(248 * scale);
   const CH = Math.round(332 * scale);
@@ -146,10 +166,15 @@ function HeroFan() {
     return () => timers.forEach(clearTimeout);
   }, []);
 
-  // Single click: select / deselect. No second "play full-card" state.
+  // Single click: select / deselect. Challenge and scheme cards are independent.
   const handleClick = (cardId: string) => {
     const card = CARDS.find(c => c.id === cardId);
-    if (!card || card.kind !== 'scheme') return;
+    if (!card) return;
+    if (card.kind === 'challenge') {
+      setChlPicked(prev => !prev);
+      setChlHovered(false);
+      return;
+    }
     setPicked(prev => prev === cardId ? null : cardId);
     setHover(null);
   };
@@ -166,15 +191,22 @@ function HeroFan() {
       }} />
 
       {CARDS.map((card, idx) => {
-        const st = getCardState(idx, dealt, pickedId, hoverId, scale);
+        const st = getCardState(idx, dealt, pickedId, hoverId, chlPicked, chlHovered, scale);
         const tf = `translate(-50%,-50%) translate(${st.x}px,${st.y}px) rotate(${st.r}deg) scale(${st.s})`;
-        const zIndex = st.status === 'is-front' ? 50 : 10 + idx;
+        const zIndex = (st.status === 'is-front' || st.status === 'is-chl-front') ? 50 : 10 + idx;
         return (
           <div
             key={card.id}
             onClick={() => st.clickable && handleClick(card.id)}
-            onMouseEnter={() => st.clickable && card.kind === 'scheme' && setHover(card.id)}
-            onMouseLeave={() => setHover(null)}
+            onMouseEnter={() => {
+              if (!st.clickable) return;
+              if (card.kind === 'challenge') { setChlHovered(true); return; }
+              if (!pickedId) setHover(card.id);
+            }}
+            onMouseLeave={() => {
+              if (card.kind === 'challenge') setChlHovered(false);
+              else setHover(null);
+            }}
             style={{
               position: 'absolute', left: '50%', top: '50%',
               width: CW, height: CH,
@@ -184,7 +216,7 @@ function HeroFan() {
               transition: 'transform .9s cubic-bezier(.2,.75,.25,1), filter .8s ease',
               willChange: 'transform, filter',
               zIndex,
-              cursor: st.clickable && card.kind === 'scheme' ? 'pointer' : 'default',
+              cursor: st.clickable ? 'pointer' : 'default',
             }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
