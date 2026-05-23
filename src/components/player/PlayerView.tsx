@@ -260,7 +260,7 @@ export default function PlayerView({ code }: Props) {
   // The host can always manually advance if no projector is open.
 
   useEffect(() => {
-    if (!room || room.phase === 'lobby' || room.phase === 'game-over') return;
+    if (!room || room.phase === 'game-over') return;
     const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
@@ -365,7 +365,7 @@ export default function PlayerView({ code }: Props) {
     }
   }
 
-  const showEmoteAndChat = phase !== 'lobby' && phase !== 'game-over';
+  const showEmoteAndChat = phase !== 'game-over';
 
   return (
     <motion.main
