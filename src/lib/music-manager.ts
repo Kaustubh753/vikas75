@@ -102,8 +102,17 @@ class LobbyMusicManager {
     this.doFadeIn();
   }
 
+  /** Immediately cut audio and pause — no fade. */
+  private cutOut() {
+    this.clearFade();
+    if (this.audio && !this.audio.paused) {
+      this.audio.volume = 0;
+      this.audio.pause();
+    }
+  }
+
   /**
-   * Flip the enabled state. Fades in or out accordingly.
+   * Flip the enabled state. Fades in when turning on; cuts immediately when turning off.
    * Returns the new enabled value.
    */
   toggle(): boolean {
@@ -114,7 +123,7 @@ class LobbyMusicManager {
     if (this._enabled && !this._forceMuted) {
       this.doFadeIn();
     } else {
-      this.doFadeOut();
+      this.cutOut();
     }
     return this._enabled;
   }
@@ -123,7 +132,7 @@ class LobbyMusicManager {
   forceMute(muted: boolean): void {
     this._forceMuted = muted;
     if (muted) {
-      this.doFadeOut();
+      this.cutOut();
     } else {
       // Resume only if the user-enabled preference allows it (or autoPlay will be used by projector)
       if (this._enabled) {
