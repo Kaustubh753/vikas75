@@ -49,6 +49,8 @@ export default function HostDashboard({ code, hostId }: Props) {
   const [rounds, setRounds] = useState(10);
   const [timer, setTimer] = useState(60);
   const [musicMuted, setMusicMuted] = useState(false);
+  const [endConfirm, setEndConfirm] = useState(false);
+  const [endLoading, setEndLoading] = useState(false);
   const settingsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -152,6 +154,24 @@ export default function HostDashboard({ code, hostId }: Props) {
         </button>
       </div>
     );
+  }
+
+  async function handleEndGame() {
+    setEndLoading(true);
+    try {
+      const res = await fetch('/api/game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'end-game', code, hostId }),
+      });
+      const data = await res.json();
+      if (res.ok) setRoom(data.room);
+      else toast.error(data.error || 'Could not end game');
+    } catch {
+      toast.error('Network error');
+    }
+    setEndLoading(false);
+    setEndConfirm(false);
   }
 
   async function handleAdvance() {
@@ -320,6 +340,38 @@ export default function HostDashboard({ code, hostId }: Props) {
           >
             New Game
           </motion.button>
+        )}
+
+        {/* End Game — available in any active phase */}
+        {room.phase !== 'game-over' && (
+          <div className="mb-4 flex justify-end">
+            {!endConfirm ? (
+              <button
+                onClick={() => setEndConfirm(true)}
+                className="text-xs text-red-400/60 hover:text-red-400 border border-red-400/20 hover:border-red-400/50 rounded-lg px-3 py-1.5 transition-all font-[family-name:var(--font-inter)]"
+                style={{ letterSpacing: '0.06em' }}
+              >
+                End Game
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-white/50 font-[family-name:var(--font-inter)]">End for everyone?</span>
+                <button
+                  onClick={handleEndGame}
+                  disabled={endLoading}
+                  className="text-xs bg-red-500/80 hover:bg-red-500 text-white rounded-lg px-3 py-1.5 transition-all font-[family-name:var(--font-inter)] disabled:opacity-50"
+                >
+                  {endLoading ? 'Ending…' : 'Yes, end it'}
+                </button>
+                <button
+                  onClick={() => setEndConfirm(false)}
+                  className="text-xs text-white/40 hover:text-white/70 border border-white/10 rounded-lg px-3 py-1.5 transition-all font-[family-name:var(--font-inter)]"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Invite — collapsible (only matters in lobby) */}

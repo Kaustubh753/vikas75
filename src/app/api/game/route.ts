@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { after } from 'next/server';
-import { getRoom, setRoom, checkRoomCreationLimit, checkRateLimit, acquireLock, releaseLock } from '@/lib/redis';
+import { getRoom, setRoom, deleteRoom, checkRoomCreationLimit, checkRateLimit, acquireLock, releaseLock } from '@/lib/redis';
 import { broadcastRoom, pusherServer, getRoomChannel } from '@/lib/pusher';
 import {
   createRoom,
@@ -298,17 +298,46 @@ export async function POST(req: NextRequest) {
       }
 
       case 'heartbeat': {
-        // Lightweight presence ping — updates lastSeen, no Pusher unless reconnect
         const { code: hbCode, playerId: hbPid } = body as { code: string; playerId: string };
         if (!hbCode || !hbPid) return NextResponse.json({ ok: true });
         const hbRoom = await getRoom(hbCode.toUpperCase());
         if (!hbRoom || !hbRoom.players[hbPid]) return NextResponse.json({ ok: true });
+
         const prevSeen = hbRoom.players[hbPid].lastSeen ?? 0;
-        hbRoom.players[hbPid].lastSeen = Date.now();
+        const now = Date.now();
+        hbRoom.players[hbPid].lastSeen = now;
+
+        // Presence: count how many players are active after this update
+        const activePlayers = Object.values(hbRoom.players)
+          .filter(p => p.lastSeen && now - p.lastSeen < 45_000);
+
+        if (activePlayers.length <= 1) {
+          // Last person standing — schedule auto-shutdown 5 min from now.
+          // Each subsequent beacon resets the clock, so the room only dies
+          // 5 min after the very last beacon from anyone.
+          hbRoom.shutdownAt = now + 5 * 60 * 1000;
+        } else {
+          // Multiple people active — cancel any pending shutdown
+          hbRoom.shutdownAt = undefined;
+        }
+
         await setRoom(hbRoom);
-        // Broadcast only on reconnect (was stale > 45 s) so the host sees them come back
-        if (Date.now() - prevSeen > 45_000) await broadcastRoom(hbRoom);
+        // Broadcast on reconnect (was stale > 45 s) so host/projector updates
+        if (now - prevSeen > 45_000) await broadcastRoom(hbRoom);
         return NextResponse.json({ ok: true });
+      }
+
+      case 'end-game': {
+        const { code: egCode, hostId: egHostId } = body as { code: string; hostId: string };
+        if (!egCode || !egHostId) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+        const egRoom = await getRoom(egCode.toUpperCase());
+        if (!egRoom) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+        if (egRoom.hostId !== egHostId) return NextResponse.json({ error: 'Not the host' }, { status: 403 });
+        if (egRoom.phase === 'game-over') return NextResponse.json({ room: egRoom });
+        const ended = { ...egRoom, phase: 'game-over' as const, shutdownAt: undefined };
+        await setRoom(ended);
+        await broadcastRoom(ended);
+        return NextResponse.json({ room: ended });
       }
 
       case 'music-toggle': {
@@ -346,6 +375,13 @@ export async function GET(req: NextRequest) {
     if (!code) return NextResponse.json({ error: 'Missing code' }, { status: 400 });
     const room = await getRoom(code.toUpperCase());
     if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+
+    // Auto-shutdown: if all players have been gone for 5 minutes, delete the room
+    if (room.shutdownAt && Date.now() > room.shutdownAt) {
+      await deleteRoom(code.toUpperCase());
+      return NextResponse.json({ error: 'Room closed — all players disconnected' }, { status: 404 });
+    }
+
     // Strip player hands — card data is private; clients get their own hand via Pusher broadcast
     const scrubbed = {
       ...room,
