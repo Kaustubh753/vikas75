@@ -685,6 +685,27 @@ function LandingPage() {
             }}>
               The best answer isn&apos;t always right
             </div>
+
+            {/* Explore link */}
+            <a href="/explore" style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              marginTop: 10,
+              fontFamily: 'var(--font-inter),sans-serif',
+              fontSize: 'clamp(10px, 0.82vw, 12px)',
+              fontWeight: 500, letterSpacing: '0.04em',
+              color: 'rgba(250,248,240,0.38)',
+              textDecoration: 'none',
+              transition: 'color .15s',
+              whiteSpace: 'nowrap',
+            }}
+              onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,153,51,0.8)'}
+              onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(250,248,240,0.38)'}
+            >
+              Curious what&apos;s in the deck?
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <path d="M2 5H8M5.5 2.5L8 5L5.5 7.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </a>
           </div>
 
           {/* CTA buttons */}

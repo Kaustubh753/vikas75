@@ -362,6 +362,18 @@ export default function PlayerView({ code }: Props) {
             >
               Play Again →
             </button>
+            <a
+              href="/explore"
+              className="flex items-center gap-1.5 font-[family-name:var(--font-inter)] text-xs font-medium tracking-wide transition-colors"
+              style={{ color: 'rgba(250,248,240,0.38)', textDecoration: 'none' }}
+              onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,153,51,0.8)'}
+              onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(250,248,240,0.38)'}
+            >
+              Explore all 75 schemes
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <path d="M2 5H8M5.5 2.5L8 5L5.5 7.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </a>
           </div>
         );
       default:
