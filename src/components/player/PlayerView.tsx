@@ -6,8 +6,8 @@ import toast from 'react-hot-toast';
 import { getPusherClient, getRoomChannel } from '@/lib/pusher-client';
 import { vibrate } from '@/lib/vibrate';
 import ConnectionBanner from '@/components/ui/ConnectionBanner';
-import MuteButton from '@/components/ui/MuteButton';
 import LogoLockup from '@/components/ui/LogoLockup';
+import { getMusicManager } from '@/lib/music';
 import SkeletonCard from '@/components/ui/SkeletonCard';
 import PlayerLobby from '@/components/player/PlayerLobby';
 import PlayerChallengeReveal from '@/components/player/PlayerChallengeReveal';
@@ -69,7 +69,11 @@ export default function PlayerView({ code }: Props) {
     setPlayerName(pname);
     setAvatarId(avid);
     // Sync music toggle state from localStorage
-    setMusicOn(localStorage.getItem('vikas75-music-enabled') === 'true');
+    const lobbyMusicOn = localStorage.getItem('vikas75-music-enabled') === 'true';
+    setMusicOn(lobbyMusicOn);
+    // Keep SFX mute in sync with lobby music preference on load
+    const sfxShouldBeMuted = !lobbyMusicOn;
+    if (getMusicManager().muted !== sfxShouldBeMuted) getMusicManager().toggleMute();
     // Restore cached hand from previous session (survives page refresh mid-game)
     try {
       const savedHand = localStorage.getItem(`vikas75_hand_${code}`);
@@ -398,7 +402,6 @@ export default function PlayerView({ code }: Props) {
       transition={{ duration: 0.8, ease: 'easeInOut' }}
     >
       <ConnectionBanner />
-      <MuteButton />
 
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <LogoLockup size="sm" />
@@ -407,7 +410,12 @@ export default function PlayerView({ code }: Props) {
           {phase !== 'game-over' && (
             <button
               onClick={() => {
-                const next = getLobbyMusic().toggle();
+                const next = getLobbyMusic().toggle(); // true = sound on
+                // Sync game SFX: muted should be the opposite of 'next'
+                const sfxShouldBeMuted = !next;
+                if (getMusicManager().muted !== sfxShouldBeMuted) {
+                  getMusicManager().toggleMute();
+                }
                 setMusicOn(next);
               }}
               className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95"
@@ -416,7 +424,7 @@ export default function PlayerView({ code }: Props) {
                 border: `1px solid ${musicOn ? 'rgba(255,153,51,0.5)' : 'rgba(255,255,255,0.15)'}`,
                 fontSize: 16,
               }}
-              aria-label={musicOn ? 'Turn off music' : 'Turn on music'}
+              aria-label={musicOn ? 'Mute all sound' : 'Unmute all sound'}
             >
               {musicOn ? '🔊' : '🔇'}
             </button>
