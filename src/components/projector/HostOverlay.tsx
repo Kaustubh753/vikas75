@@ -331,17 +331,19 @@ export default function HostOverlay({ room, code, hostId }: Props) {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {/* Round counter */}
-            <span style={{
-              fontFamily: 'var(--font-bebas)',
-              fontSize: 16,
-              color: 'rgba(255,255,255,0.75)',
-              letterSpacing: '0.04em',
-            }}>
-              Round{' '}
-              <span style={{ color: '#FF9933' }}>{room.round}</span>
-              /{room.totalRounds}
-            </span>
+            {/* Round counter — hidden in lobby (round is 0 there) */}
+            {room.phase !== 'lobby' && room.round > 0 && (
+              <span style={{
+                fontFamily: 'var(--font-bebas)',
+                fontSize: 16,
+                color: 'rgba(255,255,255,0.75)',
+                letterSpacing: '0.04em',
+              }}>
+                Round{' '}
+                <span style={{ color: '#FF9933' }}>{room.round}</span>
+                /{room.totalRounds}
+              </span>
+            )}
             {/* Player count */}
             <span style={{
               fontFamily: 'var(--font-inter)',

@@ -34,7 +34,7 @@ export default function EmotePanel({ onEmote }: Props) {
   return (
     <div className="fixed bottom-20 right-4 z-40 flex flex-col items-end gap-2" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       {open && (
-        <div className="bg-[#0d1b2e]/95 border border-white/20 rounded-2xl p-3 grid grid-cols-2 gap-2 shadow-xl animate-bounce-in">
+        <div className="bg-[#0d1b35]/95 border border-white/20 rounded-2xl p-3 grid grid-cols-2 gap-2 shadow-xl animate-bounce-in">
           {EMOTE_IDS.map((id) => {
             const e = EMOTES[id];
             return (
