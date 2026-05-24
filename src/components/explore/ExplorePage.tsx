@@ -221,7 +221,7 @@ function DeckTab({ schemes, query, onQuery, total, onOpen }: {
       ) : (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(168px, 1fr))',
+          gridTemplateColumns: 'repeat(5, 1fr)',
           gap: 'clamp(12px,1.4vw,20px)',
         }}>
           {schemes.map(s => (
@@ -297,7 +297,7 @@ function CardTile({ card, onOpen }: { card: SchemeCard; onOpen: (s: SchemeCard) 
             fontSize: 10, fontWeight: 600, color: C.w70,
             letterSpacing: '0.14em', textTransform: 'uppercase',
           }}>
-            {card.bullets.length} key points →
+            Know more →
           </span>
         </div>
       </div>
