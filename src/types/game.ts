@@ -25,6 +25,7 @@ export interface Player {
   score: number;
   hand: SchemeCard[];
   joinedRound: number;
+  lastSeen?: number; // epoch ms — set on join, updated via heartbeat every 20 s
 }
 
 export interface Submission {

@@ -272,6 +272,46 @@ export default function PlayerView({ code }: Props) {
     } catch { /* fire-and-forget — chat is non-critical */ }
   }, [code, playerId, playerName, avatarId]);
 
+  // ── Presence: heartbeat every 20 s + sendBeacon on close ─────────────
+  useEffect(() => {
+    if (!hydrated || !playerId || !code) return;
+
+    const ping = () => {
+      fetch('/api/game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'heartbeat', code, playerId }),
+        keepalive: true,
+      }).catch(() => {});
+    };
+
+    ping(); // immediate ping on mount
+    const id = setInterval(ping, 20_000);
+
+    // sendBeacon on tab close / navigate away
+    const onUnload = () => {
+      const blob = new Blob(
+        [JSON.stringify({ action: 'heartbeat', code, playerId })],
+        { type: 'application/json' }
+      );
+      navigator.sendBeacon?.('/api/game', blob);
+    };
+
+    // visibilitychange: fires reliably on mobile when app is backgrounded
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') onUnload();
+    };
+
+    window.addEventListener('beforeunload', onUnload);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('beforeunload', onUnload);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [hydrated, playerId, code]);
+
   // NOTE: timer-expire is fired by ProjectorView only — avoids N concurrent requests from all players.
   // The host can always manually advance if no projector is open.
 

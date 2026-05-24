@@ -86,25 +86,35 @@ export default function ProjectorSubmission({ room }: Props) {
         <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
           {players.map((p) => {
             const submitted = submittedIds.has(p.id);
+            const online = p.lastSeen ? Date.now() - p.lastSeen < 45_000 : true;
             return (
               <div
                 key={p.id}
                 className={`rounded-2xl border-2 p-4 flex flex-col items-center gap-2 transition-all duration-500 ${
                   submitted
                     ? 'border-[#138808] bg-[#138808]/10'
-                    : 'border-white/10 bg-white/5'
+                    : online
+                    ? 'border-white/10 bg-white/5'
+                    : 'border-white/5 bg-white/[0.02]'
                 }`}
               >
-                <div className={`rounded-xl overflow-hidden transition-all duration-500 ${submitted ? 'opacity-60 scale-95' : ''}`}>
+                <div className={`relative rounded-xl overflow-hidden transition-all duration-500 ${submitted ? 'opacity-60 scale-95' : !online ? 'opacity-40' : ''}`}>
                   <Avatar id={p.avatarId} size={48} />
+                  {/* Presence dot */}
+                  <span
+                    className="absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full border-2 border-[#0d1b35]"
+                    style={{ background: online ? '#22c55e' : 'rgba(255,255,255,0.2)' }}
+                  />
                 </div>
-                <p className="text-white text-sm font-[family-name:var(--font-inter)] text-center truncate w-full">
+                <p className={`text-sm font-[family-name:var(--font-inter)] text-center truncate w-full ${online ? 'text-white' : 'text-white/40'}`}>
                   {p.name}
                 </p>
                 {submitted ? (
                   <span className="text-[#138808] text-xl">✓</span>
-                ) : (
+                ) : online ? (
                   <span className="text-white/20 text-xs uppercase tracking-wider font-[family-name:var(--font-inter)]">Thinking…</span>
+                ) : (
+                  <span className="text-white/20 text-xs uppercase tracking-wider font-[family-name:var(--font-inter)]">Away</span>
                 )}
               </div>
             );

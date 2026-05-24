@@ -59,6 +59,41 @@ export default function HostDashboard({ code, hostId }: Props) {
     };
   }, []);
 
+  // Presence heartbeat — host is also a player; keeps lastSeen fresh
+  useEffect(() => {
+    if (!hostId || !code) return;
+
+    const ping = () => {
+      fetch('/api/game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'heartbeat', code, playerId: hostId }),
+        keepalive: true,
+      }).catch(() => {});
+    };
+
+    ping();
+    const id = setInterval(ping, 20_000);
+
+    const onUnload = () => {
+      const blob = new Blob(
+        [JSON.stringify({ action: 'heartbeat', code, playerId: hostId })],
+        { type: 'application/json' }
+      );
+      navigator.sendBeacon?.('/api/game', blob);
+    };
+    const onVisibility = () => { if (document.visibilityState === 'hidden') onUnload(); };
+
+    window.addEventListener('beforeunload', onUnload);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('beforeunload', onUnload);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [hostId, code]);
+
   const fetchRoom = useCallback(async () => {
     try {
       const res = await fetch(`/api/game?code=${code}`);
@@ -347,13 +382,22 @@ export default function HostDashboard({ code, hostId }: Props) {
                 Waiting for players to join…
               </p>
             ) : (
-              players.map((p) => (
+              players.map((p) => {
+                const online = p.lastSeen ? Date.now() - p.lastSeen < 45_000 : true; // new players assumed online
+                return (
                 <div key={p.id} className="flex items-center gap-3">
-                  <div className="rounded-lg overflow-hidden" style={{ width: 48, height: 48 }}>
+                  <div className="relative rounded-lg overflow-hidden flex-shrink-0" style={{ width: 48, height: 48 }}>
                     <Avatar id={p.avatarId} size={48} />
+                    {/* Online / offline dot */}
+                    <span
+                      className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 rounded-full border border-[#0d1b35]"
+                      style={{ background: online ? '#22c55e' : 'rgba(255,255,255,0.25)' }}
+                      title={online ? 'Online' : 'Offline / disconnected'}
+                    />
                   </div>
-                  <span className="text-white flex-1 font-[family-name:var(--font-inter)]" style={{ fontSize: 14, fontWeight: 600 }}>
+                  <span className={`flex-1 font-[family-name:var(--font-inter)] ${online ? 'text-white' : 'text-white/40'}`} style={{ fontSize: 14, fontWeight: 600 }}>
                     {p.name}
+                    {!online && <span className="ml-2 text-[10px] text-white/30 font-normal tracking-wide">offline</span>}
                   </span>
                   <span className="text-[#FF9933] font-[family-name:var(--font-bebas)]" style={{ fontSize: 20 }}>
                     {p.score}
@@ -364,7 +408,8 @@ export default function HostDashboard({ code, hostId }: Props) {
                     </span>
                   )}
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

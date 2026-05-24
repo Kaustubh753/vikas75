@@ -297,6 +297,20 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
+      case 'heartbeat': {
+        // Lightweight presence ping — updates lastSeen, no Pusher unless reconnect
+        const { code: hbCode, playerId: hbPid } = body as { code: string; playerId: string };
+        if (!hbCode || !hbPid) return NextResponse.json({ ok: true });
+        const hbRoom = await getRoom(hbCode.toUpperCase());
+        if (!hbRoom || !hbRoom.players[hbPid]) return NextResponse.json({ ok: true });
+        const prevSeen = hbRoom.players[hbPid].lastSeen ?? 0;
+        hbRoom.players[hbPid].lastSeen = Date.now();
+        await setRoom(hbRoom);
+        // Broadcast only on reconnect (was stale > 45 s) so the host sees them come back
+        if (Date.now() - prevSeen > 45_000) await broadcastRoom(hbRoom);
+        return NextResponse.json({ ok: true });
+      }
+
       case 'music-toggle': {
         const { code, hostId: musicHostId, muted } = body as { code: string; hostId: string; muted: boolean };
         if (!code || typeof code !== 'string') {

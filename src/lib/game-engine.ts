@@ -94,6 +94,7 @@ export function addPlayer(room: GameRoom, playerId: string, playerName: string, 
         score: 0,
         hand: dealHand(),
         joinedRound: room.round,
+        lastSeen: Date.now(),
       },
     },
   };
