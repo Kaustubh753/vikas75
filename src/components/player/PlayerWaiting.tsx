@@ -20,29 +20,26 @@ export default function PlayerWaiting({ phase, hint }: Props) {
   const message = MESSAGES[phase] ?? 'Please wait…';
 
   return (
-    <div className="flex flex-col items-center justify-center gap-6 min-h-[50vh] px-4">
-      <div className="flex gap-2">
+    <div className="flex flex-col items-center justify-center gap-4 min-h-[50vh] px-4 text-center">
+      {/* Message first — it's the most important info */}
+      <p className="text-white font-[family-name:var(--font-bebas)] tracking-wide" style={{ fontSize: 22, lineHeight: 1.2 }}>
+        {message}
+      </p>
+      {hint && (
+        <p className="text-[#FF9933]/80 text-xs font-[family-name:var(--font-inter)]">
+          {hint}
+        </p>
+      )}
+      {/* Dots — decorative, below the message */}
+      <div className="flex gap-2 mt-1">
         {[0, 1, 2].map((i) => (
           <span
             key={i}
-            className="w-3 h-3 bg-[#FF9933]/60 rounded-full animate-bounce"
+            className="w-2 h-2 bg-[#FF9933]/50 rounded-full animate-bounce"
             style={{ animationDelay: `${i * 0.15}s` }}
           />
         ))}
       </div>
-      <p className="text-white/60 text-center text-sm font-[family-name:var(--font-inter)]">
-        {message}
-      </p>
-      {hint && (
-        <p className="text-[#FF9933]/70 text-xs text-center font-[family-name:var(--font-inter)]">
-          {hint}
-        </p>
-      )}
-      {!hint && phase === 'submission' && (
-        <p className="text-white/30 text-xs text-center font-[family-name:var(--font-inter)]">
-          Watch the screen
-        </p>
-      )}
     </div>
   );
 }

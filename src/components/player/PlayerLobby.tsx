@@ -68,30 +68,44 @@ export default function PlayerLobby({ room, playerId }: Props) {
           Players ({players.length})
         </p>
         <div className="space-y-2">
-          {players.map((p, i) => (
-            <motion.div key={p.id} className="flex items-center gap-3" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }}>
+          {players.map((p, i) => {
+            const isMe = p.id === playerId;
+            return (
+            <motion.div
+              key={p.id}
+              className={`flex items-center gap-3 rounded-xl px-2 py-1.5 -mx-2 ${isMe ? 'bg-[#FF9933]/8' : ''}`}
+              style={isMe ? { background: 'rgba(255,153,51,0.08)', border: '1px solid rgba(255,153,51,0.18)' } : {}}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.08 }}
+            >
               <div className="rounded-lg overflow-hidden">
                 <Avatar id={p.avatarId} size={36} />
               </div>
-              <span className="text-white text-sm font-[family-name:var(--font-inter)] flex-1">
+              <span className={`text-sm font-[family-name:var(--font-inter)] flex-1 ${isMe ? 'text-white font-semibold' : 'text-white/80'}`}>
                 {p.name}
               </span>
+              {isMe && (
+                <span className="text-[#FF9933]/70 text-[10px] uppercase tracking-widest font-[family-name:var(--font-inter)]">you</span>
+              )}
               {p.id === room.hostId && (
                 <span className="text-[#FF9933] text-xs font-bold font-[family-name:var(--font-inter)]">
                   HOST
                 </span>
               )}
             </motion.div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
       {/* Share button */}
       <button
         onClick={handleShare}
-        className="flex items-center gap-2 text-white/50 hover:text-white/80 text-sm font-[family-name:var(--font-inter)] transition-colors"
+        className="flex items-center gap-2 text-[#FF9933] text-sm font-[family-name:var(--font-inter)] font-semibold border border-[#FF9933]/40 rounded-xl px-5 py-2.5 hover:bg-[#FF9933]/10 hover:border-[#FF9933]/70 active:scale-95 transition-all"
+        style={{ letterSpacing: '0.06em' }}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
         Invite Friends
       </button>
 

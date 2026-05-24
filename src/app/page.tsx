@@ -523,10 +523,14 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
             type="button" onClick={onClose}
             style={{
               background: 'none', border: 'none',
-              color: 'rgba(250,248,240,.45)',
+              color: 'rgba(250,248,240,.55)',
               fontFamily: 'var(--font-inter),sans-serif', fontSize: 12,
               cursor: 'pointer', textAlign: 'left',
+              letterSpacing: '0.04em',
+              transition: 'color .15s ease',
             }}
+            onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = 'rgba(250,248,240,.85)'}
+            onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = 'rgba(250,248,240,.55)'}
           >
             ← back
           </button>

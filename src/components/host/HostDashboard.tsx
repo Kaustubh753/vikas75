@@ -218,7 +218,7 @@ export default function HostDashboard({ code, hostId }: Props) {
 
   if (!room) {
     return (
-      <div className="min-h-screen bg-[#0d1b2e] flex items-center justify-center">
+      <div className="min-h-screen bg-[#0d1b35] flex items-center justify-center">
         <p className="text-white/60 animate-pulse">Loading room…</p>
       </div>
     );
@@ -231,7 +231,7 @@ export default function HostDashboard({ code, hostId }: Props) {
 
   return (
     <main
-      className="min-h-screen bg-[#0d1b2e] px-4 py-6 pb-24"
+      className="min-h-screen bg-[#0d1b35] px-4 py-6 pb-24"
       style={{ paddingTop: 'calc(env(safe-area-inset-top) + 24px)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 96px)' }}
     >
       <ConnectionBanner />
@@ -267,9 +267,10 @@ export default function HostDashboard({ code, hostId }: Props) {
           <motion.button
             onClick={handleAdvance}
             disabled={loading}
-            className="w-full disabled:opacity-40 text-white font-[family-name:var(--font-bebas)] tracking-widest rounded-xl transition-all active:scale-95 mb-6 animate-pulse-ring"
-            style={{ height: 64, backgroundColor: '#FF9933', fontSize: 28 }}
-            whileTap={{ scale: 0.95 }}
+            className="w-full disabled:opacity-40 text-white font-[family-name:var(--font-bebas)] tracking-widest rounded-xl mb-6 animate-pulse-ring"
+            style={{ height: 64, backgroundColor: '#FF9933', fontSize: 28, boxShadow: '0 4px 0 #cc7a00' }}
+            whileTap={{ y: 4, boxShadow: '0 0 0 #cc7a00' }}
+            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
           >
             {loading ? 'Working…' : getAdvanceLabel(room)}
           </motion.button>
@@ -277,9 +278,10 @@ export default function HostDashboard({ code, hostId }: Props) {
         {room.phase === 'game-over' && (
           <motion.button
             onClick={() => router.push('/host/setup')}
-            className="w-full text-white font-[family-name:var(--font-bebas)] tracking-widest rounded-xl transition-all active:scale-95 mb-6"
-            style={{ height: 64, backgroundColor: '#FF9933', fontSize: 28 }}
-            whileTap={{ scale: 0.95 }}
+            className="w-full text-white font-[family-name:var(--font-bebas)] tracking-widest rounded-xl mb-6"
+            style={{ height: 64, backgroundColor: '#FF9933', fontSize: 28, boxShadow: '0 4px 0 #cc7a00' }}
+            whileTap={{ y: 4, boxShadow: '0 0 0 #cc7a00' }}
+            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
           >
             New Game
           </motion.button>
