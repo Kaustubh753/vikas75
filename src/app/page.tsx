@@ -561,9 +561,6 @@ function LandingPage() {
   }
 
   useEffect(() => {
-    // Sync music state from manager (reads localStorage)
-    setMusicOn(getLobbyMusic().enabled);
-
     if (initialCode) return;
     const pid  = localStorage.getItem('vikas75_playerId');
     const pname = localStorage.getItem('vikas75_playerName');
@@ -607,34 +604,6 @@ function LandingPage() {
         backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")`,
         opacity: 0.12, mixBlendMode: 'overlay', pointerEvents: 'none', zIndex: 2,
       }} />
-
-      {/* Speaker button — fixed bottom-right, 44px touch target, off by default */}
-      <button
-        onClick={() => {
-          const next = getLobbyMusic().toggle();
-          setMusicOn(next);
-        }}
-        aria-label={musicOn ? 'Turn off music' : 'Turn on music'}
-        style={{
-          position: 'absolute', bottom: 20, right: 20, zIndex: 10,
-          width: 44, height: 44, borderRadius: '50%',
-          background: musicOn ? 'rgba(255,153,51,0.18)' : 'rgba(255,255,255,0.08)',
-          border: `1.5px solid ${musicOn ? 'rgba(255,153,51,0.5)' : 'rgba(255,255,255,0.18)'}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', fontSize: 18,
-          transition: 'background .15s ease, border-color .15s ease',
-        }}
-        onMouseEnter={e => {
-          const b = e.currentTarget as HTMLButtonElement;
-          b.style.background = musicOn ? 'rgba(255,153,51,0.28)' : 'rgba(255,255,255,0.14)';
-        }}
-        onMouseLeave={e => {
-          const b = e.currentTarget as HTMLButtonElement;
-          b.style.background = musicOn ? 'rgba(255,153,51,0.18)' : 'rgba(255,255,255,0.08)';
-        }}
-      >
-        {musicOn ? '🔊' : '🔇'}
-      </button>
 
       {/* 3-column grid */}
       <div style={{
@@ -758,8 +727,26 @@ function LandingPage() {
               </a>
             ))}
           </div>
-          <div style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 'clamp(9px, 0.76vw, 11px)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(250,248,240,.4)' }}>
-            © 2026 · Vikas 75 · all rounds reserved
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            {/* Music toggle — sits in bottom strip, never overlaps content */}
+            <button
+              onClick={() => { const next = getLobbyMusic().toggle(); setMusicOn(next); }}
+              aria-label={musicOn ? 'Turn off music' : 'Turn on music'}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: 'clamp(14px, 1.25vw, 18px)',
+                color: musicOn ? 'rgba(255,153,51,0.7)' : 'rgba(250,248,240,0.3)',
+                padding: 0, lineHeight: 1,
+                transition: 'color .15s ease',
+              }}
+              onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = musicOn ? '#FF9933' : 'rgba(250,248,240,0.6)'}
+              onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = musicOn ? 'rgba(255,153,51,0.7)' : 'rgba(250,248,240,0.3)'}
+            >
+              {musicOn ? '🔊' : '🔇'}
+            </button>
+            <div style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 'clamp(9px, 0.76vw, 11px)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(250,248,240,.4)' }}>
+              © 2026 · Vikas 75 · all rounds reserved
+            </div>
           </div>
         </div>
       </div>
