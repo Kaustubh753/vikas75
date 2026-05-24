@@ -97,12 +97,40 @@ export default function ExplorePage({ schemes }: Props) {
         </Link>
 
         <div style={{
-          display: 'flex', alignItems: 'center',
-          fontFamily: 'var(--font-bebas),sans-serif',
-          fontSize: 22, color: C.white, letterSpacing: '0.02em', paddingRight: 32,
+          display: 'flex', alignItems: 'center', gap: 0,
+          paddingRight: 32,
         }}>
-          Explore
+          <span style={{
+            fontFamily: 'var(--font-bebas),sans-serif',
+            fontSize: 22, color: C.white, letterSpacing: '0.02em',
+          }}>
+            Explore
+          </span>
         </div>
+
+        {/* Gallery shortcut */}
+        <a href="/schemes" style={{
+          display: 'flex', alignItems: 'center', gap: 7,
+          marginLeft: 'auto', marginRight: 0,
+          color: C.w40, textDecoration: 'none',
+          fontSize: 12, fontWeight: 600,
+          letterSpacing: '0.08em', textTransform: 'uppercase',
+          padding: '0 4px',
+          borderBottom: '2px solid transparent',
+          transition: 'color .15s',
+          height: '100%',
+        }}
+          onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = C.saffron}
+          onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = C.w40}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <rect x="1" y="1" width="4" height="4" rx="1" stroke="currentColor" strokeWidth="1.3"/>
+            <rect x="7" y="1" width="4" height="4" rx="1" stroke="currentColor" strokeWidth="1.3"/>
+            <rect x="1" y="7" width="4" height="4" rx="1" stroke="currentColor" strokeWidth="1.3"/>
+            <rect x="7" y="7" width="4" height="4" rx="1" stroke="currentColor" strokeWidth="1.3"/>
+          </svg>
+          Gallery
+        </a>
 
         <nav style={{ display: 'flex', alignItems: 'stretch' }}>
           {(['deck', 'team'] as Tab[]).map(t => (
