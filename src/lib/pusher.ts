@@ -13,7 +13,8 @@ export const pusherServer = new Pusher({
 });
 
 export function getRoomChannel(code: string): string {
-  return `game-${code}`;
+  // private- prefix triggers Pusher channel authorisation via /api/pusher/auth
+  return `private-game-${code}`;
 }
 
 // Strip heavy fields from scheme cards — keep only id, name, hi for display.

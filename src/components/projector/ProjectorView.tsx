@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getPusherClient, getRoomChannel } from '@/lib/pusher-client';
 import { getLobbyMusic } from '@/lib/music-manager';
@@ -46,8 +47,28 @@ function getOverlay(phase: string, round: number): OverlayInfo | null {
   return null;
 }
 
-export default function ProjectorView({ code, hostId }: Props) {
+export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
+  const router = useRouter();
+  // Resolved hostId — read from prop on first load, persisted to sessionStorage,
+  // then URL is cleaned so the credential doesn't live in browser history or server logs.
+  const [hostId, setHostId] = useState('');
   const isHost = Boolean(hostId);
+
+  useEffect(() => {
+    const storageKey = `vikas75_hostId_${code}`;
+    if (hostIdProp) {
+      // First visit with ?h= param — persist to sessionStorage and strip from URL
+      try { sessionStorage.setItem(storageKey, hostIdProp); } catch { /* ignore */ }
+      setHostId(hostIdProp);
+      router.replace(`/projector/${code}`);
+    } else {
+      // Subsequent visits (after URL cleaned, or direct nav) — read from sessionStorage
+      try {
+        const stored = sessionStorage.getItem(storageKey);
+        if (stored) setHostId(stored);
+      } catch { /* ignore */ }
+    }
+  }, [code, hostIdProp, router]);
   const [room, setRoom] = useState<GameRoom | null>(null);
   const [transitionText, setTransitionText] = useState<string | null>(null);
   const [overlay, setOverlay] = useState<OverlayInfo | null>(null);

@@ -6,14 +6,20 @@ export function getPusherClient(): PusherClient {
   if (!pusherClientInstance) {
     pusherClientInstance = new PusherClient(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
       cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
+      // Channel authorisation — the server verifies the room exists before allowing subscription.
+      // Prevents subscribing to arbitrary/non-existent rooms from outside the game.
+      channelAuthorization: {
+        endpoint: '/api/pusher/auth',
+        transport: 'ajax',
+      },
     });
   }
   return pusherClientInstance;
 }
 
 export function getRoomChannel(code: string): string {
-  // Always uppercase to match the server-side channel name (API normalizes via code.toUpperCase())
-  return `game-${code.toUpperCase()}`;
+  // private- prefix triggers Pusher channel auth; must match server-side getRoomChannel in pusher.ts
+  return `private-game-${code.toUpperCase()}`;
 }
 
 export type PusherConnectionState = 'connected' | 'connecting' | 'unavailable' | 'disconnected' | 'failed';
