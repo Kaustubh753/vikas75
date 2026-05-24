@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { getPusherClient, getRoomChannel } from '@/lib/pusher-client';
 import { getLobbyMusic } from '@/lib/music-manager';
 import EmoteOverlay from '@/components/projector/EmoteOverlay';
+import HostOverlay from '@/components/projector/HostOverlay';
 import MuteButton from '@/components/ui/MuteButton';
 import ProjectorLobby from '@/components/projector/ProjectorLobby';
 import ProjectorChallengeReveal from '@/components/projector/ProjectorChallengeReveal';
@@ -16,7 +17,7 @@ import ProjectorGameOver from '@/components/projector/ProjectorGameOver';
 import SkeletonCard from '@/components/ui/SkeletonCard';
 import type { GameRoom } from '@/types/game';
 
-interface Props { code: string }
+interface Props { code: string; hostId?: string }
 
 const PHASE_BG: Record<string, string> = {
   lobby: '#0d1b35',
@@ -45,7 +46,8 @@ function getOverlay(phase: string, round: number): OverlayInfo | null {
   return null;
 }
 
-export default function ProjectorView({ code }: Props) {
+export default function ProjectorView({ code, hostId }: Props) {
+  const isHost = Boolean(hostId);
   const [room, setRoom] = useState<GameRoom | null>(null);
   const [transitionText, setTransitionText] = useState<string | null>(null);
   const [overlay, setOverlay] = useState<OverlayInfo | null>(null);
@@ -181,6 +183,7 @@ export default function ProjectorView({ code }: Props) {
         <motion.div
           key={room.phase}
           className="w-full h-full"
+          style={{ paddingBottom: isHost ? 72 : 0, boxSizing: 'border-box' }}
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -16 }}
@@ -246,6 +249,7 @@ export default function ProjectorView({ code }: Props) {
 
       <EmoteOverlay code={code} />
       <MuteButton />
+      {isHost && hostId && <HostOverlay room={room} code={code} hostId={hostId} />}
     </motion.div>
   );
 }

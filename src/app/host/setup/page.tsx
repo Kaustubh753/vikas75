@@ -37,7 +37,7 @@ export default function HostSetupPage() {
         return;
       }
       const roomCode: string = data.room.code;
-      router.push(`/host/${roomCode}?h=${hostId}`);
+      router.push(`/projector/${roomCode}?h=${hostId}`);
     } catch {
       setError('Network error. Please try again.');
       setLoading(false);
