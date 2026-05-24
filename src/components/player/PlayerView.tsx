@@ -148,6 +148,14 @@ export default function PlayerView({ code }: Props) {
 
     const onRoomUpdated = (updated: GameRoom) => {
       setRoom(prev => ({ ...updated, messages: prev?.messages ?? [] }));
+      // Also sync cachedHand — Pusher payload is the full room, so the hand is here.
+      // fetchRoom() does the same thing, but can lose a race when Pusher fires first.
+      const pid = localStorage.getItem('vikas75_playerId') ?? '';
+      if (pid && updated.players[pid]?.hand?.length) {
+        const hand = updated.players[pid].hand;
+        setCachedHand(hand);
+        try { localStorage.setItem(`vikas75_hand_${code}`, JSON.stringify(hand)); } catch { /* ignore */ }
+      }
     };
 
     const onChat = (msg: ChatMessage) => {
@@ -286,7 +294,7 @@ export default function PlayerView({ code }: Props) {
 
   if (!hydrated || !room) {
     return (
-      <div className="min-h-screen bg-[#0d1b2e] flex flex-col gap-4 p-4">
+      <div className="min-h-screen bg-[#0d1b35] flex flex-col gap-4 p-4">
         <SkeletonCard className="h-24" />
         <SkeletonCard className="h-40" />
         <SkeletonCard className="h-32" />

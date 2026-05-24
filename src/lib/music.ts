@@ -82,15 +82,9 @@ class MusicManager {
     this.stop();
     this.current = name;
     const audio = this.load(name);
-    if (!audio) {
-      this.playTone(name);
-      return;
-    }
+    if (!audio) return; // no file — fail silently
     audio.currentTime = 0;
-    audio.play()
-      .catch(() => {
-        this.playTone(name);
-      });
+    audio.play().catch(() => { /* autoplay blocked or file missing — silent */ });
   }
 
   stop() {
