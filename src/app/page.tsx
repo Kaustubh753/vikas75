@@ -573,7 +573,7 @@ function LandingPage() {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     height: 'clamp(38px, 4.2vh, 52px)',
     padding: '0 24px',
-    width: '100%',
+    width: 'clamp(160px, 16vw, 210px)',
     borderRadius: 6, border: '1.5px solid transparent',
     fontFamily: 'var(--font-inter),sans-serif',
     fontWeight: 600, fontSize: 'clamp(10px, 0.95vw, 13px)',
@@ -611,7 +611,7 @@ function LandingPage() {
         width: '100%', height: '100%',
         padding: 'clamp(20px, 3.5vh, 48px) clamp(24px, 3.5vw, 56px) clamp(14px, 2.2vh, 30px)',
         display: 'grid',
-        gridTemplateColumns: 'minmax(220px, 24vw) 1fr minmax(230px, 22vw)',
+        gridTemplateColumns: 'minmax(200px, 20vw) 1fr minmax(220px, 22vw)',
         gridTemplateRows: '1fr auto',
         gap: '0 clamp(12px, 1.8vw, 24px)',
         alignItems: 'stretch',
@@ -658,7 +658,7 @@ function LandingPage() {
           </div>
 
           {/* CTA buttons */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button
               style={{ ...btnBase, background: '#FF9933', color: '#1a1208', borderColor: '#FF9933' }}
               onMouseEnter={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = '#e6862b'; b.style.transform = 'translateY(-1px)'; b.style.boxShadow = '0 6px 24px rgba(255,153,51,.32)'; }}
