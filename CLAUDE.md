@@ -47,7 +47,7 @@ The host calls `POST /api/game { action: 'advance' }` at each step. The `judging
   - `addSubmission(room, submission)` — idempotent add to submissions map
   - `applyVerdict(room, verdict)` — +2 pts to winner, +1 bonus if `bonusPoint` true, sets `phase: 'winner'`
   - `advancePhase(room)` — state machine dispatcher; `judging` phase does nothing (AI handles it)
-  - `allPlayersSubmitted(room)` — true when every player has a submission
+  - `allPlayersSubmitted(room)` — true when every player who joined *before* this round has submitted (excludes mid-round late joiners)
   - `getLeaderboard(room)` — sorted player array
 
 - `src/lib/redis.ts` — Transparent Redis / in-memory fallback.
@@ -56,7 +56,7 @@ The host calls `POST /api/game { action: 'advance' }` at each step. The `judging
   - TTL: 24 hours
   - Exports: `getRoom`, `setRoom`, `deleteRoom`, `listActiveRooms`
 
-- `src/lib/pusher.ts` — `pusherServer` (server-side SDK), `getPusherClient()` (singleton), `getRoomChannel(code)` → `game-${code}`.
+- `src/lib/pusher.ts` — `pusherServer` (server-side SDK), `getPusherClient()` (singleton), `getRoomChannel(code)` → `private-game-${code.toUpperCase()}`.
 
 - `src/lib/ai-judge.ts` — Dual-mode judge.
   - Uses `claude-sonnet-4-20250514` when `ANTHROPIC_API_KEY` present
@@ -68,7 +68,7 @@ The host calls `POST /api/game { action: 'advance' }` at each step. The `judging
 ### API
 - `src/app/api/game/route.ts` — Single POST + GET endpoint.
   - `create-room` — creates room, returns `{ room }`
-  - `join` — blocks only during `submission` phase; idempotent on rejoin (returns existing room)
+  - `join` — blocks during `submission` and `game-over` phases; idempotent on rejoin (returns existing room)
   - `advance` — advances phase; if `hostId` present in body, validates it against `room.hostId`; fires `triggerJudge()` via `after()` when entering `judging`
   - `submit` — adds submission; auto-advances to `reveal` if all players submitted
   - `GET ?code=XXXX` — returns current room state
@@ -161,25 +161,30 @@ Without Redis env vars, state lives in a module-level `Map` — rooms are lost o
 
 10. **Hydration mismatch in ProjectorLobby** — `window.location.origin` used outside client context. Fixed: added `'use client'`, moved to `useEffect`.
 
+11. **Timer never auto-expired without projector** — `timer-expire` required a valid `hostId` match; projector without `?h=` silently dropped it. Fixed: removed `hostId` requirement from `timer-expire`; server-side guards (phase check + elapsed timer + distributed lock) are sufficient. Also added independent timer scheduling to PlayerView so the timer fires even if projector isn't open.
+
+12. **Players could join in `game-over` phase** — Late joiners appeared on final leaderboard with 0 points. Fixed: `join` now blocks `game-over` in addition to `submission`.
+
+13. **`getRoomChannel` missing `.toUpperCase()` on server** — Client uppercased the code; server didn't. Latent channel mismatch on mixed-case codes. Fixed: added `.toUpperCase()` to server-side `getRoomChannel`.
+
+14. **Color inconsistency `#0d1b2e`** — Background color was `#0d1b2e` in several files (globals.css portrait-lock, EmotePanel, ChatPanel, admin pages, how-to-play). Canonical is `#0d1b35`. Fixed across all files.
+
+15. **Round counter showed `0/N` in lobby** — `PlayerView` and `HostOverlay` both showed round counter before game started. Fixed: hidden when `phase === 'lobby' || round === 0`.
+
+16. **`ProjectorView` / `HostDashboard` stalled on 404** — If room was deleted, both showed infinite spinner. Fixed: added `roomMissing` state with a "Room Closed" screen.
+
+17. **Reveal pacing ignored player count** — Sequential card reveal always used 1800 ms delay regardless of how many players there were. Fixed in `ProjectorReveal`: scales to 1800/1200/900 ms for ≤4/≤8/9+ players.
+
 ---
 
 ## Known Issues / What Still Needs Fixing
 
 ### Functional
-- **Timer is UI-only** — `timerEndsAt` is set but the server never auto-advances when it expires. The host must manually click "End Submissions". A cron/webhook or client-side `setTimeout` that calls `advance` is needed.
-- **Players who join mid-game don't get fresh hands between rounds** — `joinedRound` is stored but hands are not refreshed on `between-rounds`. Late joiners keep their original hand indefinitely.
-- **No reconnection handling** — If a player refreshes during `submission`, they lose their selected card state (but can re-submit). `PlayerView` redirects home if sessionStorage is gone (incognito, cleared storage).
-- **`allPlayersSubmitted` includes late joiners** — If a player joins during `challenge-reveal`, they're expected to submit before auto-advance triggers. Consider excluding players with `joinedRound === room.round`.
-- **No submission timer auto-advance** — Related to timer issue above.
-
-### UI / UX
-- **No toast/feedback on successful submission** — PlayerSubmit just disables the button; no confirmation message.
-- **Projector screens have no fallback if Pusher disconnects** — Should poll GET `/api/game?code=` every few seconds as a heartbeat.
-- **Host panel doesn't show current challenge** — Host can't see what the current challenge card is; only shows phase name.
+- **No reconnection handling for incognito** — If a player opens the room in a private/incognito window and refreshes, localStorage is gone and they're redirected to the home screen. They must re-join with the same name (gets a new playerId, appears as a duplicate). No fix currently.
 
 ### Infrastructure
 - **In-memory fallback doesn't work across serverless instances** — In production (Vercel), multiple instances will not share the `devStore` Map. Upstash Redis is required for production.
-- **No room cleanup** — `deleteRoom` is never called. Rooms expire after 24 hours via TTL but stale rooms accumulate. Admin route can list them but there's no delete UI.
+- **No room cleanup UI** — Rooms expire after 24 hours via Redis TTL but stale rooms accumulate. Admin route can list active codes but there's no delete button. Auto-shutdown (`shutdownAt`) covers idle rooms after 5 min, but rooms can still linger if players stay connected.
 
 ---
 
