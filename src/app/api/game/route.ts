@@ -33,7 +33,14 @@ function rateLimit(key: string, max: number, windowMs: number): boolean {
 }
 
 function getIp(req: NextRequest): string {
-  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  // x-real-ip is set by Vercel's edge and cannot be client-spoofed.
+  // Fall back to the last (CDN-appended) value in x-forwarded-for rather than the first
+  // (which is client-controlled and trivially spoofable).
+  return (
+    req.headers.get('x-real-ip') ??
+    req.headers.get('x-forwarded-for')?.split(',').at(-1)?.trim() ??
+    'unknown'
+  );
 }
 
 function sanitizeName(name: unknown): string {
@@ -85,7 +92,7 @@ export async function POST(req: NextRequest) {
         }
         const safeName = filterText(sanitizeName(playerName));
         if (!safeName) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
-        if (!playerId || typeof playerId !== 'string') return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+        if (!playerId || typeof playerId !== 'string' || playerId.length > 64) return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
         const VALID_AVATAR_IDS: AvatarId[] = ['a1','a2','a3','a4','a5','a6','a7','a8','a9'];
         const safeAvatarId: AvatarId = VALID_AVATAR_IDS.includes(avatarId) ? avatarId : 'a1';
         const room = await getRoom(code?.toUpperCase());
@@ -214,7 +221,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'timer-expire': {
-        const { code } = body;
+        const { code, hostId: timerHostId } = body;
         if (!code || typeof code !== 'string') return NextResponse.json({ ok: true });
         const upperCode = code.toUpperCase();
         // Distributed lock — prevent multiple concurrent timer-expire calls from double-advancing
@@ -224,6 +231,8 @@ export async function POST(req: NextRequest) {
         try {
           const room = await getRoom(upperCode);
           if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+          // Require hostId — silently drop unauthorised calls rather than 403 to avoid revealing room state
+          if (!timerHostId || room.hostId !== timerHostId) return NextResponse.json({ ok: true });
           // Idempotent — only act if still in submission and timer has actually elapsed
           if (room.phase !== 'submission') return NextResponse.json({ ok: true });
           if (!room.timerEndsAt || Date.now() < room.timerEndsAt) return NextResponse.json({ ok: true });
@@ -241,7 +250,8 @@ export async function POST(req: NextRequest) {
         const { code, playerId, emote } = body as {
           code: string; playerId: string; playerName: string; avatarId: AvatarId; emote: string;
         };
-        if (!rateLimit(`emote:${playerId ?? 'anon'}`, 20, 60_000)) {
+        // Redis-backed rate limit — works across serverless instances (20 emotes/player/minute)
+        if (!(await checkRateLimit(`ratelimit:emote:${playerId ?? 'anon'}`, 20, 60))) {
           return NextResponse.json({ ok: true });
         }
         const VALID_EMOTES = ['masterstroke','aatmanirbhar','vishwaguru','fakir','antinational','56inch'];
@@ -261,7 +271,8 @@ export async function POST(req: NextRequest) {
 
       case 'chat': {
         const { code, message } = body as { code: string; message: Omit<ChatMessage, 'id' | 'sentAt'> & { text: string } };
-        if (!rateLimit(`chat:${message?.playerId ?? 'anon'}`, 30, 60_000)) {
+        // Redis-backed rate limit — works across serverless instances (30 messages/player/minute)
+        if (!(await checkRateLimit(`ratelimit:chat:${message?.playerId ?? 'anon'}`, 30, 60))) {
           return NextResponse.json({ error: 'Sending too fast' }, { status: 429 });
         }
         const room = await getRoom(code?.toUpperCase());
@@ -287,9 +298,17 @@ export async function POST(req: NextRequest) {
       }
 
       case 'music-toggle': {
-        const { code, muted } = body as { code: string; muted: boolean };
+        const { code, hostId: musicHostId, muted } = body as { code: string; hostId: string; muted: boolean };
         if (!code || typeof code !== 'string') {
           return NextResponse.json({ error: 'Room code required' }, { status: 400 });
+        }
+        const musicRoom = await getRoom(code.toUpperCase());
+        if (!musicRoom) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+        if (!musicHostId || musicRoom.hostId !== musicHostId) {
+          return NextResponse.json({ error: 'Not the host' }, { status: 403 });
+        }
+        if (!rateLimit(`music-toggle:${musicHostId}`, 10, 60_000)) {
+          return NextResponse.json({ ok: true });
         }
         await pusherServer.trigger(getRoomChannel(code.toUpperCase()), 'music:toggle', { muted: Boolean(muted) });
         return NextResponse.json({ ok: true });
@@ -313,7 +332,14 @@ export async function GET(req: NextRequest) {
     if (!code) return NextResponse.json({ error: 'Missing code' }, { status: 400 });
     const room = await getRoom(code.toUpperCase());
     if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
-    return NextResponse.json({ room });
+    // Strip player hands — card data is private; clients get their own hand via Pusher broadcast
+    const scrubbed = {
+      ...room,
+      players: Object.fromEntries(
+        Object.entries(room.players).map(([id, p]) => [id, { ...p, hand: [] }])
+      ),
+    };
+    return NextResponse.json({ room: scrubbed });
   } catch {
     return NextResponse.json({ error: 'Storage unavailable — try again in a moment' }, { status: 503 });
   }

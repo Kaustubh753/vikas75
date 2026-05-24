@@ -209,7 +209,7 @@ export default function HostDashboard({ code, hostId }: Props) {
       await fetch('/api/game', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'music-toggle', code, muted: nextMuted }),
+        body: JSON.stringify({ action: 'music-toggle', code, hostId, muted: nextMuted }),
       });
     } catch {
       // fire-and-forget — non-critical

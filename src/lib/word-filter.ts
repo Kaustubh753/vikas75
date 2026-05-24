@@ -15,7 +15,13 @@ function censorWord(word: string): string {
 }
 
 export function filterText(text: string): string {
-  let result = text;
+  // Normalise to NFKC (collapses Unicode homoglyphs: ａ→a, ｆ→f, Cyrillic lookalikes, etc.)
+  // and strip zero-width characters used to split words and bypass filters.
+  const normalised = text
+    .normalize('NFKC')
+    .replace(/[​-‍﻿­]/g, '');
+
+  let result = normalised;
   for (const bad of BAD_WORDS) {
     // Case-insensitive exact word match — \bword\b avoids false positives like "assets" matching "ass"
     const regex = new RegExp(`\\b${bad}\\b`, 'gi');

@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import { listActiveRooms, getRoom } from '@/lib/redis';
+import { listActiveRooms, getRoom, checkRateLimit } from '@/lib/redis';
 import type { GameRoom } from '@/types/game';
 
 /** Strip player hands before returning rooms to the admin — hands are private card data. */
@@ -46,6 +46,14 @@ function checkAuth(req: NextRequest): boolean {
 }
 
 export async function GET(req: NextRequest) {
+  // Rate limit: 10 attempts per IP per 15 minutes — brute-force protection
+  const ip = req.headers.get('x-real-ip') ?? req.headers.get('x-forwarded-for')?.split(',').at(-1)?.trim() ?? 'unknown';
+  if (!(await checkRateLimit(`ratelimit:admin:${ip}`, 10, 900))) {
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      { status: 429, headers: { 'WWW-Authenticate': 'Basic realm="Vikas75 Admin"' } }
+    );
+  }
   if (!checkAuth(req)) {
     return NextResponse.json(
       { error: 'Unauthorized' },
