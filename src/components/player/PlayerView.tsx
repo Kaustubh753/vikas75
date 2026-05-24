@@ -56,6 +56,7 @@ export default function PlayerView({ code }: Props) {
   const prevPhaseRef = useRef<string | null>(null);
   const visibilityNotifiedRef = useRef(false);
   const overlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timerExpireScheduledRef = useRef(false);
 
   useEffect(() => {
     const pid = localStorage.getItem('vikas75_playerId') ?? '';
@@ -312,8 +313,35 @@ export default function PlayerView({ code }: Props) {
     };
   }, [hydrated, playerId, code]);
 
-  // NOTE: timer-expire is fired by ProjectorView only — avoids N concurrent requests from all players.
-  // The host can always manually advance if no projector is open.
+  // Timer-expire — each player schedules independently; server distributed lock ensures only
+  // one actually advances. This means the timer works even without a projector open.
+  useEffect(() => {
+    if (!room?.timerEndsAt || room.phase !== 'submission') {
+      timerExpireScheduledRef.current = false;
+      return;
+    }
+    if (timerExpireScheduledRef.current) return; // already scheduled for this timer
+    timerExpireScheduledRef.current = true;
+    const delay = room.timerEndsAt - Date.now();
+    if (delay <= 0) {
+      fetch('/api/game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'timer-expire', code }),
+        keepalive: true,
+      }).catch(() => {});
+      return;
+    }
+    const t = setTimeout(() => {
+      fetch('/api/game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'timer-expire', code }),
+        keepalive: true,
+      }).catch(() => {});
+    }, delay);
+    return () => { clearTimeout(t); timerExpireScheduledRef.current = false; };
+  }, [room?.timerEndsAt, room?.phase, code]);
 
   useEffect(() => {
     if (!room || room.phase === 'game-over') return;
@@ -492,7 +520,6 @@ export default function PlayerView({ code }: Props) {
             onSend={handleChat}
             playerId={playerId}
             avatarId={avatarId}
-            playerName={playerName}
           />
         </>
       )}

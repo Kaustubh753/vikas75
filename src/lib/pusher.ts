@@ -13,8 +13,9 @@ export const pusherServer = new Pusher({
 });
 
 export function getRoomChannel(code: string): string {
-  // private- prefix triggers Pusher channel authorisation via /api/pusher/auth
-  return `private-game-${code}`;
+  // private- prefix triggers Pusher channel authorisation via /api/pusher/auth.
+  // Always uppercase — must match the client-side getRoomChannel in pusher-client.ts.
+  return `private-game-${code.toUpperCase()}`;
 }
 
 // Strip heavy fields from scheme cards — keep only id, name, hi for display.

@@ -97,12 +97,15 @@ export async function POST(req: NextRequest) {
         const safeAvatarId: AvatarId = VALID_AVATAR_IDS.includes(avatarId) ? avatarId : 'a1';
         const room = await getRoom(code?.toUpperCase());
         if (!room) return NextResponse.json({ error: 'Room not found — check your code' }, { status: 404 });
-        // Idempotent rejoin — always allowed even during submission phase
+        // Idempotent rejoin — always allowed for existing players
         if (room.players[playerId]) {
           return NextResponse.json({ room });
         }
         if (room.phase === 'submission') {
           return NextResponse.json({ error: 'Round in progress — join after this round ends' }, { status: 400 });
+        }
+        if (room.phase === 'game-over') {
+          return NextResponse.json({ error: 'This game has ended — start a new one!' }, { status: 400 });
         }
         const updated = addPlayer(room, playerId, safeName, safeAvatarId);
         await setRoom(updated);
@@ -221,7 +224,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'timer-expire': {
-        const { code, hostId: timerHostId } = body;
+        const { code } = body;
         if (!code || typeof code !== 'string') return NextResponse.json({ ok: true });
         const upperCode = code.toUpperCase();
         // Distributed lock — prevent multiple concurrent timer-expire calls from double-advancing
@@ -230,13 +233,14 @@ export async function POST(req: NextRequest) {
         if (!lockAcquired) return NextResponse.json({ ok: true });
         try {
           const room = await getRoom(upperCode);
-          if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
-          // Require hostId — silently drop unauthorised calls rather than 403 to avoid revealing room state
-          if (!timerHostId || room.hostId !== timerHostId) return NextResponse.json({ ok: true });
-          // Idempotent — only act if still in submission and timer has actually elapsed
+          if (!room) return NextResponse.json({ ok: true });
+          // Idempotent — only act if still in submission and timer has actually elapsed.
+          // No hostId required: the phase + elapsed-timer check is the real guard; the
+          // distributed lock prevents double-advancing. Any client (player, projector)
+          // can fire this once the timer is genuinely up.
           if (room.phase !== 'submission') return NextResponse.json({ ok: true });
           if (!room.timerEndsAt || Date.now() < room.timerEndsAt) return NextResponse.json({ ok: true });
-          // Advance to reveal — players who didn't submit are simply skipped (no entry in submissions)
+          // Advance to reveal — players who didn't submit are simply skipped
           const revealed = advancePhase(room);
           await setRoom(revealed);
           await broadcastRoom(revealed);

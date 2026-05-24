@@ -154,9 +154,9 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
     fetch('/api/game', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'timer-expire', code, hostId: hostId || '' }),
+      body: JSON.stringify({ action: 'timer-expire', code }),
     }).catch(() => {});
-  }, [code, hostId]);
+  }, [code]);
 
   useEffect(() => {
     if (!room?.timerEndsAt || room.phase !== 'submission') return;
