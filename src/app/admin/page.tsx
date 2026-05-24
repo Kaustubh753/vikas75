@@ -34,7 +34,7 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0d1b2e] flex flex-col items-center justify-center p-6">
+    <main className="min-h-screen bg-[#0d1b35] flex flex-col items-center justify-center p-6">
       <LogoLockup size="sm" className="mb-10" />
 
       <div className="bg-white/5 border border-white/10 rounded-2xl p-8 w-full max-w-sm">

@@ -51,6 +51,7 @@ export default function HostDashboard({ code, hostId }: Props) {
   const [musicMuted, setMusicMuted] = useState(false);
   const [endConfirm, setEndConfirm] = useState(false);
   const [endLoading, setEndLoading] = useState(false);
+  const [roomMissing, setRoomMissing] = useState(false);
   const settingsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -104,9 +105,12 @@ export default function HostDashboard({ code, hostId }: Props) {
         setRoom(data.room);
         setRounds(data.room.totalRounds);
         setTimer(data.room.timerDuration);
+        setRoomMissing(false);
+      } else if (res.status === 404) {
+        setRoomMissing(true);
       }
     } catch {
-      // ignore
+      // ignore — network errors handled separately
     }
   }, [code]);
 
@@ -271,10 +275,30 @@ export default function HostDashboard({ code, hostId }: Props) {
     }
   }
 
+  if (roomMissing) {
+    return (
+      <div className="min-h-screen bg-[#0d1b35] flex flex-col items-center justify-center gap-4 px-4">
+        <p className="text-4xl">🏁</p>
+        <p className="text-white font-[family-name:var(--font-bebas)] text-2xl tracking-wide text-center">
+          Room Closed
+        </p>
+        <p className="text-white/50 text-sm text-center font-[family-name:var(--font-inter)] max-w-xs">
+          This room no longer exists. It may have ended or been shut down after inactivity.
+        </p>
+        <button
+          onClick={() => router.replace('/host/setup')}
+          className="mt-4 px-8 h-12 bg-[#FF9933] text-white font-[family-name:var(--font-bebas)] text-xl tracking-widest rounded-xl active:scale-95 transition-all"
+        >
+          Create New Room
+        </button>
+      </div>
+    );
+  }
+
   if (!room) {
     return (
       <div className="min-h-screen bg-[#0d1b35] flex items-center justify-center">
-        <p className="text-white/60 animate-pulse">Loading room…</p>
+        <p className="text-white/60 animate-pulse font-[family-name:var(--font-inter)]">Loading room…</p>
       </div>
     );
   }

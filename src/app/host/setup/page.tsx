@@ -45,7 +45,7 @@ export default function HostSetupPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0d1b2e] flex flex-col items-center justify-center px-4 py-8">
+    <main className="min-h-screen bg-[#0d1b35] flex flex-col items-center justify-center px-4 py-8">
       <div className="w-full max-w-sm flex flex-col gap-6">
         <LogoLockup size="md" className="mb-2" />
 

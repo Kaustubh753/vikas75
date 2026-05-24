@@ -29,7 +29,7 @@ export default function HowToPlayPage() {
   const router = useRouter();
 
   return (
-    <main className="min-h-screen bg-[#0d1b2e] flex flex-col items-center px-4 py-8">
+    <main className="min-h-screen bg-[#0d1b35] flex flex-col items-center px-4 py-8">
       <LogoLockup size="md" className="mb-6" />
 
       <h2 className="font-[family-name:var(--font-bebas)] text-white text-3xl tracking-widest mb-8">
@@ -44,10 +44,10 @@ export default function HowToPlayPage() {
             style={{ animationDelay: `${i * 0.1}s` }}
           >
             <span className="text-4xl mb-3">{panel.icon}</span>
-            <h3 className="font-[family-name:var(--font-bebas)] text-[#0d1b2e] text-lg leading-tight mb-2">
+            <h3 className="font-[family-name:var(--font-bebas)] text-[#0d1b35] text-lg leading-tight mb-2">
               {panel.title}
             </h3>
-            <p className="font-[family-name:var(--font-inter)] text-[#0d1b2e]/70 text-xs leading-relaxed">
+            <p className="font-[family-name:var(--font-inter)] text-[#0d1b35]/70 text-xs leading-relaxed">
               {panel.description}
             </p>
           </div>

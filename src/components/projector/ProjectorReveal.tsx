@@ -75,7 +75,9 @@ export default function ProjectorReveal({ room }: Props) {
 
   useEffect(() => {
     if (revealed < submissions.length) {
-      const delay = revealed === 0 ? 800 : 2500;
+      // Reveal pacing — fewer players = more drama per card; many players = shorter delay so total time stays sane
+      const baseDelay = submissions.length <= 4 ? 1800 : submissions.length <= 8 ? 1200 : 900;
+      const delay = revealed === 0 ? 600 : baseDelay;
       const t = setTimeout(() => setRevealed((n) => n + 1), delay);
       return () => clearTimeout(t);
     }

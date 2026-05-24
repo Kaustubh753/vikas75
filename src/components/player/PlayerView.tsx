@@ -27,7 +27,7 @@ const PHASE_BG: Record<string, string> = {
   'challenge-reveal': '#1a0d2e',
   submission: '#0d1b35',
   reveal: '#1a2a0d',
-  judging: '#0d1b2e',
+  judging: '#0d1b35',
   winner: '#2a1a00',
   'between-rounds': '#0d1b35',
   'game-over': '#1a0d00',
@@ -469,14 +469,16 @@ export default function PlayerView({ code }: Props) {
               {musicOn ? '🔊' : '🔇'}
             </button>
           )}
-          <div className="text-right">
-            <p className="text-white/40 text-[10px] uppercase tracking-widest font-[family-name:var(--font-inter)]">
-              Round
-            </p>
-            <p className="font-[family-name:var(--font-bebas)] text-white text-xl">
-              {room.round}/{room.totalRounds}
-            </p>
-          </div>
+          {phase !== 'lobby' && room.round > 0 && (
+            <div className="text-right">
+              <p className="text-white/40 text-[10px] uppercase tracking-widest font-[family-name:var(--font-inter)]">
+                Round
+              </p>
+              <p className="font-[family-name:var(--font-bebas)] text-white text-xl">
+                {room.round}/{room.totalRounds}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

@@ -47,7 +47,7 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0d1b2e] flex items-center justify-center">
+      <div className="min-h-screen bg-[#0d1b35] flex items-center justify-center">
         <p className="text-white/40 animate-pulse font-[family-name:var(--font-bebas)] text-2xl tracking-widest">
           Loading rooms…
         </p>
@@ -56,7 +56,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0d1b2e] p-6">
+    <main className="min-h-screen bg-[#0d1b35] p-6">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <LogoLockup size="sm" />

@@ -25,7 +25,7 @@ const PHASE_BG: Record<string, string> = {
   'challenge-reveal': '#1a0d2e',
   submission: '#0d1b35',
   reveal: '#1a2a0d',
-  judging: '#0d1b2e',
+  judging: '#0d1b35',
   winner: '#2a1a00',
   'between-rounds': '#0d1b35',
   'game-over': '#1a0d00',
@@ -70,6 +70,7 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
     }
   }, [code, hostIdProp, router]);
   const [room, setRoom] = useState<GameRoom | null>(null);
+  const [roomMissing, setRoomMissing] = useState(false);
   const [transitionText, setTransitionText] = useState<string | null>(null);
   const [overlay, setOverlay] = useState<OverlayInfo | null>(null);
   const prevPhaseRef = useRef<string | undefined>(undefined);
@@ -78,8 +79,11 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
 
   useEffect(() => {
     fetch(`/api/game?code=${code}`)
-      .then((r) => r.json())
-      .then((d) => { if (d.room) setRoom(d.room); })
+      .then(async (r) => {
+        if (r.status === 404) { setRoomMissing(true); return null; }
+        return r.ok ? r.json() : null;
+      })
+      .then((d) => { if (d?.room) { setRoom(d.room); setRoomMissing(false); } })
       .catch(() => {});
   }, [code]);
 
@@ -88,8 +92,11 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
     // dropped Pusher connections only. 5s was unnecessarily aggressive.
     const poll = setInterval(() => {
       fetch(`/api/game?code=${code}`)
-        .then((r) => r.json())
-        .then((d) => { if (d.room) setRoom(d.room); })
+        .then(async (r) => {
+          if (r.status === 404) { setRoomMissing(true); return null; }
+          return r.ok ? r.json() : null;
+        })
+        .then((d) => { if (d?.room) { setRoom(d.room); setRoomMissing(false); } })
         .catch(() => {});
     }, 30_000);
     return () => clearInterval(poll);
@@ -172,6 +179,20 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
       case 'game-over':        return <ProjectorGameOver room={room} />;
       default:                 return null;
     }
+  }
+
+  if (roomMissing) {
+    return (
+      <div className="w-screen h-screen bg-[#0d1b35] flex flex-col items-center justify-center gap-6">
+        <p className="text-6xl">🏁</p>
+        <h1 className="font-[family-name:var(--font-bebas)] text-white text-5xl tracking-widest text-center">
+          Room Closed
+        </h1>
+        <p className="text-white/50 text-xl text-center font-[family-name:var(--font-inter)] max-w-xl">
+          This game has ended or the room was shut down after inactivity.
+        </p>
+      </div>
+    );
   }
 
   if (!room) {

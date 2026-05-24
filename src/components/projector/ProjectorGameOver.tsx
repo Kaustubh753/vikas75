@@ -29,7 +29,7 @@ export default function ProjectorGameOver({ room }: Props) {
         <div className="flex-1 bg-[#138808]" />
       </div>
 
-      <LogoLockup size="sm" className="mt-4" />
+      <LogoLockup size="md" className="mt-4" />
 
       <div className="text-center animate-bounce-in">
         <p className="font-[family-name:var(--font-bebas)] text-[#FF9933] text-3xl tracking-[0.4em] mb-1">
