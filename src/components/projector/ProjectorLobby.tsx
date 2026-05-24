@@ -20,21 +20,18 @@ const SOCIAL = [
   { label: 'YouTube',   href: 'https://www.youtube.com/channel/UC6yGMDZkljNPgX8vGUcBTbA/playlists', Icon: FaYoutube    },
 ];
 
-// ── Retro Doordarshan 80s palette ─────────────────────────────────────────────
-const C = {
-  paper:    '#f0dba8',           // warm parchment base
-  paperLt:  '#faf3db',           // cream for panels
-  ink:      '#1c0d02',           // deep warm near-black
-  inkMid:   '#4a2710',           // medium brown
-  inkLight: '#7a5030',           // warm sienna for secondary text
-  saffron:  '#FF9933',           // brand saffron
-  saff15:   'rgba(255,153,51,.15)',
-  maroon:   '#6b1515',           // deep maroon for accents
-  green:    '#1a5e15',           // tricolor green
-  shadow:   'rgba(28,13,2,0.18)',
-};
-
 interface Props { room: GameRoom }
+
+// Glass panel — matches landing page HTP panel style
+const panelStyle: React.CSSProperties = {
+  width: '100%',
+  background: 'linear-gradient(180deg,rgba(255,153,51,.05) 0%,rgba(255,153,51,0) 22%),linear-gradient(180deg,rgba(5,11,28,.85) 0%,rgba(2,6,18,.9) 100%)',
+  border: '1px solid rgba(255,153,51,.22)',
+  borderRadius: 12,
+  boxShadow: '0 24px 48px rgba(0,0,0,.45),0 6px 14px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,153,51,.18),inset 0 0 0 1px rgba(255,255,255,.02)',
+  backdropFilter: 'blur(8px)',
+  boxSizing: 'border-box' as const,
+};
 
 export default function ProjectorLobby({ room }: Props) {
   const [origin, setOrigin] = useState('');
@@ -49,9 +46,9 @@ export default function ProjectorLobby({ room }: Props) {
     return () => window.removeEventListener('resize', update);
   }, []);
 
-  const players = Object.values(room.players);
-  const joinUrl = origin ? `${origin}/?code=${room.code}` : '';
-  const letters = room.code.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4).split('');
+  const players  = Object.values(room.players);
+  const joinUrl  = origin ? `${origin}/?code=${room.code}` : '';
+  const letters  = room.code.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4).split('');
   while (letters.length < 4) letters.push('');
 
   const qrSize = Math.round(winW * 0.13);
@@ -59,73 +56,31 @@ export default function ProjectorLobby({ room }: Props) {
   return (
     <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', isolation: 'isolate' }}>
 
-      {/* ── Parchment background ─────────────────────────────────── */}
+      {/* ── Background — matches landing page ───────────────────── */}
+      <div style={{ position: 'absolute', inset: 0, background: '#07101f', zIndex: 0 }} />
+
+      {/* Saffron radial glow from top */}
+      <div style={{
+        position: 'absolute', left: '50%', top: '-25%',
+        width: '83vw', height: '100vh',
+        transform: 'translateX(-50%)',
+        background: 'radial-gradient(ellipse at center,rgba(255,153,51,.16) 0%,rgba(255,153,51,.06) 28%,rgba(255,153,51,0) 60%)',
+        pointerEvents: 'none', zIndex: 1,
+      }} />
+
+      {/* Film grain overlay */}
       <div style={{
         position: 'absolute', inset: 0,
-        background: `radial-gradient(ellipse at 48% 42%, ${C.paperLt} 0%, ${C.paper} 52%, #d4a860 100%)`,
-        zIndex: 0,
+        backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")`,
+        opacity: 0.12, mixBlendMode: 'overlay', pointerEvents: 'none', zIndex: 2,
       }} />
-
-      {/* Warm paper grain */}
-      <div style={{
-        position: 'absolute', inset: 0,
-        backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.68' numOctaves='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.38  0 0 0 0 0.18  0 0 0 0 0  0 0 0 0.22 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")`,
-        opacity: 0.55, pointerEvents: 'none', zIndex: 1,
-      }} />
-
-      {/* Screen-edge vignette — CRT curvature suggestion */}
-      <div style={{
-        position: 'absolute', inset: 0,
-        background: 'radial-gradient(ellipse at center, transparent 55%, rgba(12,4,0,0.52) 100%)',
-        pointerEvents: 'none', zIndex: 2,
-      }} />
-
-      {/* ── Tricolor top strip ───────────────────────────────────── */}
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0,
-        height: 7, display: 'flex', zIndex: 20,
-      }}>
-        <div style={{ flex: 1, background: C.saffron }} />
-        <div style={{ flex: 1, background: '#fff' }} />
-        <div style={{ flex: 1, background: C.green }} />
-      </div>
-
-      {/* ── Decorative double border ─────────────────────────────── */}
-      <div style={{
-        position: 'absolute', inset: 16,
-        border: `2px solid rgba(28,13,2,0.2)`,
-        pointerEvents: 'none', zIndex: 3,
-      }} />
-      <div style={{
-        position: 'absolute', inset: 21,
-        border: `1px solid rgba(28,13,2,0.1)`,
-        pointerEvents: 'none', zIndex: 3,
-      }} />
-
-      {/* ── ON AIR badge — top right ─────────────────────────────── */}
-      <div style={{
-        position: 'absolute', top: 28, right: 30, zIndex: 15,
-        background: C.maroon, color: C.paperLt,
-        fontFamily: 'var(--font-inter),sans-serif',
-        fontSize: 'clamp(8px,0.62vw,10px)', fontWeight: 700,
-        letterSpacing: '0.28em', textTransform: 'uppercase',
-        padding: '4px 12px',
-        display: 'flex', alignItems: 'center', gap: 7,
-      }}>
-        <div style={{
-          width: 6, height: 6, borderRadius: '50%',
-          background: '#ff3333',
-          animation: 'vkBlink 1.4s ease-in-out infinite',
-          flexShrink: 0,
-        }} />
-        On Air
-      </div>
 
       {/* ── 3-column grid ────────────────────────────────────────── */}
       <div style={{
-        position: 'relative', zIndex: 4,
+        position: 'relative', zIndex: 3,
         width: '100%', height: '100%',
-        padding: 'clamp(28px, 4.5vh, 60px) clamp(32px, 4.5vw, 68px) clamp(18px, 2.5vh, 36px)',
+        padding: 'clamp(24px, 3.5vh, 48px) clamp(24px, 3.5vw, 56px) clamp(14px, 2.2vh, 30px)',
+        paddingTop: 'clamp(28px, 4vh, 56px)', // extra top padding for tricolor strip
         display: 'grid',
         gridTemplateColumns: 'minmax(220px, 24vw) 1fr minmax(230px, 22vw)',
         gridTemplateRows: '1fr auto',
@@ -134,45 +89,34 @@ export default function ProjectorLobby({ room }: Props) {
         boxSizing: 'border-box',
       }}>
 
-        {/* ── LEFT: logo + player list ─────────────────────────── */}
+        {/* ── LEFT: logo + player list ─────────────────────────────── */}
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 28, alignItems: 'flex-start' }}>
 
-          {/* Logo unit */}
-          <div style={{ display: 'inline-flex', flexDirection: 'column', position: 'relative', paddingLeft: 18 }}>
-            <div style={{ position: 'absolute', left: 0, top: 6, bottom: 6, width: 3, background: C.saffron }} />
-
+          {/* Logo unit — matches landing page */}
+          <div style={{ display: 'inline-flex', flexDirection: 'column', position: 'relative', paddingLeft: 16, alignItems: 'stretch' }}>
+            <div style={{ position: 'absolute', left: 0, top: 6, bottom: 6, width: 2, background: '#FF9933' }} />
             <div style={{
               fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500,
-              fontSize: 'clamp(8px, 0.64vw, 10px)',
-              letterSpacing: '0.14em', textTransform: 'uppercase',
-              color: C.inkLight, marginBottom: 8, whiteSpace: 'nowrap',
+              fontSize: 'clamp(8px, 0.68vw, 10px)',
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+              color: 'rgba(250,248,240,.7)', lineHeight: 1.4,
+              marginBottom: 12, whiteSpace: 'nowrap',
             }}>
               An initiative of the Office of Shri Sujeet Kumar
             </div>
-
             <div style={{
               fontFamily: 'var(--font-bebas),sans-serif', fontWeight: 400,
               fontSize: 'clamp(44px, 5.5vw, 78px)',
-              lineHeight: 0.9, letterSpacing: '-0.01em',
-              color: C.ink, whiteSpace: 'nowrap',
+              lineHeight: 0.9, letterSpacing: '-0.01em', color: '#fff',
+              whiteSpace: 'nowrap',
             }}>
               Vikas 75
             </div>
-
-            <div style={{
-              fontFamily: 'var(--font-devanagari),sans-serif', fontWeight: 700,
-              fontSize: 'clamp(14px, 1.35vw, 20px)',
-              color: C.saffron, marginTop: 8, whiteSpace: 'nowrap',
-              letterSpacing: '0.02em',
-            }}>
-              विकास ७५
-            </div>
-
             <div style={{
               fontFamily: 'var(--font-inter),sans-serif', fontWeight: 400,
-              fontSize: 'clamp(10px, 0.88vw, 13px)',
-              color: C.inkLight, marginTop: 5,
-              fontStyle: 'italic', whiteSpace: 'nowrap',
+              fontSize: 'clamp(12px, 1.3vw, 19px)',
+              lineHeight: 1.35, color: '#FF9933', letterSpacing: '-0.005em',
+              marginTop: 12, whiteSpace: 'nowrap',
             }}>
               The best answer isn&apos;t always right
             </div>
@@ -180,32 +124,26 @@ export default function ProjectorLobby({ room }: Props) {
 
           {/* Player list */}
           <div style={{ width: '100%' }}>
-            {/* Caption-chip label */}
             <div style={{
-              display: 'inline-block',
-              background: C.ink, color: C.paperLt,
-              fontFamily: 'var(--font-inter),sans-serif', fontWeight: 700,
-              fontSize: 'clamp(7px, 0.6vw, 9px)',
-              letterSpacing: '0.26em', textTransform: 'uppercase',
-              padding: '3px 10px', marginBottom: 12,
+              fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500,
+              fontSize: 'clamp(8px, 0.68vw, 10px)',
+              letterSpacing: '0.22em', textTransform: 'uppercase',
+              color: 'rgba(250,248,240,.4)', marginBottom: 12,
             }}>
-              Players — {players.length}
+              Players joined — {players.length}
             </div>
 
             {players.length === 0 ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
-                {[0, 1, 2].map(i => (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {[0,1,2].map(i => (
                   <div key={i} style={{
-                    width: 6, height: 6, borderRadius: '50%', background: C.saffron,
+                    width: 6, height: 6, borderRadius: '50%',
+                    background: 'rgba(255,153,51,0.5)',
                     animation: 'vkPulse 1.2s ease-in-out infinite',
                     animationDelay: `${i * 0.2}s`,
                   }} />
                 ))}
-                <span style={{
-                  fontFamily: 'var(--font-inter),sans-serif',
-                  fontSize: 'clamp(11px, 0.9vw, 14px)',
-                  color: C.inkLight, fontStyle: 'italic',
-                }}>
+                <span style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 'clamp(11px, 0.9vw, 14px)', color: 'rgba(250,248,240,.4)' }}>
                   Waiting for players…
                 </span>
               </div>
@@ -215,15 +153,15 @@ export default function ProjectorLobby({ room }: Props) {
                   <div key={p.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
                     <div style={{
                       borderRadius: '50%', overflow: 'hidden',
-                      border: `2px solid rgba(28,13,2,0.28)`,
-                      boxShadow: `1px 1px 0 ${C.shadow}`,
+                      border: '1.5px solid rgba(255,153,51,0.35)',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
                     }}>
                       <Avatar id={p.avatarId} size={Math.round(winW * 0.028)} />
                     </div>
                     <span style={{
                       fontFamily: 'var(--font-inter),sans-serif',
-                      fontSize: 'clamp(9px, 0.6vw, 11px)', fontWeight: 600,
-                      color: C.ink,
+                      fontSize: 'clamp(9px, 0.6vw, 11px)', fontWeight: 500,
+                      color: 'rgba(250,248,240,.8)',
                       maxWidth: '3.5vw', textAlign: 'center',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>{p.name}</span>
@@ -234,161 +172,129 @@ export default function ProjectorLobby({ room }: Props) {
           </div>
         </div>
 
-        {/* ── CENTER: room code ─────────────────────────────────── */}
-        <div style={{
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          gap: 'clamp(10px, 1.8vh, 22px)',
-        }}>
+        {/* ── CENTER: room code ─────────────────────────────────────── */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'clamp(12px, 2vh, 28px)' }}>
 
-          {/* Caption-chip label */}
           <div style={{
-            background: C.ink, color: C.paperLt,
-            fontFamily: 'var(--font-inter),sans-serif', fontWeight: 700,
+            fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500,
             fontSize: 'clamp(9px, 0.76vw, 12px)',
             letterSpacing: '0.28em', textTransform: 'uppercase',
-            padding: '4px 22px',
+            color: 'rgba(250,248,240,.5)',
           }}>
             Room Code
           </div>
 
           {/* 4 letter boxes */}
-          <div style={{ display: 'flex', gap: 'clamp(8px, 1vw, 14px)' }}>
+          <div style={{ display: 'flex', gap: 'clamp(8px, 1vw, 16px)' }}>
             {letters.map((l, i) => (
               <div key={i} style={{
                 width: 'clamp(72px, 8.5vw, 130px)',
                 height: 'clamp(96px, 11.5vh, 160px)',
                 display: 'grid', placeItems: 'center',
-                background: C.paperLt,
-                border: `2.5px solid ${C.ink}`,
-                // Hard offset shadow — very Doordarshan
-                boxShadow: `5px 5px 0 ${C.saffron}, 5px 5px 0 1px ${C.ink}`,
-                position: 'relative',
+                background: 'linear-gradient(180deg,rgba(255,153,51,.06) 0%,rgba(255,153,51,0) 100%)',
+                border: '1px solid rgba(255,153,51,.3)',
+                borderRadius: 10,
+                boxShadow: 'inset 0 1px 0 rgba(255,153,51,.15), 0 8px 32px rgba(0,0,0,.4)',
               }}>
                 <span style={{
                   fontFamily: 'var(--font-bebas),sans-serif',
                   fontSize: 'clamp(64px, 7.5vw, 112px)',
-                  lineHeight: 1, color: C.saffron,
+                  lineHeight: 1, color: '#FF9933',
                   letterSpacing: '-0.02em',
+                  textShadow: '0 0 32px rgba(255,153,51,.35)',
                   userSelect: 'none',
                 }}>{l}</span>
               </div>
             ))}
           </div>
 
-          {/* English instruction */}
           <div style={{
             fontFamily: 'var(--font-inter),sans-serif', fontWeight: 400,
             fontSize: 'clamp(11px, 0.9vw, 14px)',
-            color: C.inkMid,
+            color: 'rgba(250,248,240,.4)', letterSpacing: '0.04em',
           }}>
             go to{' '}
-            <span style={{ color: C.ink, fontWeight: 700 }}>vikas75.in</span>
+            <span style={{ color: 'rgba(250,248,240,.7)', fontWeight: 500 }}>vikas75.in</span>
             {' '}on your phone and enter the code
-          </div>
-
-          {/* Hindi instruction */}
-          <div style={{
-            fontFamily: 'var(--font-devanagari),sans-serif', fontWeight: 500,
-            fontSize: 'clamp(11px, 0.88vw, 13px)',
-            color: C.inkLight,
-          }}>
-            अपने फ़ोन पर vikas75.in खोलें और कोड डालें
           </div>
         </div>
 
-        {/* ── RIGHT: QR panel ───────────────────────────────────── */}
+        {/* ── RIGHT: QR panel ───────────────────────────────────────── */}
         <div style={{ display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end' }}>
-          <div style={{
-            width: '100%',
-            background: C.paperLt,
-            border: `2px solid rgba(28,13,2,0.22)`,
-            boxShadow: `3px 3px 0 rgba(28,13,2,0.12)`,
-            padding: 'clamp(16px, 1.5vw, 24px) clamp(14px, 1.3vw, 20px)',
-            display: 'flex', flexDirection: 'column',
-            boxSizing: 'border-box',
-          }}>
+          <div style={{ ...panelStyle, padding: 'clamp(16px, 1.5vw, 24px) clamp(14px, 1.3vw, 20px)', display: 'flex', flexDirection: 'column', gap: 0 }}>
 
-            {/* Panel header */}
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              marginBottom: 14, paddingBottom: 12,
-              borderBottom: `1px solid rgba(28,13,2,0.15)`,
+              marginBottom: 16, paddingBottom: 14,
+              borderBottom: '1px solid rgba(250,248,240,.1)',
             }}>
               <span style={{
-                fontFamily: 'var(--font-inter),sans-serif', fontWeight: 700,
-                fontSize: 'clamp(8px, 0.72vw, 11px)',
-                color: C.inkLight, letterSpacing: '0.22em', textTransform: 'uppercase',
+                fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500,
+                fontSize: 'clamp(8px, 0.76vw, 11px)',
+                color: 'rgba(250,248,240,.7)', letterSpacing: '0.22em', textTransform: 'uppercase',
               }}>Scan to join</span>
               <span style={{
-                background: C.saffron, color: C.ink,
-                fontFamily: 'var(--font-inter),sans-serif', fontWeight: 800,
-                fontSize: 'clamp(7px, 0.6vw, 9px)',
-                letterSpacing: '0.16em', textTransform: 'uppercase',
-                padding: '2px 8px',
-              }}>Camera</span>
+                fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500,
+                fontSize: 'clamp(8px, 0.76vw, 11px)',
+                color: '#FF9933', letterSpacing: '0.14em',
+              }}>Phone Camera</span>
             </div>
 
-            {/* QR code */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
               {joinUrl ? (
                 <div style={{
-                  background: '#fff', padding: 10,
-                  border: `2px solid rgba(28,13,2,0.18)`,
-                  boxShadow: `2px 2px 0 rgba(28,13,2,0.1)`,
+                  background: '#faf8f0', padding: 12, borderRadius: 10,
+                  boxShadow: '0 4px 24px rgba(0,0,0,.5)',
                 }}>
                   <QRCodeSVG value={joinUrl} size={qrSize} level="M" />
                 </div>
               ) : (
                 <div style={{
                   width: qrSize, height: qrSize,
-                  background: 'rgba(28,13,2,.04)',
-                  border: `1px dashed rgba(28,13,2,.2)`,
+                  background: 'rgba(250,248,240,.04)', borderRadius: 10,
                   display: 'grid', placeItems: 'center',
                 }}>
-                  <span style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 12, color: C.inkLight }}>Loading…</span>
+                  <span style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 12, color: 'rgba(250,248,240,.3)' }}>Loading…</span>
                 </div>
               )}
 
-              {/* URL */}
               <div style={{
-                fontFamily: 'var(--font-inter),sans-serif', fontWeight: 600,
+                fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500,
                 fontSize: 'clamp(11px, 0.9vw, 14px)',
-                color: C.inkMid, textAlign: 'center',
+                color: 'rgba(250,248,240,.5)', letterSpacing: '0.04em',
+                textAlign: 'center',
               }}>
                 {origin ? origin.replace(/^https?:\/\//, '') : 'vikas75.in'}
               </div>
             </div>
 
-            {/* Panel footer */}
             <div style={{
-              marginTop: 14, paddingTop: 12,
-              borderTop: `1px solid rgba(28,13,2,0.15)`,
+              marginTop: 16, paddingTop: 14,
+              borderTop: '1px solid rgba(250,248,240,.1)',
               display: 'flex', justifyContent: 'center',
-              fontFamily: 'var(--font-inter),sans-serif', fontWeight: 600,
-              fontSize: 'clamp(8px, 0.65vw, 10px)',
-              letterSpacing: '0.2em', textTransform: 'uppercase',
-              color: C.inkLight,
+              fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500,
+              fontSize: 'clamp(8px, 0.68vw, 10px)',
+              letterSpacing: '0.22em', textTransform: 'uppercase',
+              color: 'rgba(250,248,240,.3)',
             }}>
               Free · No App · No Signup
             </div>
           </div>
         </div>
 
-        {/* ── BOTTOM STRIP ─────────────────────────────────────── */}
+        {/* ── BOTTOM STRIP ─────────────────────────────────────────── */}
         <div style={{
           gridColumn: '1 / -1',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          marginTop: 10, paddingTop: 14,
-          borderTop: `1px solid rgba(28,13,2,0.18)`,
+          marginTop: 10, paddingTop: 16,
+          borderTop: '1px solid rgba(250,248,240,.14)',
         }}>
-          {/* Social icons */}
           <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
             {SOCIAL.map(({ label, href, Icon }) => (
               <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label}
-                style={{ color: C.inkLight, transition: 'color .15s ease', display: 'flex', alignItems: 'center', fontSize: 'clamp(14px, 1.25vw, 18px)' }}
-                onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = C.saffron}
-                onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = C.inkLight}
+                style={{ color: 'rgba(250,248,240,.6)', transition: 'color .15s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(14px, 1.25vw, 18px)' }}
+                onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = '#FF9933'}
+                onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(250,248,240,.6)'}
               >
                 <Icon />
               </a>
@@ -399,17 +305,18 @@ export default function ProjectorLobby({ room }: Props) {
             fontFamily: 'var(--font-inter),sans-serif',
             fontSize: 'clamp(9px, 0.76vw, 11px)',
             letterSpacing: '0.12em', textTransform: 'uppercase',
-            color: C.inkLight,
+            color: 'rgba(250,248,240,.4)',
           }}>
             An initiative of the Office of Shri Sujeet Kumar
           </div>
         </div>
       </div>
 
-      {/* Keyframe animations */}
       <style>{`
-        @keyframes vkPulse { 0%,100%{opacity:.5;transform:scale(1)} 50%{opacity:1;transform:scale(1.3)} }
-        @keyframes vkBlink { 0%,100%{opacity:1} 50%{opacity:.25} }
+        @keyframes vkPulse {
+          0%, 100% { opacity: 0.5; transform: scale(1); }
+          50%       { opacity: 1;   transform: scale(1.3); }
+        }
       `}</style>
     </div>
   );

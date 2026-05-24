@@ -21,7 +21,7 @@ import type { GameRoom } from '@/types/game';
 interface Props { code: string; hostId?: string }
 
 const PHASE_BG: Record<string, string> = {
-  lobby: '#f0dba8',
+  lobby: '#0d1b35',
   'challenge-reveal': '#1a0d2e',
   submission: '#0d1b35',
   reveal: '#1a2a0d',

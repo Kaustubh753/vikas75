@@ -35,6 +35,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${bebas.variable} ${inter.variable} ${devanagari.variable} ${yatra.variable}`}>
+        {/* Tricolor strip — fixed, appears on every page above all content */}
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0,
+          height: 5, display: 'flex', zIndex: 99999,
+          pointerEvents: 'none',
+        }}>
+          <div style={{ flex: 1, background: '#FF9933' }} />
+          <div style={{ flex: 1, background: '#ffffff' }} />
+          <div style={{ flex: 1, background: '#138808' }} />
+        </div>
         <ToasterProvider />
         {children}
       </body>
