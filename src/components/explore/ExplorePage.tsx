@@ -355,7 +355,7 @@ function CardModal({ card, onClose }: { card: SchemeCard; onClose: () => void })
         style={{
           display: 'flex', gap: 'clamp(20px,3vw,40px)',
           alignItems: 'flex-start',
-          width: '100%', maxWidth: 780,
+          width: '100%', maxWidth: 1100,
           maxHeight: '90vh',
         }}
         initial={{ scale: 0.93, y: 16, opacity: 0 }}
@@ -366,7 +366,7 @@ function CardModal({ card, onClose }: { card: SchemeCard; onClose: () => void })
         {/* Card image — left */}
         <div style={{
           flexShrink: 0,
-          width: 'clamp(140px,22vw,220px)',
+          width: 'clamp(280px,44vw,440px)',
           aspectRatio: '5 / 7',
           borderRadius: 12,
           overflow: 'hidden',
