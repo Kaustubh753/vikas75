@@ -6,7 +6,6 @@ import toast from 'react-hot-toast';
 import { FaGlobe, FaInstagram, FaXTwitter, FaLinkedin, FaFacebook, FaYoutube } from 'react-icons/fa6';
 import { getLobbyMusic } from '@/lib/music-manager';
 import type { AvatarId } from '@/types/game';
-import { ALL_AVATAR_IDS } from '@/lib/avatars';
 import AvatarPicker from '@/components/ui/AvatarPicker';
 import CodeInput from '@/components/ui/CodeInput';
 
@@ -407,13 +406,6 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
   const nameRef             = useRef<HTMLInputElement>(null);
   const slotsRef            = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Pre-populate the last-used avatar so the picker never defaults to a1
-  // on every open. Runs once on mount (client-only — localStorage is safe here).
-  useEffect(() => {
-    const saved = localStorage.getItem('vikas75_avatarId');
-    if (saved && ALL_AVATAR_IDS.includes(saved as AvatarId)) setAvatarId(saved as AvatarId);
-  }, []);
-
   useEffect(() => { if (open) setTimeout(() => nameRef.current?.focus(), 350); }, [open]);
 
   async function handleJoin(e: React.FormEvent) {
@@ -449,7 +441,7 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
   }
 
   const baseSlot: React.CSSProperties = {
-    flex: 1, minWidth: 0, height: 48,
+    width: 44, height: 52,
     background: 'rgba(250,248,240,.04)',
     border: '1px solid rgba(250,248,240,.14)',
     borderRadius: 4, color: '#fff',
@@ -460,8 +452,7 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
 
   return (
     <div style={{
-      maxWidth: 380,
-      overflow: 'hidden',
+      maxWidth: 380, overflow: 'hidden',
       display: 'grid',
       gridTemplateRows: open ? '1fr' : '0fr',
       transition: 'grid-template-rows .35s cubic-bezier(.6,0,.3,1), opacity .25s ease, margin-top .25s ease',
@@ -469,7 +460,7 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
       opacity: open ? 1 : 0,
     }}>
       <div style={{ minHeight: 0 }}>
-        <form onSubmit={handleJoin} style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 6 }}>
+        <form onSubmit={handleJoin} style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 8 }}>
           <input
             ref={nameRef}
             style={{
@@ -488,8 +479,8 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
             onBlur={e => (e.target.style.borderColor = 'rgba(250,248,240,.14)')}
           />
 
-          {/* OTP code slots — flex:1 fills row evenly, width:100% on the row */}
-          <div style={{ display: 'flex', gap: 6, width: '100%' }}>
+          {/* OTP code slots */}
+          <div style={{ display: 'flex', gap: 8 }}>
             {[0, 1, 2, 3].map(i => (
               <input
                 key={i}
@@ -650,7 +641,7 @@ function LandingPage() {
         {/* ── LEFT: logo + CTAs ─────────────────────────────────── */}
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', zIndex: 5, alignItems: 'flex-start' }}>
           {/* Shared width wrapper — logo and buttons size together */}
-          <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 20, width: 'fit-content' }}>
+          <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 28, width: 'fit-content' }}>
           {/* Logo unit with saffron left bar */}
           <div style={{ display: 'flex', flexDirection: 'column', position: 'relative', paddingLeft: 16, alignItems: 'stretch' }}>
             <div style={{ position: 'absolute', left: 0, top: 6, bottom: 6, width: 2, background: '#FF9933' }} />
