@@ -213,6 +213,11 @@ export function getLeaderboard(room: GameRoom): Player[] {
 
 export function allPlayersSubmitted(room: GameRoom): boolean {
   // Only count players who were present before this round started (exclude mid-round late joiners)
-  const activePlayers = Object.values(room.players).filter((p) => p.joinedRound < room.round);
+  // Also exclude disconnected players (no heartbeat in the last 45 s) so a dropped phone
+  // doesn't permanently stall the submission phase until the timer expires.
+  const now = Date.now();
+  const activePlayers = Object.values(room.players).filter(
+    (p) => p.joinedRound < room.round && (!p.lastSeen || now - p.lastSeen < 45_000),
+  );
   return activePlayers.length > 0 && activePlayers.every((p) => room.submissions[p.id]);
 }

@@ -122,6 +122,10 @@ export async function POST(req: NextRequest) {
         if (room.phase === 'lobby' && Object.keys(room.players).length < 2) {
           return NextResponse.json({ error: 'Need at least 2 players to start.' }, { status: 400 });
         }
+        // Block advancing while the AI judge is still deliberating
+        if (room.phase === 'judging') {
+          return NextResponse.json({ error: 'AI judge is deliberating — please wait.' }, { status: 400 });
+        }
         const updated = advancePhase(room);
         await setRoom(updated);
         await broadcastRoom(updated);
