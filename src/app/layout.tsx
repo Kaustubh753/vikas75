@@ -35,7 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${bebas.variable} ${inter.variable} ${devanagari.variable} ${yatra.variable}`}>
-        {/* Tricolour strips — fixed, top and bottom of every page */}
+        {/* Tricolour strip — fixed, top of every page only */}
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0,
           height: 5, display: 'flex', zIndex: 99999,
