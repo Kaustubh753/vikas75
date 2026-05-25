@@ -10,7 +10,7 @@ interface Props { room: GameRoom }
 
 function RevealCard({ sub, isRevealed }: { sub: Submission; isRevealed: boolean }) {
   return (
-    <div style={{ perspective: 1000, width: 'clamp(160px, 18vw, 260px)', height: 'clamp(200px, 22.5vw, 320px)', flexShrink: 0 }}>
+    <div style={{ perspective: 1000, width: 'clamp(160px, 18vw, 260px)', height: 'clamp(220px, 25vw, 360px)', flexShrink: 0 }}>
       <div
         style={{
           width: '100%',
@@ -35,8 +35,8 @@ function RevealCard({ sub, isRevealed }: { sub: Submission; isRevealed: boolean 
           transform: 'rotateY(180deg)',
         }}>
           <div className="rounded-2xl shadow-xl overflow-hidden h-full flex flex-col bg-[#0d1b35]">
-            {/* Physical card image — upper ~60% */}
-            <div className="relative flex-1 overflow-hidden">
+            {/* Physical card image — upper portion */}
+            <div className="relative flex-1 overflow-hidden min-h-0">
               <Image
                 src={getSchemeCardImage(sub.schemeCard.id)}
                 alt={sub.schemeCard.name}
@@ -47,16 +47,44 @@ function RevealCard({ sub, isRevealed }: { sub: Submission; isRevealed: boolean 
                 placeholder="blur"
                 blurDataURL={BLUR_CREAM}
               />
+              {/* Scheme name — gradient pill at bottom of image so it's readable at projector distance */}
+              <div
+                className="absolute bottom-0 left-0 right-0 px-3 pb-2 pt-6"
+                style={{ background: 'linear-gradient(transparent, rgba(7,16,31,0.88))' }}
+              >
+                <p
+                  className="font-[family-name:var(--font-bebas)] text-white text-center leading-tight"
+                  style={{ fontSize: 'clamp(12px, 1.2vw, 17px)', letterSpacing: '0.04em' }}
+                >
+                  {sub.schemeCard.name}
+                </p>
+              </div>
             </div>
-            {/* Player info + explanation — lower portion */}
-            <div className="p-4 bg-[#0d1b35] flex-shrink-0">
+
+            {/* Player info + explanation */}
+            <div className="px-3 py-3 bg-[#0d1b35] flex-shrink-0">
               <div className="flex items-center gap-2 mb-2">
                 <div className="rounded-md overflow-hidden flex-shrink-0">
-                  <Avatar id={sub.avatarId} size={28} />
+                  <Avatar id={sub.avatarId} size={26} />
                 </div>
-                <p className="font-[family-name:var(--font-inter)] text-white font-bold text-xs">{sub.playerName}</p>
+                <p
+                  className="font-[family-name:var(--font-inter)] text-white font-semibold leading-tight"
+                  style={{ fontSize: 'clamp(11px, 1vw, 14px)' }}
+                >
+                  {sub.playerName}
+                </p>
               </div>
-              <p className="font-[family-name:var(--font-inter)] text-white/70 text-xs italic leading-relaxed">
+              {/* Explanation — line-clamp-3 so long answers never crush the card image */}
+              <p
+                className="font-[family-name:var(--font-inter)] text-white/75 italic leading-snug"
+                style={{
+                  fontSize: 'clamp(10px, 0.9vw, 13px)',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }}
+              >
                 &ldquo;{sub.explanation}&rdquo;
               </p>
             </div>
@@ -91,7 +119,7 @@ export default function ProjectorReveal({ room }: Props) {
         </h2>
       </div>
 
-      <div className="flex-1 flex items-center justify-center px-10 py-6">
+      <div className="flex-1 flex items-center justify-center px-10 py-6 min-h-0 overflow-y-auto">
         <div className="flex flex-wrap gap-6 justify-center">
           {submissions.map((sub, i) => (
             <RevealCard key={sub.playerId} sub={sub} isRevealed={i < revealed} />

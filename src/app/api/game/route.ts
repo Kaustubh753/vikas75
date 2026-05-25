@@ -263,7 +263,7 @@ export async function POST(req: NextRequest) {
         const emoteRoom = await getRoom(code?.toUpperCase());
         const emotePlayer = emoteRoom?.players[playerId];
         if (!emotePlayer) return NextResponse.json({ ok: true }); // silently drop unknown senders
-        await pusherServer.trigger(getRoomChannel(code?.toUpperCase() ?? ''), 'emote', {
+        await pusherServer.trigger(getRoomChannel(code!.toUpperCase()), 'emote', {
           playerId,
           playerName: emotePlayer.name,
           avatarId: emotePlayer.avatarId,

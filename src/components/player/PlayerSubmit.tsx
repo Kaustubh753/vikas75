@@ -75,6 +75,11 @@ export default function PlayerSubmit({
   const [loading, setLoading] = useState(false);
   const [throwing, setThrowing] = useState(false);
   const didRestoreDraft = useRef(false);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   // Restore draft explanation once on mount — intentionally runs only once
   // (submitted/submittedExplanation are stable on first render when restoring from sessionStorage)
@@ -101,9 +106,6 @@ export default function PlayerSubmit({
   async function handleThrow() {
     if (!selected || !explanation.trim() || loading) return;
     setThrowing(true);
-    const mountedRef = { current: true };
-    // Cleanup on unmount — prevents setState on unmounted component
-    const cleanup = () => { mountedRef.current = false; };
     setTimeout(async () => {
       if (!mountedRef.current) return;
       setLoading(true);
@@ -116,7 +118,6 @@ export default function PlayerSubmit({
         }
       }
     }, 600);
-    return cleanup;
   }
 
   // Guard: hand not yet loaded
@@ -306,9 +307,9 @@ export default function PlayerSubmit({
         </div>
       )}
 
-      {/* Selected card — image only, no text */}
+      {/* Selected card — image + name label below */}
       {selected && (
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-1.5">
           <div
             className="rounded-2xl overflow-hidden border-2 border-[#FF9933] shadow-xl"
             style={{ width: CARD_W, height: CARD_H, position: 'relative', flexShrink: 0 }}
@@ -324,6 +325,13 @@ export default function PlayerSubmit({
               blurDataURL={BLUR_CREAM}
             />
           </div>
+          {/* Card name reminder — useful since the text in the image can be small */}
+          <p
+            className="font-[family-name:var(--font-bebas)] text-white/70 tracking-wide text-center leading-tight"
+            style={{ fontSize: 13, maxWidth: CARD_W }}
+          >
+            {selected.name}
+          </p>
         </div>
       )}
 
