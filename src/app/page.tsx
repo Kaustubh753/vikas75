@@ -406,6 +406,13 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
   const nameRef             = useRef<HTMLInputElement>(null);
   const slotsRef            = useRef<(HTMLInputElement | null)[]>([]);
 
+  // Pre-populate the last-used avatar so the picker never defaults to a1
+  // on every open. Runs once on mount (client-only — localStorage is safe here).
+  useEffect(() => {
+    const saved = localStorage.getItem('vikas75_avatarId') as AvatarId | null;
+    if (saved && saved !== 'a0') setAvatarId(saved);
+  }, []);
+
   // overflow: hidden is required during the collapse animation so content
   // doesn't spill out. Once the form is fully open (after 360ms — matching
   // the .35s cubic transition) we switch to visible so scale() transforms on
@@ -457,7 +464,9 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
   }
 
   const baseSlot: React.CSSProperties = {
-    width: 44, height: 52,
+    // flex:1 lets all 4 slots share the row width equally, matching the name
+    // input and join button above/below them.
+    flex: 1, minWidth: 0, height: 52,
     background: 'rgba(250,248,240,.04)',
     border: '1px solid rgba(250,248,240,.14)',
     borderRadius: 4, color: '#fff',
