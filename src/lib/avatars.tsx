@@ -11,20 +11,12 @@ export const REAL_AVATAR_IDS: AvatarId[] = [
 // All ids including the random placeholder shown in the picker
 export const ALL_AVATAR_IDS: AvatarId[] = ['a0', ...REAL_AVATAR_IDS];
 
-/** Dominant background colour sampled from each avatar image */
+/** No custom background — images carry their own background colour */
 export const AVATAR_BACKGROUNDS: Record<AvatarId, string> = {
-  a0:  '#1a3a6e', // random slot — navy fallback
-  a1:  '#00BCD4', // heart eyes — cyan
-  a2:  '#0097a7', // cow hugger — teal
-  a3:  '#7a6a4a', // safari mode — olive
-  a4:  '#757575', // lotus holder — grey
-  a5:  '#6a5aaa', // specs check — purple
-  a6:  '#0097a7', // deep thinker — teal
-  a7:  '#6d3b1a', // melody man — brown
-  a8:  '#555555', // top gun — charcoal
-  a9:  '#2e7d32', // chief ji — green
-  a10: '#7a5a2a', // side eye — tan
-  a11: '#c84a00', // laser eyes — orange
+  a0: 'transparent', a1: 'transparent', a2: 'transparent',
+  a3: 'transparent', a4: 'transparent', a5: 'transparent',
+  a6: 'transparent', a7: 'transparent', a8: 'transparent',
+  a9: 'transparent', a10: 'transparent', a11: 'transparent',
 };
 
 export const AVATAR_NAMES: Record<AvatarId, string> = {
@@ -99,7 +91,7 @@ export default function Avatar({ id, size = 48, className = '' }: AvatarProps) {
         alt={AVATAR_NAMES[id]}
         width={size}
         height={size}
-        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+        style={{ objectFit: 'contain', width: '100%', height: '100%' }}
         priority={false}
       />
     </div>

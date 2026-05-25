@@ -1,7 +1,6 @@
 'use client';
 import Avatar, {
   ALL_AVATAR_IDS,
-  AVATAR_BACKGROUNDS,
   AVATAR_NAMES,
   randomAvatarId,
 } from '@/lib/avatars';
@@ -46,7 +45,7 @@ export default function AvatarPicker({ value, onChange, disabled }: Props) {
                     ? 'ring-1 ring-dashed ring-white/30 opacity-80 hover:opacity-100'
                     : 'ring-1 ring-white/10 opacity-70 hover:opacity-100'
                 }`}
-              style={{ background: AVATAR_BACKGROUNDS[id] }}
+              style={{ background: 'transparent' }}
             >
               <Avatar id={id} size={72} />
               {/* "Random" label overlay */}
