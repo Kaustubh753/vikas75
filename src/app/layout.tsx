@@ -45,15 +45,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div style={{ flex: 1, background: '#ffffff' }} />
           <div style={{ flex: 1, background: '#138808' }} />
         </div>
-        <div style={{
-          position: 'fixed', bottom: 0, left: 0, right: 0,
-          height: 5, display: 'flex', zIndex: 99999,
-          pointerEvents: 'none',
-        }}>
-          <div style={{ flex: 1, background: '#FF9933' }} />
-          <div style={{ flex: 1, background: '#ffffff' }} />
-          <div style={{ flex: 1, background: '#138808' }} />
-        </div>
         <ToasterProvider />
         {children}
       </body>
