@@ -487,8 +487,8 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
             onBlur={e => (e.target.style.borderColor = 'rgba(250,248,240,.14)')}
           />
 
-          {/* OTP code slots — space-between spreads them across the row width */}
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          {/* OTP code slots */}
+          <div style={{ display: 'flex', gap: 8 }}>
             {[0, 1, 2, 3].map(i => (
               <input
                 key={i}

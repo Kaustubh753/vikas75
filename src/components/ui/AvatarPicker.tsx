@@ -4,8 +4,8 @@ import { ALL_AVATAR_IDS, AVATAR_NAMES, randomAvatarId } from '@/lib/avatars';
 import type { AvatarId } from '@/types/game';
 
 // Fixed cell size — predictable layout regardless of parent container width.
-const CELL = 56;
-const GAP  = 6;
+const CELL = 48;
+const GAP  = 5;
 
 function DiceIcon({ hovered }: { hovered: boolean }) {
   return (
