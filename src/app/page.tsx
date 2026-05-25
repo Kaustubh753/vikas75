@@ -573,6 +573,14 @@ function LandingPage() {
     if (pid && pname && avid && rc) router.replace(`/room/${rc}`);
   }, [router, initialCode]);
 
+  // Sync music button state from saved preference and attempt to resume playback.
+  // play() silently no-ops if autoplay is blocked by the browser.
+  useEffect(() => {
+    const mgr = getLobbyMusic();
+    setMusicOn(mgr.enabled);
+    mgr.play();
+  }, []);
+
   const btnBase: React.CSSProperties = {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     height: 'clamp(38px, 4.2vh, 52px)',
