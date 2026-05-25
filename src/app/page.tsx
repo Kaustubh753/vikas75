@@ -449,18 +449,20 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
   }
 
   const baseSlot: React.CSSProperties = {
-    flex: 1, minWidth: 0, height: 48,
-    background: 'rgba(250,248,240,.04)',
-    border: '1px solid rgba(250,248,240,.14)',
-    borderRadius: 4, color: '#fff',
-    fontFamily: 'var(--font-inter),sans-serif', fontWeight: 600, fontSize: 22,
+    flex: 1, minWidth: 0,
+    aspectRatio: '1',
+    background: 'rgba(250,248,240,.05)',
+    border: '1.5px solid rgba(250,248,240,.16)',
+    borderRadius: 8, color: '#fff',
+    fontFamily: 'var(--font-inter),sans-serif', fontWeight: 700, fontSize: 26,
     textAlign: 'center', textTransform: 'uppercase', outline: 'none',
-    transition: 'border-color .12s ease',
+    transition: 'border-color .12s ease, background .12s ease',
+    letterSpacing: '0.06em',
   };
 
   return (
     <div style={{
-      maxWidth: 380,
+      width: '100%',
       overflow: 'hidden',
       display: 'grid',
       gridTemplateRows: open ? '1fr' : '0fr',
@@ -488,13 +490,15 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
             onBlur={e => (e.target.style.borderColor = 'rgba(250,248,240,.14)')}
           />
 
-          {/* OTP code slots — flex:1 fills row evenly, width:100% on the row */}
-          <div style={{ display: 'flex', gap: 6, width: '100%' }}>
+          {/* OTP code slots */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <p style={{ fontFamily: 'var(--font-inter)', fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.45)', margin: 0 }}>Room Code</p>
+          <div style={{ display: 'flex', gap: 8, width: '100%' }}>
             {[0, 1, 2, 3].map(i => (
               <input
                 key={i}
                 ref={el => { slotsRef.current[i] = el; }}
-                style={{ ...baseSlot, borderColor: code[i] ? '#FF9933' : 'rgba(250,248,240,.14)' }}
+                style={{ ...baseSlot, borderColor: code[i] ? '#FF9933' : 'rgba(250,248,240,.16)', background: code[i] ? 'rgba(255,153,51,.07)' : 'rgba(250,248,240,.05)' }}
                 value={code[i] ?? ''}
                 maxLength={1} inputMode="text"
                 aria-label={`Room code character ${i + 1}`}
@@ -510,11 +514,12 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
                 onKeyDown={e => {
                   if (e.key === 'Backspace' && !code[i] && i > 0) slotsRef.current[i - 1]?.focus();
                 }}
-                onFocus={e => (e.target.style.borderColor = '#FF9933')}
-                onBlur={e => (e.target.style.borderColor = code[i] ? '#FF9933' : 'rgba(250,248,240,.14)')}
+                onFocus={e => { e.target.style.borderColor = '#FF9933'; e.target.style.background = 'rgba(255,153,51,.07)'; }}
+                onBlur={e => { e.target.style.borderColor = code[i] ? '#FF9933' : 'rgba(250,248,240,.16)'; e.target.style.background = code[i] ? 'rgba(255,153,51,.07)' : 'rgba(250,248,240,.05)'; }}
               />
             ))}
           </div>
+          </div>{/* end code slots wrapper */}
 
           <AvatarPicker value={avatarId} onChange={setAvatarId} disabled={loading} />
 
@@ -648,11 +653,9 @@ function LandingPage() {
       }}>
 
         {/* ── LEFT: logo + CTAs ─────────────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', zIndex: 5, alignItems: 'flex-start' }}>
-          {/* Shared width wrapper — logo and buttons size together */}
-          <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 20, width: 'fit-content' }}>
-          {/* Logo unit with saffron left bar */}
-          <div style={{ display: 'flex', flexDirection: 'column', position: 'relative', paddingLeft: 16, alignItems: 'stretch' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', zIndex: 5, alignItems: 'stretch', gap: 20 }}>
+          {/* Logo unit with saffron left bar — stays as natural width */}
+          <div style={{ display: 'flex', flexDirection: 'column', position: 'relative', paddingLeft: 16, alignItems: 'stretch', alignSelf: 'flex-start' }}>
             <div style={{ position: 'absolute', left: 0, top: 6, bottom: 6, width: 2, background: '#FF9933' }} />
             <div style={{
               fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500,
@@ -688,8 +691,8 @@ function LandingPage() {
 
           </div>
 
-          {/* CTA buttons — width: 100% stretches to match logo above */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* CTA buttons — full column width */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
             <button
               style={{ ...btnBase, width: '100%', background: '#FF9933', color: '#1a1208', borderColor: '#FF9933' }}
               onMouseEnter={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = '#e6862b'; b.style.transform = 'translateY(-1px)'; b.style.boxShadow = '0 6px 24px rgba(255,153,51,.32)'; }}
@@ -708,7 +711,6 @@ function LandingPage() {
             </button>
             <JoinForm open={joinOpen} initialCode={initialCode} onClose={() => setJoinOpen(false)} />
           </div>
-          </div>{/* end shared width wrapper */}
         </div>
 
         {/* ── CENTER: card fan ─────────────────────────────────── */}
