@@ -18,17 +18,11 @@ function DiceIcon({ hovered }: { hovered: boolean }) {
         flexShrink: 0,
       }}
     >
-      {/* Die body */}
       <rect x="2" y="2" width="34" height="34" rx="6" stroke="white" strokeWidth="2.5" />
-      {/* Top-left pip */}
       <circle cx="11" cy="11" r="2.8" fill="white" />
-      {/* Top-right pip */}
       <circle cx="27" cy="11" r="2.8" fill="white" />
-      {/* Centre pip */}
       <circle cx="19" cy="19" r="2.8" fill="white" />
-      {/* Bottom-left pip */}
       <circle cx="11" cy="27" r="2.8" fill="white" />
-      {/* Bottom-right pip */}
       <circle cx="27" cy="27" r="2.8" fill="white" />
     </svg>
   );
@@ -50,7 +44,6 @@ export default function AvatarPicker({ value, onChange, disabled }: Props) {
 
   return (
     <div>
-      {/* Section label */}
       <p
         style={{
           fontFamily: 'var(--font-inter)',
@@ -65,23 +58,40 @@ export default function AvatarPicker({ value, onChange, disabled }: Props) {
         Choose Your Avatar
       </p>
 
-      {/* 4 rows × 3 cols — all 12 slots visible at once.
-          overflow:visible + padding:4px ensure scale(1.05) transforms on edge
-          cells are never clipped by the grid container. */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, overflow: 'visible', padding: 4 }}>
+      {/*
+        NO transform:scale — scale() gets clipped by any ancestor with
+        overflow:auto/hidden (including the scroll container on the left panel).
+        Instead we use border + inset box-shadow which are painted inside the
+        element's own bounds and are therefore never clipped.
+      */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
         {ALL_AVATAR_IDS.map((id) => {
           const isRandom = id === 'a0';
           const isSelected = !isRandom && value === id;
           const isHovered = hoveredId === id;
 
+          // Border lives inside the element — cannot be clipped by ancestors.
           const border = isSelected
-            ? '2px solid #FF9933'
+            ? '2.5px solid #FF9933'
             : isHovered
             ? '1.5px solid rgba(255,153,51,0.5)'
             : '1.5px solid rgba(255,255,255,0.1)';
 
-          const boxShadow = isSelected ? '0 0 0 3px rgba(255,153,51,0.25)' : 'none';
-          const scale = isSelected || isHovered ? 'scale(1.05)' : 'scale(1)';
+          // Inset shadows also stay inside the element's paint box.
+          const boxShadow = isSelected
+            ? 'inset 0 0 0 1px rgba(255,153,51,0.25), inset 0 0 14px rgba(255,153,51,0.12)'
+            : isHovered
+            ? 'inset 0 0 0 1px rgba(255,153,51,0.1)'
+            : 'none';
+
+          // Background brightens slightly on hover/selected for extra feedback.
+          const background = isRandom
+            ? 'linear-gradient(135deg, rgba(255,153,51,0.55) 0%, #1a3a6e 70%)'
+            : isSelected
+            ? '#1f4070'
+            : isHovered
+            ? '#1d3d6a'
+            : '#1a3a6e';
 
           return (
             <button
@@ -95,19 +105,16 @@ export default function AvatarPicker({ value, onChange, disabled }: Props) {
               aria-pressed={isSelected}
               style={{
                 position: 'relative',
-                // Cell is always square; min 72 px, grows to fill column width
                 width: '100%',
                 aspectRatio: '1 / 1',
                 minWidth: 72,
                 minHeight: 72,
-                background: isRandom
-                  ? 'linear-gradient(135deg, rgba(255,153,51,0.55) 0%, #1a3a6e 70%)'
-                  : '#1a3a6e',
+                background,
                 borderRadius: 10,
                 border,
                 boxShadow,
-                transform: scale,
-                transition: 'border-color 150ms, transform 150ms, box-shadow 150ms',
+                // No transform:scale — see comment above
+                transition: 'border-color 150ms, box-shadow 150ms, background 150ms',
                 overflow: 'hidden',
                 display: 'flex',
                 alignItems: 'center',
@@ -124,11 +131,23 @@ export default function AvatarPicker({ value, onChange, disabled }: Props) {
                 <img
                   src={`/avatars/${id}.webp`}
                   alt={AVATAR_NAMES[id]}
-                  style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',
+                    display: 'block',
+                    // Subtle brightness boost on hover/selected — painted inside img bounds
+                    filter: isSelected
+                      ? 'brightness(1.08)'
+                      : isHovered
+                      ? 'brightness(1.05)'
+                      : 'none',
+                    transition: 'filter 150ms',
+                  }}
                 />
               )}
 
-              {/* Selected checkmark badge — 16 px saffron circle, bottom-right */}
+              {/* Checkmark badge — absolutely positioned inside the cell */}
               {isSelected && (
                 <span
                   style={{
