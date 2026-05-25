@@ -6,19 +6,21 @@ interface Props {
 }
 
 export default function LogoLockup({ size = 'md', className = '' }: Props) {
+  // Proportions calibrated to match landing page:
+  //   title ≈ 8× attr, tagline ≈ 1.9× attr, spacing ≈ 15% of title
   const s = {
-    sm: { attr: 9,  title: 28, tagline: 11 },
-    md: { attr: 10, title: 44, tagline: 14 },
-    lg: { attr: 12, title: 64, tagline: 18 },
+    sm: { attr: 8,  title: 34,  tagline: 10, spacing: 5,  padLeft: 14, barInset: 5 },
+    md: { attr: 9,  title: 54,  tagline: 14, spacing: 8,  padLeft: 16, barInset: 6 },
+    lg: { attr: 11, title: 80,  tagline: 18, spacing: 12, padLeft: 18, barInset: 7 },
   }[size];
 
   return (
     <div
       className={className}
-      style={{ display: 'inline-flex', flexDirection: 'column', position: 'relative', paddingLeft: 14, alignItems: 'stretch' }}
+      style={{ display: 'inline-flex', flexDirection: 'column', position: 'relative', paddingLeft: s.padLeft, alignItems: 'stretch' }}
     >
       {/* Saffron left bar */}
-      <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 2, background: '#FF9933', borderRadius: 1 }} />
+      <div style={{ position: 'absolute', left: 0, top: s.barInset, bottom: s.barInset, width: 2, background: '#FF9933', borderRadius: 1 }} />
 
       {/* Attribution */}
       <p style={{
@@ -29,7 +31,7 @@ export default function LogoLockup({ size = 'md', className = '' }: Props) {
         textTransform: 'uppercase',
         color: 'rgba(250,248,240,.65)',
         lineHeight: 1.4,
-        marginBottom: 6,
+        marginBottom: s.spacing,
         whiteSpace: 'nowrap',
       }}>
         An initiative of the Office of Shri Sujeet Kumar
@@ -57,7 +59,7 @@ export default function LogoLockup({ size = 'md', className = '' }: Props) {
         lineHeight: 1.35,
         color: '#FF9933',
         letterSpacing: '-0.005em',
-        marginTop: 6,
+        marginTop: s.spacing,
         whiteSpace: 'nowrap',
       }}>
         The best answer isn&apos;t always right

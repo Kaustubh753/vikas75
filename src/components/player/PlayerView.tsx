@@ -507,6 +507,31 @@ export default function PlayerView({ code }: Props) {
               </p>
             </div>
           )}
+          {/* Leave game — always visible; doesn't clear identity so player can rejoin */}
+          {phase !== 'game-over' && (
+            <button
+              onClick={() => router.push('/')}
+              className="flex items-center gap-1 transition-all active:scale-95"
+              style={{
+                height: 32,
+                paddingLeft: 10,
+                paddingRight: 10,
+                borderRadius: 8,
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                color: 'rgba(255,255,255,0.4)',
+                fontFamily: 'var(--font-inter),sans-serif',
+                fontSize: 11,
+                fontWeight: 500,
+                letterSpacing: '0.04em',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+              aria-label="Leave game and return to home"
+            >
+              ← Leave
+            </button>
+          )}
         </div>
       </div>
 
