@@ -406,6 +406,22 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
   const nameRef             = useRef<HTMLInputElement>(null);
   const slotsRef            = useRef<(HTMLInputElement | null)[]>([]);
 
+  // overflow: hidden is required during the collapse animation so content
+  // doesn't spill out. Once the form is fully open (after 360ms — matching
+  // the .35s cubic transition) we switch to visible so scale() transforms on
+  // avatar cells are never clipped by this wrapper.
+  const [overflowVisible, setOverflowVisible] = useState(false);
+  const openTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => {
+    if (open) {
+      openTimerRef.current = setTimeout(() => setOverflowVisible(true), 360);
+    } else {
+      clearTimeout(openTimerRef.current);
+      setOverflowVisible(false);
+    }
+    return () => clearTimeout(openTimerRef.current);
+  }, [open]);
+
   useEffect(() => { if (open) setTimeout(() => nameRef.current?.focus(), 350); }, [open]);
 
   async function handleJoin(e: React.FormEvent) {
@@ -452,7 +468,10 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
 
   return (
     <div style={{
-      maxWidth: 380, overflow: 'hidden',
+      maxWidth: 380,
+      // Keep hidden during collapse animation; switch to visible once fully open
+      // so avatar scale() transforms are never clipped by this wrapper.
+      overflow: overflowVisible ? 'visible' : 'hidden',
       display: 'grid',
       gridTemplateRows: open ? '1fr' : '0fr',
       transition: 'grid-template-rows .35s cubic-bezier(.6,0,.3,1), opacity .25s ease, margin-top .25s ease',
@@ -639,9 +658,13 @@ function LandingPage() {
       }}>
 
         {/* ── LEFT: logo + CTAs ─────────────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', zIndex: 5, alignItems: 'flex-start' }}>
+        {/* overflowY:auto makes the panel scrollable when JoinForm is open and
+            taller than the viewport. margin:'auto 0' on the inner wrapper
+            centres content when there is spare space, falls back to top-align
+            + scroll when content overflows. */}
+        <div style={{ display: 'flex', flexDirection: 'column', overflowY: 'auto', zIndex: 5, alignItems: 'flex-start' }}>
           {/* Shared width wrapper — logo and buttons size together */}
-          <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 28, width: 'fit-content' }}>
+          <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 28, width: 'fit-content', margin: 'auto 0' }}>
           {/* Logo unit with saffron left bar */}
           <div style={{ display: 'flex', flexDirection: 'column', position: 'relative', paddingLeft: 16, alignItems: 'stretch' }}>
             <div style={{ position: 'absolute', left: 0, top: 6, bottom: 6, width: 2, background: '#FF9933' }} />

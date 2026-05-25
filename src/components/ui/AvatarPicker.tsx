@@ -65,8 +65,10 @@ export default function AvatarPicker({ value, onChange, disabled }: Props) {
         Choose Your Avatar
       </p>
 
-      {/* 4 rows × 3 cols — all 12 slots visible at once */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+      {/* 4 rows × 3 cols — all 12 slots visible at once.
+          overflow:visible + padding:4px ensure scale(1.05) transforms on edge
+          cells are never clipped by the grid container. */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, overflow: 'visible', padding: 4 }}>
         {ALL_AVATAR_IDS.map((id) => {
           const isRandom = id === 'a0';
           const isSelected = !isRandom && value === id;
