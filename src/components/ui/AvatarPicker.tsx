@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { ALL_AVATAR_IDS, AVATAR_NAMES } from '@/lib/avatars';
 import type { AvatarId } from '@/types/game';
 
-const GAP = 8; // px — gap between cells
+const CELL = 60;  // px — 3×3 grid, each cell is a square
+const GAP  = 6;   // px — gap between cells
 
 interface Props {
   value: AvatarId;
@@ -15,7 +16,7 @@ export default function AvatarPicker({ value, onChange, disabled }: Props) {
   const [hoveredId, setHoveredId] = useState<AvatarId | null>(null);
 
   return (
-    <div style={{ width: '100%' }}>
+    <div>
       <p style={{
         fontFamily: 'var(--font-inter)',
         fontSize: 11, fontWeight: 500,
@@ -26,12 +27,11 @@ export default function AvatarPicker({ value, onChange, disabled }: Props) {
         Choose Your Avatar
       </p>
 
-      {/* 3 × 3 fluid grid — fills parent width, cells stay square via aspect-ratio */}
+      {/* 3 × 3 grid — fixed pixel sizes, never affected by parent width */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
+        gridTemplateColumns: `repeat(3, ${CELL}px)`,
         gap: GAP,
-        width: '100%',
       }}>
         {ALL_AVATAR_IDS.map((id) => {
           const isSelected = value === id;
@@ -59,8 +59,7 @@ export default function AvatarPicker({ value, onChange, disabled }: Props) {
               aria-pressed={isSelected}
               style={{
                 position: 'relative',
-                width: '100%',
-                aspectRatio: '1',
+                width: CELL, height: CELL,
                 flexShrink: 0,
                 background: isSelected ? '#1f4070' : isHovered ? '#1d3d6a' : '#1a3a6e',
                 borderRadius: 8,
