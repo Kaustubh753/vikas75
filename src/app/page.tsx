@@ -448,9 +448,7 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
   }
 
   const baseSlot: React.CSSProperties = {
-    // flex:1 lets all 4 slots share the row width equally, matching the name
-    // input and join button above/below them.
-    flex: 1, minWidth: 0, height: 52,
+    width: 44, height: 52,
     background: 'rgba(250,248,240,.04)',
     border: '1px solid rgba(250,248,240,.14)',
     borderRadius: 4, color: '#fff',
@@ -489,8 +487,8 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
             onBlur={e => (e.target.style.borderColor = 'rgba(250,248,240,.14)')}
           />
 
-          {/* OTP code slots */}
-          <div style={{ display: 'flex', gap: 8 }}>
+          {/* OTP code slots — space-between spreads them across the row width */}
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             {[0, 1, 2, 3].map(i => (
               <input
                 key={i}
