@@ -95,7 +95,8 @@ export default function PlayerView({ code }: Props) {
 
   const fetchRoom = useCallback(async () => {
     try {
-      const res = await fetch(`/api/game?code=${code}`);
+      const pid = localStorage.getItem('vikas75_playerId') ?? '';
+      const res = await fetch(`/api/game?code=${code}${pid ? `&me=${encodeURIComponent(pid)}` : ''}`);
       if (!res.ok) {
         // Room not found — only clear + redirect during session restore (before first successful join)
         if (!toastedJoin.current) clearSessionAndGoHome();
@@ -119,7 +120,6 @@ export default function PlayerView({ code }: Props) {
         const merged = [...serverMsgs, ...localMsgs.filter(m => !serverMsgs.find(s => s.id === m.id))];
         return { ...r, messages: merged.slice(-20) };
       });
-      const pid = localStorage.getItem('vikas75_playerId') ?? '';
       if (pid && r.players[pid]?.hand?.length) {
         const hand = r.players[pid].hand;
         setCachedHand(hand);

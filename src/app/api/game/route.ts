@@ -377,6 +377,8 @@ export async function GET(req: NextRequest) {
   try {
     const code = req.nextUrl.searchParams.get('code');
     if (!code) return NextResponse.json({ error: 'Missing code' }, { status: 400 });
+    // Optional: requesting player's own ID — they receive their own hand back; everyone else's is stripped.
+    const me = req.nextUrl.searchParams.get('me') ?? '';
     const room = await getRoom(code.toUpperCase());
     if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
 
@@ -386,11 +388,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Room closed — all players disconnected' }, { status: 404 });
     }
 
-    // Strip player hands — card data is private; clients get their own hand via Pusher broadcast
+    // Return the requesting player's own hand; strip everyone else's (hands are private).
     const scrubbed = {
       ...room,
       players: Object.fromEntries(
-        Object.entries(room.players).map(([id, p]) => [id, { ...p, hand: [] }])
+        Object.entries(room.players).map(([id, p]) => [id, { ...p, hand: id === me ? p.hand : [] }])
       ),
     };
     return NextResponse.json({ room: scrubbed });

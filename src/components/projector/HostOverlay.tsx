@@ -54,6 +54,8 @@ export default function HostOverlay({ room, code, hostId }: Props) {
   const [settingsHover, setSettingsHover] = useState(false);
   const [musicHover, setMusicHover] = useState(false);
   const [expandHover, setExpandHover] = useState(false);
+  const [endGameHover, setEndGameHover] = useState(false);
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
 
   // Sync sliders when room updates (e.g. from another client)
   useEffect(() => {
@@ -119,6 +121,24 @@ export default function HostOverlay({ room, code, hostId }: Props) {
     } catch {
       // fire-and-forget
     }
+  }
+
+  async function handleEndGame() {
+    setShowEndConfirm(false);
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'end-game', code, hostId }),
+      });
+      const data = await res.json();
+      if (!res.ok) setError(data.error || 'Could not end game');
+    } catch {
+      setError('Network error');
+    }
+    setLoading(false);
   }
 
   const scheduleSettingsUpdate = useCallback((nextRounds: number, nextTimer: number) => {
@@ -423,6 +443,26 @@ export default function HostOverlay({ room, code, hostId }: Props) {
 
         {/* RIGHT ZONE */}
         <div style={{ minWidth: 140, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+          {/* End Game — available in any non-finished phase */}
+          {room.phase !== 'game-over' && (
+            <button
+              onClick={() => setShowEndConfirm(true)}
+              onMouseEnter={() => setEndGameHover(true)}
+              onMouseLeave={() => setEndGameHover(false)}
+              title="End game now"
+              disabled={loading}
+              style={{
+                ...iconBtnStyle(endGameHover),
+                color: endGameHover ? '#ef4444' : 'rgba(255,255,255,0.4)',
+                border: `1px solid ${endGameHover ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.10)'}`,
+                background: endGameHover ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.06)',
+              }}
+              aria-label="End game"
+            >
+              ✕
+            </button>
+          )}
+
           {/* Settings gear — lobby only */}
           {room.phase === 'lobby' && (
             <button
@@ -496,6 +536,56 @@ export default function HostOverlay({ room, code, hostId }: Props) {
       >
         HOST ▲
       </button>
+
+      {/* End-game confirmation modal */}
+      {showEndConfirm && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 300,
+          background: 'rgba(7,16,31,0.75)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{
+            background: 'rgba(7,16,31,0.98)',
+            border: '1px solid rgba(239,68,68,0.35)',
+            borderRadius: 16,
+            padding: '32px 36px',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20,
+            maxWidth: 400,
+          }}>
+            <p style={{ fontFamily: 'var(--font-bebas)', fontSize: 28, color: '#fff', letterSpacing: '0.06em', textAlign: 'center' }}>
+              End the game?
+            </p>
+            <p style={{ fontFamily: 'var(--font-inter)', fontSize: 13, color: 'rgba(255,255,255,0.55)', textAlign: 'center', lineHeight: 1.5 }}>
+              This will end the game immediately for all players. This cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button
+                onClick={() => setShowEndConfirm(false)}
+                style={{
+                  height: 40, paddingLeft: 20, paddingRight: 20, borderRadius: 8,
+                  background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                  color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-inter)',
+                  fontSize: 13, cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEndGame}
+                style={{
+                  height: 40, paddingLeft: 20, paddingRight: 20, borderRadius: 8,
+                  background: '#ef4444', border: 'none',
+                  color: '#fff', fontFamily: 'var(--font-bebas)',
+                  fontSize: 18, letterSpacing: '0.06em', cursor: 'pointer',
+                }}
+              >
+                End Game
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Keyframe injection for pulse animation */}
       <style>{`

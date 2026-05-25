@@ -425,6 +425,14 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
       localStorage.setItem('vikas75_playerName', name.trim());
       localStorage.setItem('vikas75_avatarId',   avatarId);
       localStorage.setItem('vikas75_roomCode',   trimmedCode);
+      // Cache the player's hand from the join response so PlayerView has it immediately
+      // (the GET endpoint will also return it via ?me=pid, but caching avoids a round-trip flash)
+      try {
+        const myHand = data.room?.players?.[playerId]?.hand;
+        if (Array.isArray(myHand) && myHand.length) {
+          localStorage.setItem(`vikas75_hand_${trimmedCode}`, JSON.stringify(myHand));
+        }
+      } catch { /* ignore */ }
       router.push(`/room/${trimmedCode}`);
     } catch {
       setError('Network error. Please try again.');
