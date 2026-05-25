@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { FaGlobe, FaInstagram, FaXTwitter, FaLinkedin, FaFacebook, FaYoutube } from 'react-icons/fa6';
 import { getLobbyMusic } from '@/lib/music-manager';
 import type { AvatarId } from '@/types/game';
+import { ALL_AVATAR_IDS } from '@/lib/avatars';
 import AvatarPicker from '@/components/ui/AvatarPicker';
 import CodeInput from '@/components/ui/CodeInput';
 
@@ -409,8 +410,8 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
   // Pre-populate the last-used avatar so the picker never defaults to a1
   // on every open. Runs once on mount (client-only — localStorage is safe here).
   useEffect(() => {
-    const saved = localStorage.getItem('vikas75_avatarId') as AvatarId | null;
-    if (saved && saved !== 'a0') setAvatarId(saved);
+    const saved = localStorage.getItem('vikas75_avatarId');
+    if (saved && ALL_AVATAR_IDS.includes(saved as AvatarId)) setAvatarId(saved as AvatarId);
   }, []);
 
   useEffect(() => { if (open) setTimeout(() => nameRef.current?.focus(), 350); }, [open]);
@@ -448,7 +449,7 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
   }
 
   const baseSlot: React.CSSProperties = {
-    width: 44, height: 52,
+    flex: 1, minWidth: 0, height: 48,
     background: 'rgba(250,248,240,.04)',
     border: '1px solid rgba(250,248,240,.14)',
     borderRadius: 4, color: '#fff',
@@ -487,8 +488,8 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
             onBlur={e => (e.target.style.borderColor = 'rgba(250,248,240,.14)')}
           />
 
-          {/* OTP code slots */}
-          <div style={{ display: 'flex', gap: 8 }}>
+          {/* OTP code slots — flex:1 fills row evenly, width:100% on the row */}
+          <div style={{ display: 'flex', gap: 6, width: '100%' }}>
             {[0, 1, 2, 3].map(i => (
               <input
                 key={i}

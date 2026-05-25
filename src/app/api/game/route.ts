@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
         const safeName = filterText(sanitizeName(playerName));
         if (!safeName) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
         if (!playerId || typeof playerId !== 'string' || playerId.length > 64) return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
-        const VALID_AVATAR_IDS: AvatarId[] = ['a1','a2','a3','a4','a5','a6','a7','a8','a9'];
+        const VALID_AVATAR_IDS: AvatarId[] = ['a1','a2','a3','a4','a5','a7','a8','a10','a11'];
         const safeAvatarId: AvatarId = VALID_AVATAR_IDS.includes(avatarId) ? avatarId : 'a1';
         const room = await getRoom(code?.toUpperCase());
         if (!room) return NextResponse.json({ error: 'Room not found — check your code' }, { status: 404 });
