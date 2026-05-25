@@ -641,7 +641,7 @@ function LandingPage() {
         {/* ── LEFT: logo + CTAs ─────────────────────────────────── */}
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', zIndex: 5, alignItems: 'flex-start' }}>
           {/* Shared width wrapper — logo and buttons size together */}
-          <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 28, width: 'fit-content' }}>
+          <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 16, width: 'fit-content' }}>
           {/* Logo unit with saffron left bar */}
           <div style={{ display: 'flex', flexDirection: 'column', position: 'relative', paddingLeft: 16, alignItems: 'stretch' }}>
             <div style={{ position: 'absolute', left: 0, top: 6, bottom: 6, width: 2, background: '#FF9933' }} />
