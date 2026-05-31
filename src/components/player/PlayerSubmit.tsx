@@ -104,7 +104,7 @@ export default function PlayerSubmit({
   const wordsLeft = MAX_WORDS - wordCount;
 
   async function handleThrow() {
-    if (!selected || !explanation.trim() || loading) return;
+    if (!selected || !explanation.trim() || loading || throwing) return;
     setThrowing(true);
     setTimeout(async () => {
       if (!mountedRef.current) return;
