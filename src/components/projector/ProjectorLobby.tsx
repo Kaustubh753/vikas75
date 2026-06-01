@@ -1,41 +1,115 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Avatar from '@/lib/avatars';
 import { getLobbyMusic } from '@/lib/music-manager';
-import type { GameRoom } from '@/types/game';
-import { FaGlobe, FaInstagram, FaXTwitter, FaLinkedin, FaFacebook, FaYoutube } from 'react-icons/fa6';
+import type { GameRoom, Player } from '@/types/game';
 
 const QRCodeSVG = dynamic(
   () => import('qrcode.react').then((m) => ({ default: m.QRCodeSVG })),
   { ssr: false }
 );
 
-const SOCIAL = [
-  { label: 'Website',   href: 'https://www.sujeetkofficial.com/',                                    Icon: FaGlobe     },
-  { label: 'Instagram', href: 'https://www.instagram.com/sujeetkofficial/',                          Icon: FaInstagram  },
-  { label: 'X',         href: 'https://x.com/SujeetKOfficial',                                       Icon: FaXTwitter   },
-  { label: 'LinkedIn',  href: 'https://www.linkedin.com/in/sujeet--kumar/',                          Icon: FaLinkedin   },
-  { label: 'Facebook',  href: 'https://www.facebook.com/SujeetKOfficial/',                           Icon: FaFacebook   },
-  { label: 'YouTube',   href: 'https://www.youtube.com/channel/UC6yGMDZkljNPgX8vGUcBTbA/playlists', Icon: FaYoutube    },
+const FACTS = [
+  'The deck holds 75 schemes. Nobody has read all of them — least of all the people who wrote them.',
+  '"Form a Committee" has the highest win rate on record. This surprises no one.',
+  'Every scheme is technically a real proposal. The "technically" is doing a lot of work.',
+  'There is no correct card. There is only the card you can defend before the chai goes cold.',
+  'The deck is updated yearly, in line with the Budget. Both are mostly reshuffling.',
+  'Schemes have been renamed 1,200 times. The schemes themselves remain unchanged.',
+  'The AI judge has no agenda. But it has read every government press release. Take that as you will.',
 ];
 
+// The tile rotations for each letter — tiny rotations like playing cards freshly placed
+const TILE_ROTATIONS = ['-3deg', '1.5deg', '-1deg', '2.5deg'];
+
+interface BanterItem { name: string; key: number }
 interface Props { room: GameRoom }
 
-// Glass panel — matches landing page HTP panel style
-const panelStyle: React.CSSProperties = {
-  width: '100%',
-  background: 'linear-gradient(180deg,rgba(255,153,51,.05) 0%,rgba(255,153,51,0) 22%),linear-gradient(180deg,rgba(5,11,28,.85) 0%,rgba(2,6,18,.9) 100%)',
-  border: '1px solid rgba(255,153,51,.22)',
-  borderRadius: 12,
-  boxShadow: '0 24px 48px rgba(0,0,0,.45),0 6px 14px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,153,51,.18),inset 0 0 0 1px rgba(255,255,255,.02)',
-  backdropFilter: 'blur(8px)',
-  boxSizing: 'border-box' as const,
-};
+// ── Open seat placeholder ────────────────────────────────────────────────────
+function OpenSeat({ w, h }: { w: number; h: number }) {
+  const avatarRing = Math.round(w * 0.44);
+  return (
+    <div style={{
+      width: w, height: h,
+      borderRadius: 18,
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', gap: 12,
+      border: '1.5px dashed rgba(250,248,240,0.18)',
+      background: 'rgba(250,248,240,0.015)',
+      flexShrink: 0,
+    }}>
+      <div style={{
+        width: avatarRing, height: avatarRing, borderRadius: '50%',
+        border: '1.5px dashed rgba(250,248,240,0.22)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: 'rgba(250,248,240,0.3)',
+        fontSize: Math.round(w * 0.17), fontWeight: 300,
+      }}>+</div>
+      <div style={{
+        fontFamily: 'var(--font-inter),sans-serif',
+        fontSize: Math.round(w * 0.07), fontWeight: 500,
+        letterSpacing: '0.16em', textTransform: 'uppercase' as const,
+        color: 'rgba(250,248,240,0.45)',
+      }}>open seat</div>
+    </div>
+  );
+}
 
+// ── Filled seat with player avatar ──────────────────────────────────────────
+function FilledSeat({ player, w, h }: { player: Player; w: number; h: number }) {
+  const avatarSize = Math.round(w * 0.44);
+  return (
+    <div style={{
+      width: w, height: h,
+      borderRadius: 18,
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', gap: 12,
+      background: 'linear-gradient(180deg,rgba(26,58,110,0.55) 0%,rgba(26,58,110,0.22) 100%)',
+      border: '1px solid rgba(255,153,51,0.22)',
+      boxShadow: '0 18px 36px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.05)',
+      animation: 'vkSeatIn 0.55s cubic-bezier(.2,.8,.25,1) both',
+      flexShrink: 0,
+    }}>
+      <div style={{
+        width: avatarSize, height: avatarSize, borderRadius: '50%',
+        overflow: 'hidden',
+        border: '2px solid rgba(255,153,51,0.4)',
+        boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.4),0 6px 16px rgba(0,0,0,0.3)',
+        flexShrink: 0,
+      }}>
+        <Avatar id={player.avatarId} size={avatarSize} />
+      </div>
+      <div style={{
+        fontFamily: 'var(--font-inter),sans-serif',
+        fontSize: Math.round(w * 0.105), fontWeight: 600,
+        letterSpacing: '0.01em', color: '#fff',
+        maxWidth: w - 16, textAlign: 'center' as const,
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
+      }}>{player.name}</div>
+      <div style={{
+        fontFamily: 'var(--font-inter),sans-serif',
+        fontSize: Math.round(w * 0.062), fontWeight: 600,
+        letterSpacing: '0.16em', textTransform: 'uppercase' as const,
+        color: '#138808', background: 'rgba(19,136,8,0.12)',
+        border: '1px solid rgba(19,136,8,0.3)', borderRadius: 999,
+        padding: `${Math.round(w * 0.022)}px ${Math.round(w * 0.056)}px`,
+      }}>ready</div>
+    </div>
+  );
+}
+
+// ── Main component ───────────────────────────────────────────────────────────
 export default function ProjectorLobby({ room }: Props) {
-  const [origin, setOrigin] = useState('');
-  const [winW, setWinW]     = useState(1920);
+  const [origin, setOrigin]     = useState('');
+  const [winW, setWinW]         = useState(1920);
+  const [factIdx, setFactIdx]   = useState(0);
+  const [banterItems, setBanterItems] = useState<BanterItem[]>([]);
+
+  // Track which player IDs were already in the room when the component mounted,
+  // so only future joiners trigger banter chips
+  const prevIdsRef   = useRef<Set<string>>(new Set(Object.keys(room.players)));
+  const banterKeyRef = useRef(0);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -46,20 +120,60 @@ export default function ProjectorLobby({ room }: Props) {
     return () => window.removeEventListener('resize', update);
   }, []);
 
-  const players  = Object.values(room.players);
-  const joinUrl  = origin ? `${origin}/?code=${room.code}` : '';
-  const letters  = room.code.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4).split('');
+  // Rotate "Did you know" facts
+  useEffect(() => {
+    const iv = setInterval(() => setFactIdx(i => (i + 1) % FACTS.length), 5200);
+    return () => clearInterval(iv);
+  }, []);
+
+  // Detect new players joining and emit banter chips
+  useEffect(() => {
+    const currentPlayers = Object.values(room.players);
+    const newPlayers = currentPlayers.filter(p => !prevIdsRef.current.has(p.id));
+    if (newPlayers.length > 0) {
+      newPlayers.forEach(p => {
+        const key = ++banterKeyRef.current;
+        setBanterItems(prev => [...prev, { name: p.name, key }].slice(-3));
+      });
+      prevIdsRef.current = new Set(currentPlayers.map(p => p.id));
+    }
+  }, [room.players]);
+
+  const players   = Object.values(room.players);
+  const joinUrl   = origin ? `${origin}/?code=${room.code}` : '';
+  const letters   = room.code.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4).split('');
   while (letters.length < 4) letters.push('');
 
-  const qrSize = Math.round(winW * 0.13);
+  // How many seats to show
+  const MAX_VISIBLE = 6;
+  const visiblePlayers = players.slice(0, MAX_VISIBLE);
+  const extraCount     = Math.max(0, players.length - MAX_VISIBLE);
+  const openSeats      = players.length >= MAX_VISIBLE
+    ? 0
+    : Math.max(1, Math.min(3, 4 - players.length));
+
+  // Seat sizing: fit all seats within 78% of viewport width
+  const totalSeatCols = visiblePlayers.length + openSeats + (extraCount > 0 ? 1 : 0);
+  const seatGap = Math.round(winW * 0.01);
+  const availW  = winW * 0.78;
+  const seatW   = Math.max(90, Math.min(166, Math.floor((availW - seatGap * (totalSeatCols - 1)) / totalSeatCols)));
+  const seatH   = Math.round(seatW * 1.15);
+
+  // QR code size
+  const qrSize = Math.round(Math.min(winW * 0.094, 140));
+
+  // Code tile sizing
+  const tileW    = Math.round(Math.min(winW * 0.052, 76));
+  const tileH    = Math.round(tileW * 1.31);
+  const tileFsz  = Math.round(tileW * 0.70);
 
   return (
     <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', isolation: 'isolate' }}>
 
-      {/* ── Background — matches landing page ───────────────────── */}
+      {/* ── Background ────────────────────────────────────────────── */}
       <div style={{ position: 'absolute', inset: 0, background: '#07101f', zIndex: 0 }} />
 
-      {/* Saffron radial glow from top */}
+      {/* Warm saffron glow from top-centre */}
       <div style={{
         position: 'absolute', left: '50%', top: '-25%',
         width: '83vw', height: '100vh',
@@ -68,254 +182,341 @@ export default function ProjectorLobby({ room }: Props) {
         pointerEvents: 'none', zIndex: 1,
       }} />
 
-      {/* Film grain overlay */}
+      {/* Film grain */}
       <div style={{
         position: 'absolute', inset: 0,
         backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")`,
         opacity: 0.12, mixBlendMode: 'overlay', pointerEvents: 'none', zIndex: 2,
       }} />
 
-      {/* ── 3-column grid ────────────────────────────────────────── */}
+      {/* ── Main layout — flex column ─────────────────────────────── */}
       <div style={{
         position: 'relative', zIndex: 3,
         width: '100%', height: '100%',
-        padding: 'clamp(24px, 3.5vh, 48px) clamp(24px, 3.5vw, 56px) clamp(14px, 2.2vh, 30px)',
-        paddingTop: 'clamp(28px, 4vh, 56px)', // extra top padding for tricolor strip
-        display: 'grid',
-        gridTemplateColumns: 'minmax(220px, 24vw) 1fr minmax(230px, 22vw)',
-        gridTemplateRows: '1fr auto',
-        gap: '0 clamp(12px, 1.8vw, 24px)',
-        alignItems: 'stretch',
+        display: 'flex', flexDirection: 'column',
+        padding: 'clamp(20px,2.6vh,40px) clamp(40px,5vw,72px) 0',
         boxSizing: 'border-box',
       }}>
 
-        {/* ── LEFT: logo + player list ─────────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 28, alignItems: 'flex-start' }}>
-
-          {/* Logo unit — matches landing page */}
-          <div style={{ display: 'inline-flex', flexDirection: 'column', position: 'relative', paddingLeft: 16, alignItems: 'stretch' }}>
-            <div style={{ position: 'absolute', left: 0, top: 6, bottom: 6, width: 2, background: '#FF9933' }} />
-            <div style={{
-              fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500,
-              fontSize: 'clamp(8px, 0.68vw, 10px)',
-              letterSpacing: '0.08em', textTransform: 'uppercase',
-              color: 'rgba(250,248,240,.7)', lineHeight: 1.4,
-              marginBottom: 12, whiteSpace: 'nowrap',
-            }}>
-              An initiative of the Office of Shri Sujeet Kumar
-            </div>
-            <div style={{
-              fontFamily: 'var(--font-bebas),sans-serif', fontWeight: 400,
-              fontSize: 'clamp(44px, 5.5vw, 78px)',
-              lineHeight: 0.9, letterSpacing: '-0.01em', color: '#fff',
-              whiteSpace: 'nowrap',
-            }}>
-              Vikas 75
-            </div>
-            <div style={{
-              fontFamily: 'var(--font-inter),sans-serif', fontWeight: 400,
-              fontSize: 'clamp(12px, 1.3vw, 19px)',
-              lineHeight: 1.35, color: '#FF9933', letterSpacing: '-0.005em',
-              marginTop: 12, whiteSpace: 'nowrap',
-            }}>
-              The best answer isn&apos;t always right
-            </div>
+        {/* ── HEADER ────────────────────────────────────────────────── */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* Brand + Lobby pill */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 16 }}>
+            <span style={{
+              fontFamily: 'var(--font-yatra),var(--font-inter),sans-serif',
+              fontSize: 'clamp(22px,2.4vw,34px)', lineHeight: 1, color: '#fff',
+            }}>Vikas 75</span>
+            <span style={{
+              fontFamily: 'var(--font-inter),sans-serif',
+              fontSize: 'clamp(8px,0.7vw,10px)', fontWeight: 600,
+              letterSpacing: '0.22em', textTransform: 'uppercase',
+              color: '#FF9933',
+              border: '1px solid rgba(255,153,51,0.35)',
+              borderRadius: 999, padding: '5px 12px',
+            }}>Lobby</span>
           </div>
 
-          {/* Player list */}
-          <div style={{ width: '100%' }}>
+          {/* Live status indicator */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
-              fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500,
-              fontSize: 'clamp(8px, 0.68vw, 10px)',
-              letterSpacing: '0.22em', textTransform: 'uppercase',
-              color: 'rgba(250,248,240,.4)', marginBottom: 12,
-            }}>
-              Players joined — {players.length}
+              width: 8, height: 8, borderRadius: '50%',
+              background: '#138808',
+              animation: 'vkPulseDot 2.4s ease-in-out infinite',
+            }} />
+            <span style={{
+              fontFamily: 'var(--font-inter),sans-serif',
+              fontSize: 'clamp(8px,0.76vw,11px)', fontWeight: 500,
+              letterSpacing: '0.16em', textTransform: 'uppercase',
+              color: 'rgba(250,248,240,0.7)',
+            }}>Room open · {players.length} joined</span>
+          </div>
+        </div>
+
+        {/* ── BODY — vertically centred ─────────────────────────────── */}
+        <div style={{
+          flex: 1,
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          gap: 'clamp(18px,2.6vh,34px)',
+          position: 'relative',
+        }}>
+
+          {/* JOIN CARD — QR + code tiles in a glass container */}
+          <div style={{
+            display: 'flex', alignItems: 'center',
+            gap: 'clamp(20px,2.4vw,36px)',
+            padding: 'clamp(14px,1.6vh,24px) clamp(20px,2.4vw,32px)',
+            borderRadius: 18,
+            background: 'rgba(250,248,240,0.025)',
+            border: '1px solid rgba(250,248,240,0.14)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+          }}>
+
+            {/* QR code */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+              {joinUrl ? (
+                <div style={{
+                  position: 'relative', borderRadius: 12, padding: 10, background: '#faf8f0',
+                  boxShadow: '0 12px 26px rgba(0,0,0,0.4),inset 0 0 0 1px rgba(0,0,0,0.06)',
+                }}>
+                  <QRCodeSVG value={joinUrl} size={qrSize} level="M" bgColor="#faf8f0" />
+                  {/* V·75 badge over QR centre */}
+                  <div style={{
+                    position: 'absolute', left: '50%', top: '50%',
+                    transform: 'translate(-50%,-50%)',
+                    width: Math.round(qrSize * 0.26), height: Math.round(qrSize * 0.26),
+                    borderRadius: Math.round(qrSize * 0.065),
+                    background: '#FF9933',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: 'var(--font-yatra),var(--font-inter)', fontSize: Math.round(qrSize * 0.115), color: '#15110a',
+                    boxShadow: `0 0 0 3px #faf8f0, 0 4px 10px rgba(0,0,0,0.35)`,
+                  }}>V·75</div>
+                </div>
+              ) : (
+                <div style={{
+                  width: qrSize + 20, height: qrSize + 20,
+                  background: 'rgba(250,248,240,0.04)', borderRadius: 12,
+                  display: 'grid', placeItems: 'center',
+                }}>
+                  <span style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 12, color: 'rgba(250,248,240,0.3)' }}>
+                    Loading…
+                  </span>
+                </div>
+              )}
+              <span style={{
+                fontFamily: 'var(--font-inter),sans-serif',
+                fontSize: 'clamp(8px,0.76vw,11px)', fontWeight: 600,
+                letterSpacing: '0.18em', textTransform: 'uppercase',
+                color: 'rgba(250,248,240,0.7)',
+              }}>scan to join</span>
             </div>
 
-            {players.length === 0 ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {[0,1,2].map(i => (
+            {/* "or" vertical divider */}
+            <div style={{
+              position: 'relative', alignSelf: 'stretch',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '0 4px',
+            }}>
+              <div style={{
+                position: 'absolute', top: 6, bottom: 6, left: '50%', width: 1,
+                background: 'rgba(250,248,240,0.14)',
+              }} />
+              <span style={{
+                position: 'relative', zIndex: 1,
+                background: '#0a1320', padding: '6px 0',
+                fontFamily: 'var(--font-inter),sans-serif',
+                fontSize: 'clamp(8px,0.76vw,11px)', fontWeight: 600,
+                letterSpacing: '0.14em', textTransform: 'uppercase',
+                color: 'rgba(250,248,240,0.45)',
+              }}>or</span>
+            </div>
+
+            {/* Room code block */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 14 }}>
+              <div style={{
+                fontFamily: 'var(--font-inter),sans-serif',
+                fontSize: 'clamp(8px,0.76vw,11px)', fontWeight: 600,
+                letterSpacing: '0.24em', textTransform: 'uppercase',
+                color: 'rgba(250,248,240,0.7)',
+              }}>enter the room code</div>
+
+              {/* Cream playing-card tiles */}
+              <div style={{ display: 'flex', gap: 'clamp(8px,0.8vw,14px)' }}>
+                {letters.map((ch, i) => (
                   <div key={i} style={{
-                    width: 6, height: 6, borderRadius: '50%',
-                    background: 'rgba(255,153,51,0.5)',
-                    animation: 'vkPulse 1.2s ease-in-out infinite',
-                    animationDelay: `${i * 0.2}s`,
-                  }} />
-                ))}
-                <span style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 'clamp(11px, 0.9vw, 14px)', color: 'rgba(250,248,240,.4)' }}>
-                  Waiting for players…
-                </span>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                {players.map(p => (
-                  <div key={p.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+                    width: tileW, height: tileH,
+                    background: '#faf8f0', color: '#15110a',
+                    borderRadius: 'clamp(8px,0.7vw,14px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: 'var(--font-yatra),var(--font-inter)',
+                    fontSize: tileFsz, lineHeight: 1,
+                    boxShadow: '0 16px 30px rgba(0,0,0,0.45),0 4px 8px rgba(0,0,0,0.35),inset 0 2px 0 rgba(255,255,255,0.6)',
+                    border: '1px solid rgba(0,0,0,0.12)',
+                    position: 'relative',
+                    transform: `rotate(${TILE_ROTATIONS[i]})`,
+                    userSelect: 'none',
+                    flexShrink: 0,
+                  }}>
+                    {ch}
+                    {/* Corner pip — like a playing card */}
                     <div style={{
-                      borderRadius: '50%', overflow: 'hidden',
-                      border: '1.5px solid rgba(255,153,51,0.35)',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-                    }}>
-                      <Avatar id={p.avatarId} size={Math.round(winW * 0.028)} />
-                    </div>
-                    <span style={{
-                      fontFamily: 'var(--font-inter),sans-serif',
-                      fontSize: 'clamp(9px, 0.6vw, 11px)', fontWeight: 500,
-                      color: 'rgba(250,248,240,.8)',
-                      maxWidth: '3.5vw', textAlign: 'center',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>{p.name}</span>
+                      position: 'absolute', top: 8, left: 10,
+                      width: 6, height: 6, borderRadius: '50%',
+                      background: 'rgba(255,153,51,0.7)',
+                    }} />
                   </div>
                 ))}
               </div>
+
+              <div style={{
+                fontFamily: 'var(--font-inter),sans-serif',
+                fontSize: 'clamp(11px,0.9vw,14px)', letterSpacing: '0.04em',
+                color: 'rgba(250,248,240,0.7)',
+              }}>
+                at{' '}
+                <span style={{ color: '#fff', fontWeight: 600 }}>vikas75.in</span>
+                {' '}on your phone
+              </div>
+            </div>
+          </div>
+
+          {/* ── SEATS ─────────────────────────────────────────────── */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', gap: seatGap, flexWrap: 'nowrap', alignItems: 'flex-start' }}>
+              {visiblePlayers.map(p => (
+                <FilledSeat key={p.id} player={p} w={seatW} h={seatH} />
+              ))}
+              {Array.from({ length: openSeats }).map((_, i) => (
+                <OpenSeat key={`open-${i}`} w={seatW} h={seatH} />
+              ))}
+              {extraCount > 0 && (
+                <div style={{
+                  width: seatW, height: seatH,
+                  borderRadius: 18, flexShrink: 0,
+                  border: '1px solid rgba(255,153,51,0.22)',
+                  background: 'rgba(26,58,110,0.3)',
+                  display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center', gap: 8,
+                }}>
+                  <span style={{
+                    fontFamily: 'var(--font-yatra),var(--font-inter)',
+                    fontSize: Math.round(seatW * 0.3), color: '#FF9933', lineHeight: 1,
+                  }}>+{extraCount}</span>
+                  <span style={{
+                    fontFamily: 'var(--font-inter),sans-serif',
+                    fontSize: Math.round(seatW * 0.068), fontWeight: 600,
+                    letterSpacing: '0.16em', textTransform: 'uppercase' as const,
+                    color: 'rgba(250,248,240,0.5)',
+                  }}>more</span>
+                </div>
+              )}
+            </div>
+
+            <div style={{
+              fontFamily: 'var(--font-inter),sans-serif',
+              fontSize: 'clamp(9px,0.76vw,11px)', fontWeight: 600,
+              letterSpacing: '0.2em', textTransform: 'uppercase',
+              color: 'rgba(250,248,240,0.45)',
+            }}>
+              <span style={{ color: '#FF9933' }}>{players.length}</span>
+              {' '}{players.length === 1 ? 'player' : 'players'} joined · waiting for host to start
+            </div>
+          </div>
+
+          {/* ── BANTER STRIP — new player join chips ──────────────── */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: 12, minHeight: 38, flexWrap: 'wrap',
+          }}>
+            {banterItems.length === 0 ? (
+              <span style={{
+                fontFamily: 'var(--font-inter),sans-serif',
+                fontSize: 'clamp(11px,0.9vw,13px)', fontStyle: 'italic',
+                color: 'rgba(250,248,240,0.45)',
+              }}>quiet so far. someone always breaks it.</span>
+            ) : (
+              banterItems.map(b => (
+                <div key={b.key} style={{
+                  display: 'inline-flex', alignItems: 'baseline', gap: 8,
+                  padding: '8px 14px', borderRadius: 999,
+                  background: 'rgba(250,248,240,0.04)',
+                  border: '1px solid rgba(250,248,240,0.14)',
+                  animation: 'vkChipIn 0.4s cubic-bezier(.2,.8,.25,1) both',
+                }}>
+                  <span style={{
+                    fontFamily: 'var(--font-inter),sans-serif',
+                    fontSize: 'clamp(10px,0.9vw,12px)', fontWeight: 700,
+                    letterSpacing: '0.04em', color: '#FF9933',
+                  }}>{b.name}</span>
+                  <span style={{
+                    fontFamily: 'var(--font-inter),sans-serif',
+                    fontSize: 'clamp(11px,0.9vw,13px)',
+                    color: 'rgba(250,248,240,0.7)', letterSpacing: '0.005em',
+                  }}>just joined</span>
+                </div>
+              ))
             )}
           </div>
         </div>
 
-        {/* ── CENTER: room code ─────────────────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'clamp(12px, 2vh, 28px)' }}>
-
-          <div style={{
-            fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500,
-            fontSize: 'clamp(9px, 0.76vw, 12px)',
-            letterSpacing: '0.28em', textTransform: 'uppercase',
-            color: 'rgba(250,248,240,.5)',
-          }}>
-            Room Code
-          </div>
-
-          {/* 4 letter boxes */}
-          <div style={{ display: 'flex', gap: 'clamp(8px, 1vw, 16px)' }}>
-            {letters.map((l, i) => (
-              <div key={i} style={{
-                width: 'clamp(72px, 8.5vw, 130px)',
-                height: 'clamp(96px, 11.5vh, 160px)',
-                display: 'grid', placeItems: 'center',
-                background: 'linear-gradient(180deg,rgba(255,153,51,.06) 0%,rgba(255,153,51,0) 100%)',
-                border: '1px solid rgba(255,153,51,.3)',
-                borderRadius: 10,
-                boxShadow: 'inset 0 1px 0 rgba(255,153,51,.15), 0 8px 32px rgba(0,0,0,.4)',
-              }}>
-                <span style={{
-                  fontFamily: 'var(--font-bebas),sans-serif',
-                  fontSize: 'clamp(64px, 7.5vw, 112px)',
-                  lineHeight: 1, color: '#FF9933',
-                  letterSpacing: '-0.02em',
-                  textShadow: '0 0 32px rgba(255,153,51,.35)',
-                  userSelect: 'none',
-                }}>{l}</span>
-              </div>
-            ))}
-          </div>
-
-          <div style={{
-            fontFamily: 'var(--font-inter),sans-serif', fontWeight: 400,
-            fontSize: 'clamp(11px, 0.9vw, 14px)',
-            color: 'rgba(250,248,240,.4)', letterSpacing: '0.04em',
-          }}>
-            go to{' '}
-            <span style={{ color: 'rgba(250,248,240,.7)', fontWeight: 500 }}>vikas75.in</span>
-            {' '}on your phone and enter the code
-          </div>
-        </div>
-
-        {/* ── RIGHT: QR panel ───────────────────────────────────────── */}
-        <div style={{ display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end' }}>
-          <div style={{ ...panelStyle, padding: 'clamp(16px, 1.5vw, 24px) clamp(14px, 1.3vw, 20px)', display: 'flex', flexDirection: 'column', gap: 0 }}>
-
-            <div style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              marginBottom: 16, paddingBottom: 14,
-              borderBottom: '1px solid rgba(250,248,240,.1)',
-            }}>
-              <span style={{
-                fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500,
-                fontSize: 'clamp(8px, 0.76vw, 11px)',
-                color: 'rgba(250,248,240,.7)', letterSpacing: '0.22em', textTransform: 'uppercase',
-              }}>Scan to join</span>
-              <span style={{
-                fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500,
-                fontSize: 'clamp(8px, 0.76vw, 11px)',
-                color: '#FF9933', letterSpacing: '0.14em',
-              }}>Phone Camera</span>
-            </div>
-
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-              {joinUrl ? (
-                <div style={{
-                  background: '#faf8f0', padding: 12, borderRadius: 10,
-                  boxShadow: '0 4px 24px rgba(0,0,0,.5)',
-                }}>
-                  <QRCodeSVG value={joinUrl} size={qrSize} level="M" />
-                </div>
-              ) : (
-                <div style={{
-                  width: qrSize, height: qrSize,
-                  background: 'rgba(250,248,240,.04)', borderRadius: 10,
-                  display: 'grid', placeItems: 'center',
-                }}>
-                  <span style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 12, color: 'rgba(250,248,240,.3)' }}>Loading…</span>
-                </div>
-              )}
-
-              <div style={{
-                fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500,
-                fontSize: 'clamp(11px, 0.9vw, 14px)',
-                color: 'rgba(250,248,240,.5)', letterSpacing: '0.04em',
-                textAlign: 'center',
-              }}>
-                {origin ? origin.replace(/^https?:\/\//, '') : 'vikas75.in'}
-              </div>
-            </div>
-
-            <div style={{
-              marginTop: 16, paddingTop: 14,
-              borderTop: '1px solid rgba(250,248,240,.1)',
-              display: 'flex', justifyContent: 'center',
-              fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500,
-              fontSize: 'clamp(8px, 0.68vw, 10px)',
-              letterSpacing: '0.22em', textTransform: 'uppercase',
-              color: 'rgba(250,248,240,.3)',
-            }}>
-              Free · No App · No Signup
-            </div>
-          </div>
-        </div>
-
-        {/* ── BOTTOM STRIP ─────────────────────────────────────────── */}
+        {/* ── FOOTER — "waiting for host" spinner ───────────────────── */}
         <div style={{
-          gridColumn: '1 / -1',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          marginTop: 10, paddingTop: 16,
-          borderTop: '1px solid rgba(250,248,240,.14)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          minHeight: 'clamp(52px,7vh,76px)',
         }}>
-          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-            {SOCIAL.map(({ label, href, Icon }) => (
-              <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label}
-                style={{ color: 'rgba(250,248,240,.6)', transition: 'color .15s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(14px, 1.25vw, 18px)' }}
-                onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = '#FF9933'}
-                onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(250,248,240,.6)'}
-              >
-                <Icon />
-              </a>
-            ))}
-          </div>
-
           <div style={{
-            fontFamily: 'var(--font-inter),sans-serif',
-            fontSize: 'clamp(9px, 0.76vw, 11px)',
-            letterSpacing: '0.12em', textTransform: 'uppercase',
-            color: 'rgba(250,248,240,.4)',
+            display: 'flex', alignItems: 'center', gap: 12,
+            height: 52, padding: '0 28px',
+            border: '1px solid rgba(255,153,51,0.3)', borderRadius: 8,
+            background: 'rgba(255,153,51,0.05)',
           }}>
-            An initiative of the Office of Shri Sujeet Kumar
+            <div style={{
+              width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
+              border: '2px solid rgba(255,153,51,0.25)', borderTopColor: '#FF9933',
+              animation: 'vkSpin 0.9s linear infinite',
+            }} />
+            <span style={{
+              fontFamily: 'var(--font-inter),sans-serif',
+              fontSize: 'clamp(12px,1vw,14px)', fontWeight: 500,
+              letterSpacing: '0.04em', color: '#FF9933',
+            }}>Waiting for the host to deal…</span>
           </div>
         </div>
+
+        {/* ── TICKER — "Did you know" rotating facts ────────────────── */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 16,
+          padding: 'clamp(10px,1.3vh,16px) 0',
+          borderTop: '1px solid rgba(250,248,240,0.14)',
+        }}>
+          <span style={{
+            flexShrink: 0,
+            fontFamily: 'var(--font-inter),sans-serif',
+            fontSize: 'clamp(8px,0.76vw,10px)', fontWeight: 700,
+            letterSpacing: '0.22em', textTransform: 'uppercase',
+            color: '#FF9933',
+            paddingRight: 16, borderRight: '1px solid rgba(250,248,240,0.14)',
+          }}>Did you know</span>
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <span key={factIdx} style={{
+              display: 'block',
+              fontFamily: 'var(--font-inter),sans-serif',
+              fontSize: 'clamp(11px,1vw,14px)',
+              color: 'rgba(250,248,240,0.7)', letterSpacing: '0.005em',
+              animation: 'vkFactIn 0.5s ease both',
+            }}>{FACTS[factIdx]}</span>
+          </div>
+          <span style={{
+            flexShrink: 0,
+            fontFamily: 'var(--font-inter),sans-serif',
+            fontSize: 'clamp(8px,0.76vw,10px)', fontWeight: 600,
+            letterSpacing: '0.16em', textTransform: 'uppercase',
+            color: 'rgba(250,248,240,0.45)',
+            paddingLeft: 16, borderLeft: '1px solid rgba(250,248,240,0.14)',
+          }}>{room.totalRounds} rounds · funniest wins</span>
+        </div>
+
       </div>
 
       <style>{`
-        @keyframes vkPulse {
-          0%, 100% { opacity: 0.5; transform: scale(1); }
-          50%       { opacity: 1;   transform: scale(1.3); }
+        @keyframes vkPulseDot {
+          0%, 100% { box-shadow: 0 0 0 3px rgba(19,136,8,0.10); }
+          50%       { box-shadow: 0 0 0 6px rgba(19,136,8,0.22); }
+        }
+        @keyframes vkSeatIn {
+          from { transform: translateY(16px) scale(0.95); }
+          to   { transform: translateY(0)    scale(1);    }
+        }
+        @keyframes vkChipIn {
+          from { transform: translateY(8px) scale(0.96); opacity: 0; }
+          to   { transform: translateY(0)   scale(1);    opacity: 1; }
+        }
+        @keyframes vkFactIn {
+          from { opacity: 0; transform: translateX(14px); }
+          to   { opacity: 1; transform: translateX(0);    }
+        }
+        @keyframes vkSpin {
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </div>
