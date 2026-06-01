@@ -76,6 +76,9 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
   const prevPhaseRef = useRef<string | undefined>(undefined);
   const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const overlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Tracks the timerEndsAt value we last fired timer-expire for, so stale or duplicate
+  // Pusher events with delay ≤ 0 don't call timerExpire() a second time.
+  const timerFiredForRef = useRef<number>(0);
 
   useEffect(() => {
     fetch(`/api/game?code=${code}`)
@@ -159,10 +162,24 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
   }, [code]);
 
   useEffect(() => {
-    if (!room?.timerEndsAt || room.phase !== 'submission') return;
+    if (!room?.timerEndsAt || room.phase !== 'submission') {
+      // Phase left submission — reset so the next round's timer fires fresh.
+      timerFiredForRef.current = 0;
+      return;
+    }
+    // Guard: already fired for this exact timer period (prevents duplicate Pusher events
+    // or a stale event with delay ≤ 0 from calling timerExpire a second time).
+    if (timerFiredForRef.current === room.timerEndsAt) return;
     const delay = room.timerEndsAt - Date.now();
-    if (delay <= 0) { timerExpire(); return; }
-    const t = setTimeout(timerExpire, delay);
+    if (delay <= 0) {
+      timerFiredForRef.current = room.timerEndsAt;
+      timerExpire();
+      return;
+    }
+    const t = setTimeout(() => {
+      timerFiredForRef.current = room.timerEndsAt!;
+      timerExpire();
+    }, delay);
     return () => clearTimeout(t);
   }, [room?.timerEndsAt, room?.phase, timerExpire]);
 
