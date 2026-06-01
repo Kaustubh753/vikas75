@@ -101,9 +101,6 @@ export async function POST(req: NextRequest) {
         if (room.players[playerId]) {
           return NextResponse.json({ room });
         }
-        if (room.phase === 'submission') {
-          return NextResponse.json({ error: 'Round in progress — join after this round ends' }, { status: 400 });
-        }
         if (room.phase === 'game-over') {
           return NextResponse.json({ error: 'This game has ended — start a new one!' }, { status: 400 });
         }
@@ -213,13 +210,18 @@ export async function POST(req: NextRequest) {
           // Broadcast happens before auto-advance so clients see the submission tick
           await broadcastRoom(updated);
           if (allPlayersSubmitted(updated)) {
-            // Re-read after write to reduce concurrent auto-advance race window
-            const fresh = await getRoom(code.toUpperCase());
-            if (fresh?.phase === 'submission') {
-              const revealed = advancePhase(fresh);
-              await setRoom(revealed);
-              await broadcastRoom(revealed);
-            }
+            // Delay 2 s before advancing so the projector shows the final submission
+            // tick before the phase switches. Runs after the response is sent so the
+            // submitting player's request isn't held open.
+            after(async () => {
+              await new Promise<void>(resolve => setTimeout(resolve, 2000));
+              const fresh = await getRoom(code.toUpperCase());
+              if (fresh?.phase === 'submission') {
+                const revealed = advancePhase(fresh);
+                await setRoom(revealed);
+                await broadcastRoom(revealed);
+              }
+            });
           }
           return NextResponse.json({ ok: true });
         } finally {

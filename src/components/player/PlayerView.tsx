@@ -376,7 +376,13 @@ export default function PlayerView({ code }: Props) {
 
   const mySubmission = room.submissions[playerId];
   const phase = room.phase;
-  const isMidGameNewPlayer = phase === 'submission' && !room.players[playerId];
+  // Show "join next round" screen when:
+  // (a) player isn't in room.players yet (navigated directly), or
+  // (b) player joined during or after the current round started (joinedRound >= round),
+  //     meaning allPlayersSubmitted() won't count them anyway.
+  const isMidGameNewPlayer = phase === 'submission' && (
+    !room.players[playerId] || room.players[playerId].joinedRound >= room.round
+  );
 
   function renderContent() {
     if (!room) return null;
