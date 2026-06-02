@@ -21,13 +21,26 @@ const QRCodeSVG = dynamic(
 );
 
 const FACTS = [
-  'The deck holds 75 schemes. Nobody has read all of them — least of all the people who wrote them.',
-  '"Form a Committee" has the highest win rate on record. This surprises no one.',
-  'Every scheme is technically a real proposal. The "technically" is doing a lot of work.',
-  'There is no correct card. There is only the card you can defend before the chai goes cold.',
-  'The deck is updated yearly, in line with the Budget. Both are mostly reshuffling.',
-  'Schemes have been renamed 1,200 times. The schemes themselves remain unchanged.',
-  'The AI judge has no agenda. But it has read every government press release. Take that as you will.',
+  'Over 56 crore Jan Dhan accounts have been opened, making it the world\'s largest financial inclusion programme. (PIB, August 2025)',
+  '56% of all Jan Dhan account holders are women. (PIB, August 2025)',
+  'PM-KISAN has disbursed over ₹4.09 lakh crore to farmers since its launch. (Lok Sabha reply, December 2025)',
+  'Over 9.35 crore farmers received money directly in their bank accounts in the 21st PM-KISAN installment alone. (DD News, November 2025)',
+  'PM Mudra Yojana has sanctioned over 52 crore loans worth more than ₹33 lakh crore in 10 years. (PIB, April 2025)',
+  '68% of all Mudra loans have gone to women entrepreneurs. (Dept. of Financial Services, April 2025)',
+  'Ayushman Bharat is the world\'s largest government-funded health assurance scheme, covering 55 crore Indians. (National Health Authority)',
+  'Over 10.30 crore hospital admissions have been authorised under Ayushman Bharat, saving families ₹1.48 lakh crore in cashless care. (News on Air, September 2025)',
+  'Ayushman Bharat now covers every Indian aged 70 and above, regardless of income. (Government of India, October 2024)',
+  'Swachh Bharat Mission built over 11 crore household toilets in rural India alone. (PIB, September 2024)',
+  'A peer-reviewed study in Nature Scientific Reports found Swachh Bharat saves 60,000 to 70,000 infant lives every year. (Chakrabarti et al., 2024)',
+  'Stand-Up India has sanctioned loans to nearly 2 lakh women entrepreneurs since 2016. (Inc42, February 2025)',
+  'Stand-Up India has sanctioned ₹61,020 crore in loans for first-time SC, ST, and women entrepreneurs. (Ministry of Finance, March 2025)',
+  'Direct Benefit Transfer through Jan Dhan accounts saved the government an estimated ₹3.48 lakh crore by removing middlemen. (DBT Mission)',
+  '₹6.9 lakh crore was transferred directly to citizens through DBT schemes in 2024–25 alone. (PIB, August 2025)',
+  'PM Suraksha Bima Yojana provides accident insurance of ₹2 lakh for just ₹20 per year. (Ministry of Finance)',
+  'Over 50 crore Indians are enrolled in PM Suraksha Bima Yojana. (PIB, March 2025)',
+  'Atal Pension Yojana now has over 7.49 crore subscribers preparing for retirement. (Ministry of Finance, March 2025)',
+  'PM Jan Dhan accounts now hold over ₹2.68 lakh crore in deposits, a 12-fold increase in a decade. (PIB, August 2025)',
+  'Jan Dhan accounts now power Direct Benefit Transfer for 327 government schemes. (Dept. of Financial Services, August 2025)',
 ];
 
 // The tile rotations for each letter — tiny rotations like playing cards freshly placed
