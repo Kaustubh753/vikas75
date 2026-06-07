@@ -730,20 +730,6 @@ function LandingPage() {
             ))}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <a href="/how-to-play" style={{
-              fontFamily: 'var(--font-inter),sans-serif',
-              fontSize: 'clamp(9px, 0.76vw, 11px)',
-              fontWeight: 500, letterSpacing: '0.08em',
-              color: 'rgba(250,248,240,0.4)',
-              textDecoration: 'none',
-              transition: 'color .15s',
-              whiteSpace: 'nowrap',
-            }}
-              onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = '#FF9933'}
-              onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(250,248,240,0.4)'}
-            >
-              How to Play
-            </a>
             <a href="/explore" style={{
               fontFamily: 'var(--font-inter),sans-serif',
               fontSize: 'clamp(9px, 0.76vw, 11px)',
