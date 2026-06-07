@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import LogoLockup from '@/components/ui/LogoLockup';
 import Avatar from '@/lib/avatars';
 import type { GameRoom } from '@/types/game';
@@ -10,6 +11,7 @@ export default function AdminDashboard() {
   const [rooms, setRooms] = useState<GameRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [endingRoom, setEndingRoom] = useState<string | null>(null);
 
   const fetchRooms = useCallback(async () => {
     const creds = sessionStorage.getItem('vikas75_admin_creds');
@@ -43,6 +45,28 @@ export default function AdminDashboard() {
   function handleLogout() {
     sessionStorage.removeItem('vikas75_admin_creds');
     router.push('/admin');
+  }
+
+  async function handleEndRoom(code: string) {
+    const creds = sessionStorage.getItem('vikas75_admin_creds');
+    if (!creds) { router.push('/admin'); return; }
+    setEndingRoom(code);
+    try {
+      const res = await fetch(`/api/game?code=${code}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Basic ${creds}` },
+      });
+      if (res.ok) {
+        toast.success(`Room ${code} closed`);
+        setRooms(prev => prev.filter(r => r.code !== code));
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? 'Failed to close room');
+      }
+    } catch {
+      toast.error('Network error');
+    }
+    setEndingRoom(null);
   }
 
   if (loading) {
@@ -92,6 +116,7 @@ export default function AdminDashboard() {
           <div className="space-y-4">
             {rooms.map((room) => {
               const players = Object.values(room.players);
+              const isEnding = endingRoom === room.code;
               return (
                 <div key={room.code} className="bg-white/5 border border-white/10 rounded-2xl p-5">
                   <div className="flex items-start justify-between mb-3">
@@ -111,14 +136,7 @@ export default function AdminDashboard() {
                         Host: {room.hostName} · Round {room.round}/{room.totalRounds} · {players.length} players
                       </p>
                     </div>
-                    <div className="flex gap-2">
-                      {/* Host link is view-only — hostId (required for controls) is not stored server-side */}
-                      <span
-                        className="text-xs text-white/30 font-[family-name:var(--font-inter)]"
-                        title="Host controls require the original ?h= link from the host's browser"
-                      >
-                        Host (no link)
-                      </span>
+                    <div className="flex items-center gap-3">
                       <a
                         href={`/projector/${room.code}`}
                         target="_blank"
@@ -127,6 +145,14 @@ export default function AdminDashboard() {
                       >
                         Projector →
                       </a>
+                      <button
+                        onClick={() => handleEndRoom(room.code)}
+                        disabled={isEnding}
+                        className="text-xs text-red-400 hover:text-red-300 disabled:opacity-40 font-[family-name:var(--font-inter)] transition-colors"
+                        title="Delete this room immediately"
+                      >
+                        {isEnding ? 'Ending…' : 'End Room'}
+                      </button>
                     </div>
                   </div>
 

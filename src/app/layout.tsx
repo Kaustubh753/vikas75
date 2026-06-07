@@ -17,11 +17,14 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_APP_URL ?? 'https://vikas75.vercel.app'
   ),
   title: 'Vikas 75',
-  description: 'The India Governance Card Game',
+  description: "The best answer isn't always right.",
   openGraph: {
     title: 'Vikas 75',
-    description: 'The India Governance Card Game',
-    images: ['/og-image.png'],
+    description: "The best answer isn't always right.",
+    images: [{ url: '/og-image.png', width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: 'summary_large_image',
   },
   icons: {
     icon: '/favicon.svg',

@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { after } from 'next/server';
 import { getRoom, setRoom, deleteRoom, checkRoomCreationLimit, checkRateLimit, acquireLock, releaseLock } from '@/lib/redis';
@@ -441,4 +442,49 @@ async function triggerJudge(code: string) {
   const updated = applyVerdict(freshRoom, verdict);
   await setRoom(updated);
   await broadcastRoom(updated);
+}
+
+// ── Admin: DELETE /api/game?code=XXXX ────────────────────────────────────────
+// Immediately deletes a room. Requires valid admin Basic Auth credentials.
+function checkAdminAuth(req: NextRequest): boolean {
+  const expectedUser = process.env.ADMIN_USERNAME ?? '';
+  const expectedPass = process.env.ADMIN_PASSWORD ?? '';
+  if (!expectedUser || !expectedPass) return false;
+  const auth = req.headers.get('authorization') ?? '';
+  const [, encoded] = auth.split(' ');
+  if (!encoded) return false;
+  const decoded = Buffer.from(encoded, 'base64').toString('utf-8');
+  const colonIdx = decoded.indexOf(':');
+  if (colonIdx === -1) return false;
+  const user = decoded.slice(0, colonIdx);
+  const pass = decoded.slice(colonIdx + 1);
+  const maxLen = Math.max(user.length, expectedUser.length, pass.length, expectedPass.length);
+  const bufU1 = Buffer.alloc(maxLen); bufU1.write(user);
+  const bufU2 = Buffer.alloc(maxLen); bufU2.write(expectedUser);
+  const bufP1 = Buffer.alloc(maxLen); bufP1.write(pass);
+  const bufP2 = Buffer.alloc(maxLen); bufP2.write(expectedPass);
+  return crypto.timingSafeEqual(bufU1, bufU2) && crypto.timingSafeEqual(bufP1, bufP2);
+}
+
+export async function DELETE(req: NextRequest) {
+  if (!checkAdminAuth(req)) {
+    return NextResponse.json({ error: 'Unauthorized' }, {
+      status: 401,
+      headers: { 'WWW-Authenticate': 'Basic realm="Vikas75 Admin"' },
+    });
+  }
+  const code = req.nextUrl.searchParams.get('code')?.toUpperCase();
+  if (!code || !/^[A-Z]{4}$/.test(code)) {
+    return NextResponse.json({ error: 'Invalid room code' }, { status: 400 });
+  }
+  const room = await getRoom(code);
+  if (!room) {
+    return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+  }
+  await deleteRoom(code);
+  // Notify any connected clients the room has closed
+  try {
+    await pusherServer.trigger(getRoomChannel(code), 'game:room-closed', {});
+  } catch { /* non-critical */ }
+  return NextResponse.json({ ok: true });
 }

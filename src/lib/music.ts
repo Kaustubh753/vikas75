@@ -1,4 +1,4 @@
-export type TrackName = 'lobby' | 'challenge' | 'ticking' | 'drumroll' | 'winner' | 'correct';
+export type TrackName = 'lobby' | 'challenge' | 'ticking' | 'drumroll' | 'winner';
 
 // Web Audio API fallback tones when MP3 files are absent
 const TONE_CONFIG: Record<TrackName, { freq: number; type: OscillatorType; loop: boolean; duration: number }> = {
@@ -7,7 +7,6 @@ const TONE_CONFIG: Record<TrackName, { freq: number; type: OscillatorType; loop:
   ticking:   { freq: 880,  type: 'square',   loop: true,  duration: 999 },
   drumroll:  { freq: 110,  type: 'sawtooth', loop: false, duration: 3   },
   winner:    { freq: 523,  type: 'sine',     loop: false, duration: 2   },
-  correct:   { freq: 659,  type: 'sine',     loop: false, duration: 1   },
 };
 
 class MusicManager {

@@ -2,6 +2,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
+import { getSchemeCardImage } from '@/lib/cards';
 
 // ── Types ─────────────────────────────────────────────────────
 interface SchemeCard {
@@ -14,13 +15,6 @@ interface SchemeCard {
 
 interface Props {
   schemes: SchemeCard[];
-}
-
-// ── Helpers ───────────────────────────────────────────────────
-function cardImageUrl(id: string): string {
-  // s001 → /cards/card-031.webp  (30 challenge cards offset)
-  const num = parseInt(id.replace('s', ''), 10);
-  return `/cards/card-${String(num + 30).padStart(3, '0')}.webp`;
 }
 
 // ── Palette ───────────────────────────────────────────────────
@@ -236,7 +230,7 @@ function DeckTab({ schemes, query, onQuery, total, onOpen }: {
 // ── Card tile — actual card image ─────────────────────────────
 function CardTile({ card, onOpen }: { card: SchemeCard; onOpen: (s: SchemeCard) => void }) {
   const [hovered, setHovered] = useState(false);
-  const imgSrc = cardImageUrl(card.id);
+  const imgSrc = getSchemeCardImage(card.id);
 
   // Card aspect ratio matches physical card: ~2.5×3.5 inches = 5:7
   return (
@@ -323,7 +317,7 @@ function CardTile({ card, onOpen }: { card: SchemeCard; onOpen: (s: SchemeCard) 
 // ── Card detail modal ─────────────────────────────────────────
 function CardModal({ card, onClose }: { card: SchemeCard; onClose: () => void }) {
   const overlayRef = useRef<HTMLDivElement>(null);
-  const imgSrc = cardImageUrl(card.id);
+  const imgSrc = getSchemeCardImage(card.id);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -462,27 +456,10 @@ function CardModal({ card, onClose }: { card: SchemeCard; onClose: () => void })
 // ── Team tab ──────────────────────────────────────────────────
 function TeamTab() {
   return (
-    <div>
-      <div style={{ marginBottom: 28 }}>
-        <h2 style={{ fontFamily: 'var(--font-bebas),sans-serif', fontSize: 'clamp(28px,4vw,52px)', lineHeight: 1, color: C.white, margin: '0 0 6px' }}>
-          The Team
-        </h2>
-        <p style={{ fontSize: 14, color: C.w40, margin: 0 }}>The people behind Vikas 75.</p>
-      </div>
-      <div style={{
-        background: C.panel, border: `1px solid ${C.w14}`, borderRadius: 12,
-        padding: 'clamp(40px,6vh,80px) clamp(24px,4vw,48px)',
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        gap: 16, textAlign: 'center', backdropFilter: 'blur(8px)',
-      }}>
-        <span style={{ fontSize: 40 }}>🪔</span>
-        <p style={{ fontFamily: 'var(--font-bebas),sans-serif', fontSize: 'clamp(20px,2.5vw,30px)', color: C.white, margin: 0, letterSpacing: '0.04em' }}>
-          Coming Soon
-        </p>
-        <p style={{ fontSize: 13, color: C.w40, margin: 0, maxWidth: 320, lineHeight: 1.6 }}>
-          Team profiles are on their way. Check back soon.
-        </p>
-      </div>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 240 }}>
+      <p style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 14, color: C.w40, margin: 0 }}>
+        Coming soon.
+      </p>
     </div>
   );
 }
