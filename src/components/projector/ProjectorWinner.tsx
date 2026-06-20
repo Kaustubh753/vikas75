@@ -40,11 +40,9 @@ export default function ProjectorWinner({ room }: Props) {
     }, 4000);
     const t2 = setTimeout(() => setStage(2), 8000);
     return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps — intentional one-shot on mount
+  }, []); // intentional one-shot on mount — reads stage via stageRef to avoid stale closure
 
   if (!verdict) return null;
-  // winner may be absent if the player disconnected/was removed between judging and display
-  const winner = room.players[verdict.winnerId] ?? null;
 
   return (
     <div className="w-full h-full bg-[#0d1b35] flex flex-col items-center justify-center overflow-hidden relative">

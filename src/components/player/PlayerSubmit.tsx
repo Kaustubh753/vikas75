@@ -90,7 +90,7 @@ export default function PlayerSubmit({
     didRestoreDraft.current = true;
     const draft = sessionStorage.getItem(DRAFT_KEY);
     if (draft) setExplanation(draft);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);  
 
   useEffect(() => {
     if (!submitted) sessionStorage.setItem(DRAFT_KEY, explanation);

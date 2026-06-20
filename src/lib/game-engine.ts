@@ -1,6 +1,5 @@
 import type {
   GameRoom,
-  GamePhase,
   GameMode,
   Player,
   AvatarId,
