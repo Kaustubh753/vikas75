@@ -414,6 +414,18 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
+      case 'kick-judge': {
+        // Recovery watchdog: a client (projector) calls this if the game has been stuck in
+        // the judging phase too long — e.g. the original after()-scheduled triggerJudge never
+        // ran on serverless. Awaited (not via after()) so it can't depend on the same
+        // mechanism that may have failed; triggerJudge is idempotent (re-checks phase and
+        // takes the per-round lock), so repeated kicks are safe.
+        const { code: kjCode } = body as { code: string };
+        if (!kjCode || typeof kjCode !== 'string') return NextResponse.json({ ok: true });
+        await triggerJudge(kjCode.toUpperCase()).catch(() => {});
+        return NextResponse.json({ ok: true });
+      }
+
       default:
         return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
     }
@@ -481,9 +493,11 @@ async function triggerJudge(code: string) {
   const room = await getRoom(code);
   if (!room || room.phase !== 'judging') return;
 
-  // Distributed lock — prevent double-judging if after() fires more than once
+  // Distributed lock — prevent double-judging if after() fires more than once. TTL is kept
+  // comfortably above the judge's own 8s timeout but short enough that, if the function is
+  // killed mid-judge, the lock clears quickly so the kick-judge watchdog can recover.
   const lockKey = `lock:judging:${code}:${room.round}`;
-  const acquired = await acquireLock(lockKey, 60);
+  const acquired = await acquireLock(lockKey, 20);
   if (!acquired) return; // Another instance already handling this round
 
   if (!room.currentChallenge) {

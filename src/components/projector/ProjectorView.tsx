@@ -91,8 +91,13 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
   }, [code]);
 
   useEffect(() => {
-    // 30-second heartbeat — Pusher is the real-time channel; this is a fallback for
-    // dropped Pusher connections only. 5s was unnecessarily aggressive.
+    // Pusher is the real-time channel; this poll is the fallback when it's unavailable (no
+    // PUSHER env vars, blocked egress, dropped connection). Poll fast while a round is in
+    // motion so phase changes — round ends after everyone submits, and the judge's verdict —
+    // reach the big screen within a few seconds instead of stalling for 30s (which looks like
+    // "the round won't end" or "stuck on AI deliberating"). Idle phases poll slowly.
+    const active = room?.phase === 'submission' || room?.phase === 'reveal'
+      || room?.phase === 'judging' || room?.phase === 'winner';
     const poll = setInterval(() => {
       fetch(`/api/game?code=${code}`)
         .then(async (r) => {
@@ -101,9 +106,9 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
         })
         .then((d) => { if (d?.room) { setRoom(d.room); setRoomMissing(false); } })
         .catch(() => {});
-    }, 30_000);
+    }, active ? 3_000 : 30_000);
     return () => clearInterval(poll);
-  }, [code]);
+  }, [code, room?.phase]);
 
   useEffect(() => {
     const pusher = getPusherClient();
@@ -131,20 +136,27 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
       getLobbyMusic().stop();
     }
 
-    // Full-screen interstitial (#6)
+    // Full-screen interstitial (#6). Always clear the previous one first; if the new phase
+    // has none, leave it cleared — otherwise a fast transition (e.g. host advances before the
+    // 1.5s timer fires) would cancel the pending clear and leave the text stuck on screen.
     const interstitial = PHASE_TRANSITIONS[room.phase];
+    if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
     if (interstitial) {
       setTransitionText(interstitial);
-      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
       transitionTimerRef.current = setTimeout(() => setTransitionText(null), 1500);
+    } else {
+      setTransitionText(null);
     }
 
-    // Brief text overlay (#8)
+    // Brief text overlay (#8). Same rule — clear on every phase change so e.g. "TIME'S UP"
+    // never lingers over the reveal/winner results.
     const ov = getOverlay(room.phase, room.round);
+    if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
     if (ov) {
       setOverlay(ov);
-      if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
       overlayTimerRef.current = setTimeout(() => setOverlay(null), 1200);
+    } else {
+      setOverlay(null);
     }
 
     return () => {
@@ -182,6 +194,23 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
     }, delay);
     return () => clearTimeout(t);
   }, [room?.timerEndsAt, room?.phase, timerExpire]);
+
+  // Watchdog: a verdict normally lands within the judge's 8s timeout. If we're still in the
+  // judging phase well past that, the server-side judge likely never ran (e.g. a serverless
+  // after() callback that was dropped) — re-kick it. The action is idempotent and awaited
+  // server-side, so it resolves the round even if the original scheduling mechanism failed.
+  useEffect(() => {
+    if (room?.phase !== 'judging') return;
+    const kick = () => {
+      fetch('/api/game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'kick-judge', code }),
+      }).catch(() => {});
+    };
+    const iv = setInterval(kick, 12_000);
+    return () => clearInterval(iv);
+  }, [room?.phase, code]);
 
   function renderPhase() {
     if (!room) return null;
