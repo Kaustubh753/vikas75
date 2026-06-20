@@ -69,6 +69,25 @@ milestones. M1 closed the broken/silent/duplicate gaps.
   > updates won't fire — clients rely on the 30 s poll. Supply real `*PUSHER*` secrets for
   > live sync. This is now graceful (no 500s) rather than fatal.
 
+### Completion pass — Milestone 2: polish & robustness (this session)
+
+- **PWA + error boundaries (`7aff72e`).** Phones are the controllers, so the app is now
+  installable: `app/manifest.ts` (Web App Manifest, standalone/portrait, brand colours;
+  Next auto-links it at `/manifest.webmanifest`) plus maskable PNG icons (192/512/180
+  apple-touch) generated from a brand SVG via `sharp`. Added `not-found.tsx`, `error.tsx`
+  (segment boundary with retry + home) and `global-error.tsx` (self-contained root
+  boundary) so a bad URL or runtime error shows a branded screen with an escape hatch
+  instead of a blank page. Verified: manifest serves `application/manifest+json`, unknown
+  routes 404 the branded page, icons load.
+- **Favicon colour** nudged from the stale `#0d1b2e` to canonical `#0d1b35` (cf. bug #14).
+- **The Team tab** (Explore) was left as "Coming soon." on purpose — product decision to
+  defer it until real team content exists.
+- **`npm run build` passes** — full production build of all 13 routes is green (the
+  strongest shippability gate; catches server/client-boundary issues tsc/eslint miss).
+
+> Not verified here: the procedural SFX *by ear* — there's no browser/audio device in this
+> env. Types, lint and build pass; confirm the projector stings sound right in a real browser.
+
 ### 1.6 — Phase-stall fixes (`a98d296`) ← most important recent change
 
 While testing the full game loop end-to-end (via `curl`, see §2), two independent
