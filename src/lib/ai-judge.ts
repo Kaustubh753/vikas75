@@ -173,17 +173,39 @@ function fallbackJudge(submissions: Submission[]): JudgeVerdict {
   };
 }
 
+/**
+ * An explicit "no winner this round" verdict — used when the judge can't decide
+ * (Claude timed out/errored) or there were no submissions. Rankings are empty and no
+ * points are awarded; the UI shows a dedicated no-winner screen rather than inventing a
+ * ranking. (Distinct from the no-API-key path, which deliberately uses fallbackJudge.)
+ */
+export function noWinnerVerdict(reason = "The judge couldn't pick a winner this round."): JudgeVerdict {
+  return {
+    winnerId: '',
+    winnerName: '',
+    schemeCard: { id: '', name: '', hi: '', desc: '', bullets: [] },
+    explanation: '',
+    reasoning: reason,
+    bonusPoint: false,
+    rankings: [],
+    noWinner: true,
+  };
+}
+
 export async function judgeRound(
   challenge: ChallengeCard,
   submissions: Submission[],
 ): Promise<JudgeVerdict> {
-  if (!submissions.length) throw new Error('No submissions to judge');
+  if (!submissions.length) return noWinnerVerdict('No one submitted an answer this round.');
   if (process.env.ANTHROPIC_API_KEY) {
     try {
       return await claudeJudge(challenge, submissions);
     } catch (err) {
-      console.error('[ai-judge] Claude failed, falling back to random judge:', err instanceof Error ? err.message : err);
+      // The real judge failed — do NOT invent an arbitrary ranking. Show "no winner".
+      console.error('[ai-judge] Claude failed; declaring no winner this round:', err instanceof Error ? err.message : err);
+      return noWinnerVerdict("The judge timed out, so there's no winner this round.");
     }
   }
+  // No Claude configured — use the deliberate random demo judge (still picks a winner).
   return fallbackJudge(submissions);
 }

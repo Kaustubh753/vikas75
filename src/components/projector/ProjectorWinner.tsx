@@ -28,6 +28,8 @@ export default function ProjectorWinner({ room }: Props) {
   }, [room.round]);
 
   useEffect(() => {
+    // No celebratory fanfare when there's no winner.
+    if (room.lastVerdict?.noWinner) return;
     getMusicManager().play('winner');
     // Read current stage via ref — avoids stale closure if round resets before timers fire
     if (stageRef.current >= 1) {
@@ -43,6 +45,27 @@ export default function ProjectorWinner({ room }: Props) {
   }, []); // intentional one-shot on mount — reads stage via stageRef to avoid stale closure
 
   if (!verdict) return null;
+
+  // Explicit "no winner this round" — no fake ranking, no confetti.
+  if (verdict.noWinner) {
+    return (
+      <div className="w-full h-full bg-[#0d1b35] flex flex-col items-center justify-center overflow-hidden relative gap-6 px-8">
+        <p style={{ fontSize: 'clamp(48px,9vw,96px)' }}>🤷</p>
+        <h1 className="font-[family-name:var(--font-bebas)] text-white tracking-widest text-center"
+            style={{ fontSize: 'clamp(40px,7vw,80px)', lineHeight: 1 }}>
+          No winner this round
+        </h1>
+        <p className="font-[family-name:var(--font-inter)] text-white/60 text-center"
+           style={{ fontSize: 'clamp(14px,1.4vw,20px)', maxWidth: '40ch' }}>
+          {verdict.reasoning}
+        </p>
+        <p className="font-[family-name:var(--font-bebas)] text-[#FF9933] tracking-[0.4em] uppercase"
+           style={{ fontSize: 'clamp(16px,1.8vw,24px)' }}>
+          Round {room.round}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full bg-[#0d1b35] flex flex-col items-center justify-center overflow-hidden relative">

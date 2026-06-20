@@ -5,7 +5,9 @@
  */
 
 const LOBBY_TRACK = '/sounds/lobby.mp3';
-const STORAGE_KEY = 'vikas75-music-enabled';
+// Single source of truth for the user's "sound on/off" preference, shared with the SFX
+// manager (src/lib/music.ts) so the one toggle can never desync the two systems.
+const STORAGE_KEY = 'vikas75-sound-on';
 const FADE_IN_DURATION = 2000;  // ms
 const FADE_OUT_DURATION = 3000; // ms
 const MAX_VOLUME = 0.4;
@@ -87,6 +89,10 @@ class LobbyMusicManager {
    */
   autoPlay(): void {
     if (this._forceMuted) return;
+    // The big screen starts with sound on. Record the shared "sound on" preference so the
+    // SFX manager (music.ts) and the mute button agree, rather than drifting out of sync.
+    this._enabled = true;
+    try { localStorage.setItem(STORAGE_KEY, 'true'); } catch { /* ignore */ }
     const audio = this.getAudio();
     if (!audio.paused) return; // already playing
     this.doFadeIn();

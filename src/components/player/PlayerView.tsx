@@ -13,6 +13,7 @@ import PlayerLobby from '@/components/player/PlayerLobby';
 import PlayerChallengeReveal from '@/components/player/PlayerChallengeReveal';
 import PlayerSubmit from '@/components/player/PlayerSubmit';
 import PlayerWaiting from '@/components/player/PlayerWaiting';
+import Avatar from '@/lib/avatars';
 import EmotePanel from '@/components/player/EmotePanel';
 import ChatPanel from '@/components/player/ChatPanel';
 import { getLobbyMusic } from '@/lib/music-manager';
@@ -69,12 +70,10 @@ export default function PlayerView({ code }: Props) {
     setPlayerId(pid);
     setPlayerName(pname);
     setAvatarId(avid);
-    // Sync music toggle state from localStorage
-    const lobbyMusicOn = localStorage.getItem('vikas75-music-enabled') === 'true';
-    setMusicOn(lobbyMusicOn);
-    // Keep SFX mute in sync with lobby music preference on load
-    const sfxShouldBeMuted = !lobbyMusicOn;
-    if (getMusicManager().muted !== sfxShouldBeMuted) getMusicManager().toggleMute();
+    // Single shared "sound on" preference drives both lobby music and SFX.
+    const soundOn = localStorage.getItem('vikas75-sound-on') === 'true';
+    setMusicOn(soundOn);
+    getMusicManager().setMuted(!soundOn);
     // Restore cached hand from previous session (survives page refresh mid-game)
     try {
       const savedHand = localStorage.getItem(`vikas75_hand_${code}`);
@@ -98,14 +97,17 @@ export default function PlayerView({ code }: Props) {
       const pid = localStorage.getItem('vikas75_playerId') ?? '';
       const res = await fetch(`/api/game?code=${code}${pid ? `&me=${encodeURIComponent(pid)}` : ''}`);
       if (!res.ok) {
-        // Room not found — only clear + redirect during session restore (before first successful join)
-        if (!toastedJoin.current) clearSessionAndGoHome();
+        // 404 = the room is genuinely gone (closed, expired, deleted). Always clear identity
+        // and return home cleanly — no error, no dead end — even for an already-joined player.
+        // Other errors (e.g. 503 storage blip) are ignored so a transient hiccup doesn't eject
+        // an active player; during initial restore any failure still sends them home.
+        if (res.status === 404 || !toastedJoin.current) clearSessionAndGoHome();
         return;
       }
       const data = await res.json();
       const r: GameRoom = data.room;
       if (!r) {
-        if (!toastedJoin.current) clearSessionAndGoHome();
+        clearSessionAndGoHome();
         return;
       }
       // Rejoining a finished game — redirect with toast
@@ -139,12 +141,17 @@ export default function PlayerView({ code }: Props) {
     if (hydrated) fetchRoom();
   }, [hydrated, fetchRoom]);
 
-  // 30 s fallback poll — keeps player state fresh if Pusher drops
+  // Fallback poll for when the Pusher real-time channel is unavailable. Poll fast while a
+  // round is in motion so a phase change (round ends → reveal → winner) reaches the player
+  // within a few seconds and they never get stuck on their own submission screen; idle
+  // phases (lobby / between-rounds / game-over) poll slowly to save load.
   useEffect(() => {
     if (!hydrated) return;
-    const id = setInterval(fetchRoom, 30_000);
+    const active = room?.phase === 'submission' || room?.phase === 'reveal'
+      || room?.phase === 'judging' || room?.phase === 'winner';
+    const id = setInterval(fetchRoom, active ? 3_000 : 30_000);
     return () => clearInterval(id);
-  }, [hydrated, fetchRoom]);
+  }, [hydrated, fetchRoom, room?.phase]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -230,6 +237,8 @@ export default function PlayerView({ code }: Props) {
         }),
       });
       if (!res.ok) {
+        // Room vanished mid-game — send the player home cleanly rather than showing an error.
+        if (res.status === 404) { clearSessionAndGoHome(); return; }
         const data = await res.json().catch(() => ({}));
         toast.error((data as { error?: string }).error || 'Submission failed — please try again');
         return;
@@ -239,7 +248,7 @@ export default function PlayerView({ code }: Props) {
     } catch {
       toast.error('Network error — please check your connection and try again');
     }
-  }, [code, playerId, playerName, avatarId]);
+  }, [code, playerId, playerName, avatarId, clearSessionAndGoHome]);
 
   const handleEmote = useCallback(async (emoteId: EmoteId) => {
     vibrate(30);
@@ -425,6 +434,44 @@ export default function PlayerView({ code }: Props) {
           );
         }
         return <PlayerWaiting phase={phase} />;
+      case 'winner': {
+        const verdict = room.lastVerdict;
+        if (!verdict) return <PlayerWaiting phase={phase} hint="Revealing the winner on the big screen…" />;
+        if (verdict.noWinner) {
+          return (
+            <div className="flex flex-col items-center justify-center gap-4 min-h-[60vh] px-6 text-center">
+              <p className="text-5xl">🤷</p>
+              <p className="text-white font-[family-name:var(--font-bebas)] text-3xl tracking-wide">No winner this round</p>
+              <p className="text-white/50 text-sm font-[family-name:var(--font-inter)]">{verdict.reasoning}</p>
+            </div>
+          );
+        }
+        const iWon = verdict.winnerId === playerId;
+        return (
+          <div className="flex flex-col items-center justify-center gap-4 min-h-[60vh] px-6 text-center animate-fade-in">
+            <p className="font-[family-name:var(--font-bebas)] text-[#FF9933] text-lg tracking-[0.4em] uppercase">
+              Round {room.round} Winner
+            </p>
+            <div className="rounded-2xl overflow-hidden border-2 border-[#FFD700]/60 shadow-[0_0_40px_#FFD70040]">
+              <Avatar id={verdict.rankings[0]?.avatarId ?? 'a1'} size={96} className="rounded-2xl" />
+            </div>
+            <p className="font-[family-name:var(--font-bebas)] text-[#FFD700] text-4xl tracking-wide leading-none">
+              {verdict.winnerName}
+            </p>
+            <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-3 max-w-sm">
+              <p className="font-[family-name:var(--font-bebas)] text-white text-lg tracking-wide mb-1">
+                {verdict.schemeCard.name}
+              </p>
+              <p className="font-[family-name:var(--font-inter)] text-white/60 text-sm italic">
+                &ldquo;{verdict.explanation}&rdquo;
+              </p>
+            </div>
+            <p className={`font-[family-name:var(--font-inter)] text-sm font-semibold ${iWon ? 'text-[#138808]' : 'text-white/50'}`}>
+              {iWon ? '🎉 You won this round!' : 'Better luck next round!'}
+            </p>
+          </div>
+        );
+      }
       case 'game-over':
         // Clear saved draft so it doesn't bleed into the next game
         try { sessionStorage.removeItem('vikas75_draft_explanation'); } catch { /* ignore */ }
@@ -438,14 +485,7 @@ export default function PlayerView({ code }: Props) {
               Thanks for playing Vikas 75!
             </p>
             <button
-              onClick={() => {
-                localStorage.removeItem('vikas75_playerId');
-                localStorage.removeItem('vikas75_playerName');
-                localStorage.removeItem('vikas75_avatarId');
-                localStorage.removeItem('vikas75_roomCode');
-                localStorage.removeItem(`vikas75_hand_${code}`);
-                router.replace('/');
-              }}
+              onClick={() => clearSessionAndGoHome()}
               className="mt-4 px-8 h-14 bg-[#FF9933] hover:bg-[#e8872a] text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95"
             >
               Play Again →
@@ -486,12 +526,8 @@ export default function PlayerView({ code }: Props) {
           {phase !== 'game-over' && (
             <button
               onClick={() => {
-                const next = getLobbyMusic().toggle(); // true = sound on
-                // Sync game SFX: muted should be the opposite of 'next'
-                const sfxShouldBeMuted = !next;
-                if (getMusicManager().muted !== sfxShouldBeMuted) {
-                  getMusicManager().toggleMute();
-                }
+                const next = getLobbyMusic().toggle(); // true = sound on (writes shared key)
+                getMusicManager().setMuted(!next);     // SFX follows the same preference
                 setMusicOn(next);
               }}
               className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95"

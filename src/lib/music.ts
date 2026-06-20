@@ -23,7 +23,9 @@ class MusicManager {
 
   constructor() {
     if (typeof window !== 'undefined') {
-      this._muted = localStorage.getItem('vikas75_muted') === 'true';
+      // Shared "sound on/off" key with the lobby music manager. Sound is off by default;
+      // muted is simply the inverse of "sound on", so the single user toggle controls both.
+      this._muted = localStorage.getItem('vikas75-sound-on') !== 'true';
     }
   }
 
@@ -83,10 +85,18 @@ class MusicManager {
   get muted() { return this._muted; }
 
   toggleMute(): boolean {
-    this._muted = !this._muted;
-    if (typeof window !== 'undefined') localStorage.setItem('vikas75_muted', String(this._muted));
-    if (this._muted) this.stop();
+    this.setMuted(!this._muted);
     return this._muted;
+  }
+
+  /**
+   * Set the muted state explicitly and persist the shared "sound on" preference.
+   * Used so the lobby-music toggle and the SFX mute stay in lockstep off one key.
+   */
+  setMuted(muted: boolean) {
+    this._muted = muted;
+    if (typeof window !== 'undefined') localStorage.setItem('vikas75-sound-on', String(!muted));
+    if (this._muted) this.stop();
   }
 
   // ── Procedural synthesis ───────────────────────────────────────────────────

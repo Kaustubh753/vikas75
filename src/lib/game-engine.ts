@@ -91,6 +91,7 @@ export function addPlayer(room: GameRoom, playerId: string, playerName: string, 
         name: playerName,
         avatarId,
         score: 0,
+        roundsWon: 0,
         hand: dealHand(),
         joinedRound: room.round,
         lastSeen: Date.now(),
@@ -159,7 +160,8 @@ export function addSubmission(room: GameRoom, submission: Submission): GameRoom 
 export function applyVerdict(room: GameRoom, verdict: JudgeVerdict): GameRoom {
   const players = { ...room.players };
 
-  // Award points to all ranked players (1st=3, 2nd=2, 3rd=1)
+  // Award points to all ranked players (1st=3, 2nd=2, 3rd=1). A no-winner verdict has
+  // empty rankings, so nobody scores and no round win is recorded.
   for (const ranking of verdict.rankings) {
     if (players[ranking.playerId]) {
       players[ranking.playerId] = {
@@ -167,6 +169,14 @@ export function applyVerdict(room: GameRoom, verdict: JudgeVerdict): GameRoom {
         score: players[ranking.playerId].score + ranking.gamePoints + (ranking.bonusPoint ? 1 : 0),
       };
     }
+  }
+
+  // Credit the round win to the winner — this is what decides the overall game winner.
+  if (!verdict.noWinner && verdict.winnerId && players[verdict.winnerId]) {
+    players[verdict.winnerId] = {
+      ...players[verdict.winnerId],
+      roundsWon: (players[verdict.winnerId].roundsWon ?? 0) + 1,
+    };
   }
 
   return {

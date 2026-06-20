@@ -23,6 +23,7 @@ export interface Player {
   name: string;
   avatarId: AvatarId;
   score: number;
+  roundsWon: number; // count of rounds this player won (1st place) — decides the overall winner
   hand: SchemeCard[];
   joinedRound: number;
   lastSeen?: number; // epoch ms — set on join, updated via heartbeat every 20 s
@@ -58,6 +59,7 @@ export interface JudgeVerdict {
   reasoning: string;       // overall narrative from the judge
   bonusPoint: boolean;
   rankings: PlayerRanking[]; // all players sorted by judgeScore desc
+  noWinner?: boolean;      // true = explicit "no winner this round" (judge failed / no submissions); rankings empty, no points awarded
 }
 
 export type GamePhase =

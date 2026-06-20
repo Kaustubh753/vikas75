@@ -14,9 +14,9 @@ import {
   updateSettings,
   addMessage,
 } from '@/lib/game-engine';
-import { judgeRound } from '@/lib/ai-judge';
+import { judgeRound, noWinnerVerdict } from '@/lib/ai-judge';
 import { filterText } from '@/lib/word-filter';
-import type { Submission, GameMode, AvatarId, ChatMessage, GameRoom } from '@/types/game';
+import type { Submission, GameMode, AvatarId, ChatMessage } from '@/types/game';
 
 // Simple in-memory rate limiter — best-effort (not shared across serverless instances)
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
@@ -456,14 +456,12 @@ async function triggerJudge(code: string) {
   }
   const submissions = Object.values(room.submissions);
 
-  // No submissions — skip to next phase without a verdict
+  // No submissions — show an explicit "no winner this round" on the winner screen rather
+  // than silently skipping it (so it never looks like someone won when no one played).
   if (submissions.length === 0) {
-    const next: GameRoom = {
-      ...room,
-      phase: room.round >= room.totalRounds ? 'game-over' : 'between-rounds',
-    };
-    await setRoom(next);
-    await broadcastRoom(next);
+    const updated = applyVerdict(room, noWinnerVerdict('No one submitted an answer this round.'));
+    await setRoom(updated);
+    await broadcastRoom(updated);
     return;
   }
 

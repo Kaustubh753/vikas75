@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import type { GameRoom } from '@/types/game';
+import type { GameRoom, GameMode } from '@/types/game';
 
 interface Props {
   room: GameRoom;
@@ -46,6 +46,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
   const [musicMuted, setMusicMuted] = useState(false);
   const [rounds, setRounds] = useState(room.totalRounds);
   const [timer, setTimer] = useState(room.timerDuration);
+  const [mode, setMode] = useState<GameMode>(room.gameMode);
   const settingsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Hover states for buttons
@@ -61,7 +62,8 @@ export default function HostOverlay({ room, code, hostId }: Props) {
   useEffect(() => {
     setRounds(room.totalRounds);
     setTimer(room.timerDuration);
-  }, [room.totalRounds, room.timerDuration]);
+    setMode(room.gameMode);
+  }, [room.totalRounds, room.timerDuration, room.gameMode]);
 
   // Close settings panel when leaving lobby
   useEffect(() => {
@@ -90,7 +92,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
 
   async function handleAdvance() {
     if (room.phase === 'game-over') {
-      router.push('/host/setup');
+      router.push('/');
       return;
     }
     setLoading(true);
@@ -141,14 +143,14 @@ export default function HostOverlay({ room, code, hostId }: Props) {
     setLoading(false);
   }
 
-  const scheduleSettingsUpdate = useCallback((nextRounds: number, nextTimer: number) => {
+  const scheduleSettingsUpdate = useCallback((nextRounds: number, nextTimer: number, nextMode: GameMode) => {
     if (settingsDebounceRef.current) clearTimeout(settingsDebounceRef.current);
     settingsDebounceRef.current = setTimeout(async () => {
       try {
         await fetch('/api/game', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'update-settings', code, hostId, totalRounds: nextRounds, timerDuration: nextTimer }),
+          body: JSON.stringify({ action: 'update-settings', code, hostId, totalRounds: nextRounds, timerDuration: nextTimer, gameMode: nextMode }),
         });
       } catch {
         // non-critical
@@ -156,17 +158,26 @@ export default function HostOverlay({ room, code, hostId }: Props) {
     }, 400);
   }, [code, hostId]);
 
-  async function handleSettingsSave() {
+  const saveSettings = useCallback(async (nextRounds: number, nextTimer: number, nextMode: GameMode) => {
     if (settingsDebounceRef.current) clearTimeout(settingsDebounceRef.current);
     try {
       await fetch('/api/game', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'update-settings', code, hostId, totalRounds: rounds, timerDuration: timer }),
+        body: JSON.stringify({ action: 'update-settings', code, hostId, totalRounds: nextRounds, timerDuration: nextTimer, gameMode: nextMode }),
       });
     } catch {
       // non-critical
     }
+  }, [code, hostId]);
+
+  function handleSettingsSave() {
+    saveSettings(rounds, timer, mode);
+  }
+
+  function handleModeChange(nextMode: GameMode) {
+    setMode(nextMode);
+    saveSettings(rounds, timer, nextMode);
   }
 
   const playerCount = Object.values(room.players).length;
@@ -265,7 +276,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
               onChange={(e) => {
                 const v = Number(e.target.value);
                 setRounds(v);
-                scheduleSettingsUpdate(v, timer);
+                scheduleSettingsUpdate(v, timer, mode);
               }}
               onPointerUp={handleSettingsSave}
               onKeyUp={handleSettingsSave}
@@ -305,13 +316,43 @@ export default function HostOverlay({ room, code, hostId }: Props) {
               onChange={(e) => {
                 const v = Number(e.target.value);
                 setTimer(v);
-                scheduleSettingsUpdate(rounds, v);
+                scheduleSettingsUpdate(rounds, v, mode);
               }}
               onPointerUp={handleSettingsSave}
               onKeyUp={handleSettingsSave}
               aria-label="Timer duration in seconds"
               style={{ width: '100%', accentColor: '#FF9933', cursor: 'pointer' }}
             />
+          </div>
+
+          {/* Mode toggle */}
+          <div style={{ flex: 1 }}>
+            <span style={{
+              display: 'block', marginBottom: 6,
+              fontFamily: 'var(--font-inter)', fontSize: 10, letterSpacing: '0.1em',
+              fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase',
+            }}>
+              Mode
+            </span>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {([['crowd', 'Crowd'], ['friends', 'Friends']] as [GameMode, string][]).map(([m, label]) => (
+                <button
+                  key={m}
+                  onClick={() => handleModeChange(m)}
+                  style={{
+                    flex: 1, height: 32, borderRadius: 8, cursor: 'pointer',
+                    fontFamily: 'var(--font-inter)', fontSize: 11, fontWeight: 600,
+                    letterSpacing: '0.04em',
+                    background: mode === m ? 'rgba(255,153,51,0.18)' : 'rgba(255,255,255,0.05)',
+                    border: `1px solid ${mode === m ? 'rgba(255,153,51,0.5)' : 'rgba(255,255,255,0.12)'}`,
+                    color: mode === m ? '#FF9933' : 'rgba(255,255,255,0.5)',
+                    transition: 'background .15s, border-color .15s, color .15s',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}

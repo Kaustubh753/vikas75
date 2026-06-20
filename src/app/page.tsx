@@ -559,6 +559,28 @@ function LandingPage() {
   const initialCode = (searchParams.get('code') ?? '').toUpperCase().slice(0, 4);
   const [joinOpen, setJoinOpen] = useState(Boolean(initialCode));
   const [musicOn, setMusicOn] = useState(false);
+  const [hosting, setHosting] = useState(false);
+
+  // Create a room directly and go straight to the projector/lobby. Game settings
+  // (rounds, timer, mode) live in the lobby's host controls, so there's no separate
+  // setup page — hosting is one click.
+  async function handleHostGame() {
+    if (hosting) return;
+    setHosting(true);
+    const hostId = crypto.randomUUID();
+    try {
+      const res = await fetch('/api/game', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create-room', hostId, hostName: 'Host' }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'Could not create room'); setHosting(false); return; }
+      router.push(`/projector/${data.room.code}?h=${hostId}`);
+    } catch {
+      toast.error('Network error. Please try again.');
+      setHosting(false);
+    }
+  }
 
   const logoClickCount = useRef(0);
   const logoEasterEggShown = useRef(false);
@@ -687,9 +709,9 @@ function LandingPage() {
               style={{ ...btnBase, width: '100%', background: '#FF9933', color: '#1a1208', borderColor: '#FF9933' }}
               onMouseEnter={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = '#e6862b'; b.style.transform = 'translateY(-1px)'; b.style.boxShadow = '0 6px 24px rgba(255,153,51,.32)'; }}
               onMouseLeave={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = '#FF9933'; b.style.transform = ''; b.style.boxShadow = ''; }}
-              onClick={() => router.push('/host/setup')}
+              onClick={handleHostGame}
             >
-              Host a Game
+              {hosting ? 'Creating…' : 'Host a Game'}
             </button>
             <button
               style={{ ...btnBase, width: '100%', background: joinOpen ? 'rgba(255,153,51,.12)' : 'transparent', color: '#FF9933', borderColor: '#FF9933' }}
