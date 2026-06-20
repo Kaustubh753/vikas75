@@ -88,6 +88,23 @@ milestones. M1 closed the broken/silent/duplicate gaps.
 > Not verified here: the procedural SFX *by ear* — there's no browser/audio device in this
 > env. Types, lint and build pass; confirm the projector stings sound right in a real browser.
 
+### Completion pass — Milestone 3: dev-experience & flags (this session)
+
+- **`.env.example` (`6fa587f`).** The fail-fast boot error told you to "copy `.env.example`
+  to `.env.local`" but the file didn't exist. Added it (every var, required vs optional,
+  where to get it, what degrades without it) with a `.gitignore` exception.
+
+**What still needs real secrets / infra (supply these for a live deploy):**
+- `PUSHER_*` + `NEXT_PUBLIC_PUSHER_*` — required to boot and for real-time sync. Without
+  real keys (or with blocked egress) clients fall back to the 30 s poll; this is now
+  graceful (best-effort broadcasts) rather than a 500.
+- `UPSTASH_REDIS_REST_*` — required in production; the in-memory `Map` isn't shared across
+  serverless instances.
+- `ANTHROPIC_API_KEY` — real Claude judge; otherwise the random Hinglish fallback.
+- `ADMIN_USERNAME` / `ADMIN_PASSWORD` — enable /admin + End Room.
+- Still untested because they need live infra: real-time Pusher delivery, `after()` /
+  `triggerJudge` reliability under Vercel cold starts, and cross-instance Redis.
+
 ### 1.6 — Phase-stall fixes (`a98d296`) ← most important recent change
 
 While testing the full game loop end-to-end (via `curl`, see §2), two independent
