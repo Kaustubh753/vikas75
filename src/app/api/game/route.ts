@@ -207,6 +207,13 @@ export async function POST(req: NextRequest) {
             submittedAt: Date.now(),           // always server-side timestamp — never trust client
           };
           const updated = addSubmission(room, safeSubmission);
+          // Submitting is definitive proof of presence — refresh the heartbeat so a
+          // player who submits (then locks their phone / backgrounds the tab, which can
+          // throttle the JS heartbeat timer) is never wrongly treated as disconnected by
+          // allPlayersSubmitted(). Without this, the auto-advance can stall.
+          if (updated.players[submission.playerId]) {
+            updated.players[submission.playerId].lastSeen = Date.now();
+          }
           await setRoom(updated);
           // Broadcast happens before auto-advance so clients see the submission tick
           await broadcastRoom(updated);
@@ -409,13 +416,19 @@ export async function GET(req: NextRequest) {
 }
 
 async function triggerJudge(code: string) {
+  // Read the room first so the lock can be scoped to the *current round*. A room-only
+  // lock key (with its 60 s TTL) would otherwise stay held after round N's verdict and
+  // silently block round N+1's judge when rounds complete in under 60 s — freezing the
+  // game at the judging phase. Per-round keys keep the double-fire guard while letting
+  // each round judge independently.
+  const room = await getRoom(code);
+  if (!room || room.phase !== 'judging') return;
+
   // Distributed lock — prevent double-judging if after() fires more than once
-  const lockKey = `lock:judging:${code}`;
+  const lockKey = `lock:judging:${code}:${room.round}`;
   const acquired = await acquireLock(lockKey, 60);
   if (!acquired) return; // Another instance already handling this round
 
-  const room = await getRoom(code);
-  if (!room || room.phase !== 'judging') return;
   if (!room.currentChallenge) {
     console.error('[triggerJudge] currentChallenge is null in judging phase — skipping');
     return;
