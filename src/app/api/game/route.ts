@@ -96,68 +96,74 @@ export async function POST(req: NextRequest) {
         if (!playerId || typeof playerId !== 'string' || playerId.length > 64) return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
         const VALID_AVATAR_IDS: AvatarId[] = ['a1','a2','a3','a4','a5','a6','a7','a8','a9','a10','a11'];
         const safeAvatarId: AvatarId = VALID_AVATAR_IDS.includes(avatarId) ? avatarId : 'a1';
-        const room = await getRoom(code?.toUpperCase());
-        if (!room) return NextResponse.json({ error: 'Room not found — check your code' }, { status: 404 });
-        // Idempotent rejoin — always allowed for existing players
-        if (room.players[playerId]) {
-          return NextResponse.json({ room });
-        }
-        if (room.phase === 'game-over') {
-          return NextResponse.json({ error: 'This game has ended — start a new one!' }, { status: 400 });
-        }
-        // Reconnection: if a *disconnected* player with the same name still holds a seat
-        // (e.g. they lost their localStorage identity when an incognito session closed and
-        // rejoined with a fresh UUID), reclaim that seat — preserving their score, hand and
-        // joinedRound — instead of creating a duplicate. Only seats that have gone stale
-        // (no heartbeat for >45 s, the same threshold presence/submission gating uses) are
-        // reclaimable, so an active player who happens to share a name is never hijacked.
-        const RECLAIM_STALE_MS = 45_000;
-        const reclaimNow = Date.now();
-        const reclaimable = Object.values(room.players).find(
-          (p) => p.name.toLowerCase() === safeName.toLowerCase() &&
-                 (!p.lastSeen || reclaimNow - p.lastSeen > RECLAIM_STALE_MS),
-        );
-        if (reclaimable) {
-          reclaimable.lastSeen = reclaimNow;
-          reclaimable.avatarId = safeAvatarId; // adopt the freshly chosen avatar
-          room.shutdownAt = undefined;          // someone's back — cancel any pending shutdown
-          await setRoom(room);
-          await broadcastRoom(room);
-          // Tell the client which id to adopt so its localStorage points at the reclaimed seat.
-          return NextResponse.json({ room, reclaimedPlayerId: reclaimable.id });
-        }
-        // A round is live: don't let a brand-new player appear mid-submission (they'd show on
-        // the board without a fair shot at the active challenge). Existing players (handled
-        // above) and reconnecting dropped players (reclaim, above) are still allowed in.
-        if (room.phase === 'submission') {
-          return NextResponse.json({ error: 'A round is in progress — you can join when it ends.' }, { status: 400 });
-        }
-        const updated = addPlayer(room, playerId, safeName, safeAvatarId);
-        await setRoom(updated);
-        await broadcastRoom(updated);
-        return NextResponse.json({ room: updated });
+        const res = await withRoomLock(code, async () => {
+          const room = await getRoom(code?.toUpperCase());
+          if (!room) return NextResponse.json({ error: 'Room not found — check your code' }, { status: 404 });
+          // Idempotent rejoin — always allowed for existing players
+          if (room.players[playerId]) {
+            return NextResponse.json({ room });
+          }
+          if (room.phase === 'game-over') {
+            return NextResponse.json({ error: 'This game has ended — start a new one!' }, { status: 400 });
+          }
+          // Reconnection: if a *disconnected* player with the same name still holds a seat
+          // (e.g. they lost their localStorage identity when an incognito session closed and
+          // rejoined with a fresh UUID), reclaim that seat — preserving their score, hand and
+          // joinedRound — instead of creating a duplicate. Only seats that have gone stale
+          // (no heartbeat for >45 s, the same threshold presence/submission gating uses) are
+          // reclaimable, so an active player who happens to share a name is never hijacked.
+          const RECLAIM_STALE_MS = 45_000;
+          const reclaimNow = Date.now();
+          const reclaimable = Object.values(room.players).find(
+            (p) => p.name.toLowerCase() === safeName.toLowerCase() &&
+                   (!p.lastSeen || reclaimNow - p.lastSeen > RECLAIM_STALE_MS),
+          );
+          if (reclaimable) {
+            reclaimable.lastSeen = reclaimNow;
+            reclaimable.avatarId = safeAvatarId; // adopt the freshly chosen avatar
+            room.shutdownAt = undefined;          // someone's back — cancel any pending shutdown
+            await setRoom(room);
+            await broadcastRoom(room);
+            // Tell the client which id to adopt so its localStorage points at the reclaimed seat.
+            return NextResponse.json({ room, reclaimedPlayerId: reclaimable.id });
+          }
+          // A round is live: don't let a brand-new player appear mid-submission (they'd show on
+          // the board without a fair shot at the active challenge). Existing players (handled
+          // above) and reconnecting dropped players (reclaim, above) are still allowed in.
+          if (room.phase === 'submission') {
+            return NextResponse.json({ error: 'A round is in progress — you can join when it ends.' }, { status: 400 });
+          }
+          const updated = addPlayer(room, playerId, safeName, safeAvatarId);
+          await setRoom(updated);
+          await broadcastRoom(updated);
+          return NextResponse.json({ room: updated });
+        });
+        return res ?? NextResponse.json({ error: 'Room busy — please try again' }, { status: 409 });
       }
 
       case 'advance': {
         const { code, hostId } = body;
-        const room = await getRoom(code?.toUpperCase());
-        if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
-        if (!hostId || room.hostId !== hostId) return NextResponse.json({ error: 'Not the host' }, { status: 403 });
-        // Require at least 2 players before leaving lobby
-        if (room.phase === 'lobby' && Object.keys(room.players).length < 2) {
-          return NextResponse.json({ error: 'Need at least 2 players to start.' }, { status: 400 });
-        }
-        // Block advancing while the AI judge is still deliberating
-        if (room.phase === 'judging') {
-          return NextResponse.json({ error: 'AI judge is deliberating — please wait.' }, { status: 400 });
-        }
-        const updated = advancePhase(room);
-        await setRoom(updated);
-        await broadcastRoom(updated);
-        if (updated.phase === 'judging') {
-          after(() => triggerJudge(code.toUpperCase()).catch(() => {}));
-        }
-        return NextResponse.json({ room: updated });
+        const res = await withRoomLock(code ?? '', async () => {
+          const room = await getRoom(code?.toUpperCase());
+          if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+          if (!hostId || room.hostId !== hostId) return NextResponse.json({ error: 'Not the host' }, { status: 403 });
+          // Require at least 2 players before leaving lobby
+          if (room.phase === 'lobby' && Object.keys(room.players).length < 2) {
+            return NextResponse.json({ error: 'Need at least 2 players to start.' }, { status: 400 });
+          }
+          // Block advancing while the AI judge is still deliberating
+          if (room.phase === 'judging') {
+            return NextResponse.json({ error: 'AI judge is deliberating — please wait.' }, { status: 400 });
+          }
+          const updated = advancePhase(room);
+          await setRoom(updated);
+          await broadcastRoom(updated);
+          if (updated.phase === 'judging') {
+            after(() => triggerJudge(code!.toUpperCase()).catch(() => {}));
+          }
+          return NextResponse.json({ room: updated });
+        });
+        return res ?? NextResponse.json({ error: 'Room busy — please try again' }, { status: 409 });
       }
 
       case 'update-settings': {
@@ -165,18 +171,21 @@ export async function POST(req: NextRequest) {
           code: string; hostId: string;
           totalRounds?: number; timerDuration?: number; gameMode?: GameMode;
         };
-        const room = await getRoom(code?.toUpperCase());
-        if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
-        if (room.hostId !== hostId) return NextResponse.json({ error: 'Not the host' }, { status: 403 });
-        if (room.phase !== 'lobby') return NextResponse.json({ error: 'Can only update settings in lobby' }, { status: 400 });
-        const safeRounds = typeof totalRounds === 'number' ? Math.max(1, Math.min(50, Math.round(totalRounds))) : room.totalRounds;
-        const safeTimer = typeof timerDuration === 'number' ? Math.max(10, Math.min(300, Math.round(timerDuration))) : room.timerDuration;
-        const VALID_MODES: GameMode[] = ['crowd', 'friends'];
-        const safeGameMode: GameMode = VALID_MODES.includes(gameMode as GameMode) ? (gameMode as GameMode) : room.gameMode;
-        const updated = updateSettings(room, { totalRounds: safeRounds, timerDuration: safeTimer, gameMode: safeGameMode });
-        await setRoom(updated);
-        await broadcastRoom(updated);
-        return NextResponse.json({ room: updated });
+        const res = await withRoomLock(code ?? '', async () => {
+          const room = await getRoom(code?.toUpperCase());
+          if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+          if (room.hostId !== hostId) return NextResponse.json({ error: 'Not the host' }, { status: 403 });
+          if (room.phase !== 'lobby') return NextResponse.json({ error: 'Can only update settings in lobby' }, { status: 400 });
+          const safeRounds = typeof totalRounds === 'number' ? Math.max(1, Math.min(50, Math.round(totalRounds))) : room.totalRounds;
+          const safeTimer = typeof timerDuration === 'number' ? Math.max(10, Math.min(300, Math.round(timerDuration))) : room.timerDuration;
+          const VALID_MODES: GameMode[] = ['crowd', 'friends'];
+          const safeGameMode: GameMode = VALID_MODES.includes(gameMode as GameMode) ? (gameMode as GameMode) : room.gameMode;
+          const updated = updateSettings(room, { totalRounds: safeRounds, timerDuration: safeTimer, gameMode: safeGameMode });
+          await setRoom(updated);
+          await broadcastRoom(updated);
+          return NextResponse.json({ room: updated });
+        });
+        return res ?? NextResponse.json({ error: 'Room busy — please try again' }, { status: 409 });
       }
 
       case 'submit': {
@@ -185,14 +194,10 @@ export async function POST(req: NextRequest) {
         if (!submission?.playerId || typeof submission.playerId !== 'string') {
           return NextResponse.json({ error: 'Invalid submission' }, { status: 400 });
         }
-        // Distributed lock — prevents concurrent submissions overwriting each other.
-        // Lock is always released in the finally block so validation failures don't block the room.
-        const submitLock = `lock:submit:${code?.toUpperCase()}`;
-        const lockAcquired = await acquireLock(submitLock, 5);
-        if (!lockAcquired) {
-          return NextResponse.json({ error: 'Conflict — please try again' }, { status: 409 });
-        }
-        try {
+        // Shared per-room write lock (with brief retry) — serializes against
+        // heartbeat/chat/advance/judging so none can clobber this submission, and retries
+        // briefly rather than failing the player outright under momentary contention.
+        const submitRes = await withRoomLock(code ?? '', async () => {
           const room = await getRoom(code?.toUpperCase());
           if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
           if (room.phase !== 'submission') {
@@ -250,45 +255,42 @@ export async function POST(req: NextRequest) {
             // submitting player's request isn't held open.
             after(async () => {
               await new Promise<void>(resolve => setTimeout(resolve, 2000));
-              const fresh = await getRoom(code.toUpperCase());
-              if (fresh?.phase === 'submission') {
-                const revealed = advancePhase(fresh);
-                await setRoom(revealed);
-                await broadcastRoom(revealed);
-              }
+              await withRoomLock(code, async () => {
+                const fresh = await getRoom(code.toUpperCase());
+                if (fresh?.phase === 'submission') {
+                  const revealed = advancePhase(fresh);
+                  await setRoom(revealed);
+                  await broadcastRoom(revealed);
+                }
+              });
             });
           }
           return NextResponse.json({ ok: true });
-        } finally {
-          await releaseLock(submitLock);
-        }
+        });
+        return submitRes ?? NextResponse.json({ error: 'Conflict — please try again' }, { status: 409 });
       }
 
       case 'timer-expire': {
         const { code } = body;
         if (!code || typeof code !== 'string') return NextResponse.json({ ok: true });
         const upperCode = code.toUpperCase();
-        // Distributed lock — prevent multiple concurrent timer-expire calls from double-advancing
-        const timerLock = `lock:timer-expire:${upperCode}`;
-        const lockAcquired = await acquireLock(timerLock, 10);
-        if (!lockAcquired) return NextResponse.json({ ok: true });
-        try {
+        // Shared per-room write lock (with brief retry) — serializes with submit/heartbeat/
+        // judging so a timer expiry can't race the auto-advance or a submission write.
+        await withRoomLock(upperCode, async () => {
           const room = await getRoom(upperCode);
-          if (!room) return NextResponse.json({ ok: true });
+          if (!room) return;
           // Idempotent — only act if still in submission and timer has actually elapsed.
           // No hostId required: the phase + elapsed-timer check is the real guard; the
-          // distributed lock prevents double-advancing. Any client (player, projector)
-          // can fire this once the timer is genuinely up.
-          if (room.phase !== 'submission') return NextResponse.json({ ok: true });
-          if (!room.timerEndsAt || Date.now() < room.timerEndsAt) return NextResponse.json({ ok: true });
+          // lock prevents double-advancing. Any client (player, projector) can fire this
+          // once the timer is genuinely up.
+          if (room.phase !== 'submission') return;
+          if (!room.timerEndsAt || Date.now() < room.timerEndsAt) return;
           // Advance to reveal — players who didn't submit are simply skipped
           const revealed = advancePhase(room);
           await setRoom(revealed);
           await broadcastRoom(revealed);
-          return NextResponse.json({ ok: true });
-        } finally {
-          await releaseLock(timerLock);
-        }
+        });
+        return NextResponse.json({ ok: true });
       }
 
       case 'emote': {
@@ -320,69 +322,79 @@ export async function POST(req: NextRequest) {
         if (!(await checkRateLimit(`ratelimit:chat:${message?.playerId ?? 'anon'}`, 30, 60))) {
           return NextResponse.json({ error: 'Sending too fast' }, { status: 429 });
         }
-        const room = await getRoom(code?.toUpperCase());
-        if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
-        // Validate sender is an actual room player
-        const chatPlayer = room.players[message?.playerId];
-        if (!chatPlayer) return NextResponse.json({ error: 'Player not in room' }, { status: 403 });
-        const rawText = typeof message?.text === 'string' ? message.text.trim() : '';
-        const filtered = filterText(rawText);
-        if (!filtered) return NextResponse.json({ ok: true });
-        const chatMsg: ChatMessage = {
-          id: crypto.randomUUID(),
-          playerId: message.playerId,
-          playerName: chatPlayer.name,        // trust server, not client
-          avatarId: chatPlayer.avatarId,      // trust server, not client
-          text: filtered.slice(0, 120),
-          sentAt: Date.now(),
-        };
-        const updated = addMessage(room, chatMsg);
-        await setRoom(updated);
-        await triggerEvent(getRoomChannel(code?.toUpperCase()), 'game:chat', chatMsg);
-        return NextResponse.json({ ok: true });
+        const res = await withRoomLock(code ?? '', async () => {
+          const room = await getRoom(code?.toUpperCase());
+          if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+          // Validate sender is an actual room player
+          const chatPlayer = room.players[message?.playerId];
+          if (!chatPlayer) return NextResponse.json({ error: 'Player not in room' }, { status: 403 });
+          const rawText = typeof message?.text === 'string' ? message.text.trim() : '';
+          const filtered = filterText(rawText);
+          if (!filtered) return NextResponse.json({ ok: true });
+          const chatMsg: ChatMessage = {
+            id: crypto.randomUUID(),
+            playerId: message.playerId,
+            playerName: chatPlayer.name,        // trust server, not client
+            avatarId: chatPlayer.avatarId,      // trust server, not client
+            text: filtered.slice(0, 120),
+            sentAt: Date.now(),
+          };
+          const updated = addMessage(room, chatMsg);
+          await setRoom(updated);
+          await triggerEvent(getRoomChannel(code?.toUpperCase()), 'game:chat', chatMsg);
+          return NextResponse.json({ ok: true });
+        });
+        return res ?? NextResponse.json({ ok: true });
       }
 
       case 'heartbeat': {
         const { code: hbCode, playerId: hbPid } = body as { code: string; playerId: string };
         if (!hbCode || !hbPid) return NextResponse.json({ ok: true });
-        const hbRoom = await getRoom(hbCode.toUpperCase());
-        if (!hbRoom || !hbRoom.players[hbPid]) return NextResponse.json({ ok: true });
+        // Under the room lock so this frequent full-room write never clobbers a concurrent
+        // submission or verdict (the prior unlocked write was the main room-state race).
+        await withRoomLock(hbCode, async () => {
+          const hbRoom = await getRoom(hbCode.toUpperCase());
+          if (!hbRoom || !hbRoom.players[hbPid]) return;
 
-        const prevSeen = hbRoom.players[hbPid].lastSeen ?? 0;
-        const now = Date.now();
-        hbRoom.players[hbPid].lastSeen = now;
+          const prevSeen = hbRoom.players[hbPid].lastSeen ?? 0;
+          const now = Date.now();
+          hbRoom.players[hbPid].lastSeen = now;
 
-        // Presence: count how many players are active after this update
-        const activePlayers = Object.values(hbRoom.players)
-          .filter(p => p.lastSeen && now - p.lastSeen < 45_000);
+          // Presence: count how many players are active after this update
+          const activePlayers = Object.values(hbRoom.players)
+            .filter(p => p.lastSeen && now - p.lastSeen < 45_000);
 
-        if (activePlayers.length <= 1) {
-          // Last person standing — schedule auto-shutdown 5 min from now.
-          // Each subsequent beacon resets the clock, so the room only dies
-          // 5 min after the very last beacon from anyone.
-          hbRoom.shutdownAt = now + 5 * 60 * 1000;
-        } else {
-          // Multiple people active — cancel any pending shutdown
-          hbRoom.shutdownAt = undefined;
-        }
+          if (activePlayers.length <= 1) {
+            // Last person standing — schedule auto-shutdown 5 min from now.
+            // Each subsequent beacon resets the clock, so the room only dies
+            // 5 min after the very last beacon from anyone.
+            hbRoom.shutdownAt = now + 5 * 60 * 1000;
+          } else {
+            // Multiple people active — cancel any pending shutdown
+            hbRoom.shutdownAt = undefined;
+          }
 
-        await setRoom(hbRoom);
-        // Broadcast on reconnect (was stale > 45 s) so host/projector updates
-        if (now - prevSeen > 45_000) await broadcastRoom(hbRoom);
+          await setRoom(hbRoom);
+          // Broadcast on reconnect (was stale > 45 s) so host/projector updates
+          if (now - prevSeen > 45_000) await broadcastRoom(hbRoom);
+        });
         return NextResponse.json({ ok: true });
       }
 
       case 'end-game': {
         const { code: egCode, hostId: egHostId } = body as { code: string; hostId: string };
         if (!egCode || !egHostId) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
-        const egRoom = await getRoom(egCode.toUpperCase());
-        if (!egRoom) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
-        if (egRoom.hostId !== egHostId) return NextResponse.json({ error: 'Not the host' }, { status: 403 });
-        if (egRoom.phase === 'game-over') return NextResponse.json({ room: egRoom });
-        const ended = { ...egRoom, phase: 'game-over' as const, shutdownAt: undefined };
-        await setRoom(ended);
-        await broadcastRoom(ended);
-        return NextResponse.json({ room: ended });
+        const res = await withRoomLock(egCode, async () => {
+          const egRoom = await getRoom(egCode.toUpperCase());
+          if (!egRoom) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+          if (egRoom.hostId !== egHostId) return NextResponse.json({ error: 'Not the host' }, { status: 403 });
+          if (egRoom.phase === 'game-over') return NextResponse.json({ room: egRoom });
+          const ended = { ...egRoom, phase: 'game-over' as const, shutdownAt: undefined };
+          await setRoom(ended);
+          await broadcastRoom(ended);
+          return NextResponse.json({ room: ended });
+        });
+        return res ?? NextResponse.json({ error: 'Room busy — please try again' }, { status: 409 });
       }
 
       case 'music-toggle': {
@@ -442,8 +454,26 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// Single per-room write lock. Every read-modify-write of a room must run inside this so
+// concurrent writers (submit, advance, heartbeat, chat, judging, …) serialize and can't
+// clobber each other's snapshot — e.g. a stale heartbeat reverting winner→judging (freeze)
+// or erasing a just-added submission. Brief retry so a momentarily-held lock doesn't fail
+// the request outright; returns null only if it stays contended (~1s), letting the caller
+// return a safe "busy" fallback.
+async function withRoomLock<T>(code: string, fn: () => Promise<T>): Promise<T | null> {
+  const key = `lock:room:${code.toUpperCase()}`;
+  for (let i = 0; i < 40; i++) {
+    if (await acquireLock(key, 10)) {
+      try { return await fn(); }
+      finally { await releaseLock(key); }
+    }
+    await new Promise((r) => setTimeout(r, 25));
+  }
+  return null;
+}
+
 async function triggerJudge(code: string) {
-  // Read the room first so the lock can be scoped to the *current round*. A room-only
+  // Read the room first so the judging lock can be scoped to the *current round*. A room-only
   // lock key (with its 60 s TTL) would otherwise stay held after round N's verdict and
   // silently block round N+1's judge when rounds complete in under 60 s — freezing the
   // game at the judging phase. Per-round keys keep the double-fire guard while letting
@@ -465,21 +495,28 @@ async function triggerJudge(code: string) {
   // No submissions — show an explicit "no winner this round" on the winner screen rather
   // than silently skipping it (so it never looks like someone won when no one played).
   if (submissions.length === 0) {
-    const updated = applyVerdict(room, noWinnerVerdict('No one submitted an answer this round.'));
-    await setRoom(updated);
-    await broadcastRoom(updated);
+    await withRoomLock(code, async () => {
+      const fresh = await getRoom(code);
+      if (!fresh || fresh.phase !== 'judging') return;
+      const updated = applyVerdict(fresh, noWinnerVerdict('No one submitted an answer this round.'));
+      await setRoom(updated);
+      await broadcastRoom(updated);
+    });
     return;
   }
 
   const verdict = await judgeRound(room.currentChallenge, submissions);
 
-  // Re-read room after Claude responds — judging can take several seconds and settings may have changed
-  const freshRoom = await getRoom(code);
-  if (!freshRoom || freshRoom.phase !== 'judging') return;
-
-  const updated = applyVerdict(freshRoom, verdict);
-  await setRoom(updated);
-  await broadcastRoom(updated);
+  // Apply the verdict under the room lock (and re-read fresh) so a concurrent heartbeat or
+  // chat write can't clobber the winner phase back to judging and freeze the game. The
+  // Claude call above stays outside the lock so it never blocks other writers.
+  await withRoomLock(code, async () => {
+    const freshRoom = await getRoom(code);
+    if (!freshRoom || freshRoom.phase !== 'judging') return;
+    const updated = applyVerdict(freshRoom, verdict);
+    await setRoom(updated);
+    await broadcastRoom(updated);
+  });
 }
 
 // ── Admin: DELETE /api/game?code=XXXX ────────────────────────────────────────

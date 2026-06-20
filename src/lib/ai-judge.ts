@@ -86,7 +86,7 @@ async function claudeJudge(challenge: ChallengeCard, submissions: Submission[]):
     clearTimeout(timeoutId);
   }
 
-  const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+  const text = response.content[0]?.type === 'text' ? response.content[0].text.trim() : '';
   console.log(`[ai-judge] Live verdict via ${JUDGE_MODEL} (${text.length} chars)`);
   const json = text.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim();
   const parsed = JSON.parse(json) as {

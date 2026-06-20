@@ -142,7 +142,7 @@ export function addSubmission(room: GameRoom, submission: Submission): GameRoom 
         ...room.players,
         [submission.playerId]: {
           ...player,
-          hand: player.hand.filter((c) => c.id !== submission.schemeCard.id),
+          hand: player.hand.filter((c) => c.id !== submission.schemeCard?.id),
         },
       }
     : room.players;
