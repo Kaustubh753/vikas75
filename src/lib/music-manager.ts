@@ -89,8 +89,11 @@ class LobbyMusicManager {
    */
   autoPlay(): void {
     if (this._forceMuted) return;
-    // The big screen starts with sound on. Record the shared "sound on" preference so the
-    // SFX manager (music.ts) and the mute button agree, rather than drifting out of sync.
+    // The big screen defaults to sound ON, but never clobber an explicit "off" the user set.
+    const stored = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
+    if (stored === 'false') { this._enabled = false; return; }
+    // Record the shared "sound on" preference so the SFX manager (music.ts) and the mute
+    // button agree rather than drifting out of sync.
     this._enabled = true;
     try { localStorage.setItem(STORAGE_KEY, 'true'); } catch { /* ignore */ }
     const audio = this.getAudio();

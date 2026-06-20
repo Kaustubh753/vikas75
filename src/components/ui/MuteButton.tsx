@@ -8,7 +8,13 @@ import { getLobbyMusic } from '@/lib/music-manager';
 export default function MuteButton() {
   const [muted, setMuted] = useState(false);
   useEffect(() => {
-    setMuted(getMusicManager().muted);
+    // Derive both the icon and the SFX manager from the single shared "sound on" key. The
+    // lobby's autoPlay may have just turned sound on, which the SFX manager (constructed
+    // earlier) wouldn't otherwise reflect — re-sync it so the icon and audio always agree.
+    // (Music playback itself is autoPlay's job; we only reconcile SFX + icon here.)
+    const soundOn = localStorage.getItem('vikas75-sound-on') === 'true';
+    getMusicManager().setMuted(!soundOn);
+    setMuted(!soundOn);
   }, []);
   return (
     <button

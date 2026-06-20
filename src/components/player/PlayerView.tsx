@@ -551,10 +551,11 @@ export default function PlayerView({ code }: Props) {
               </p>
             </div>
           )}
-          {/* Leave game — always visible; doesn't clear identity so player can rejoin */}
+          {/* Leave game — clears this session and returns home. (Just navigating home without
+              clearing would bounce straight back, since the home page auto-rejoins a stored seat.) */}
           {phase !== 'game-over' && (
             <button
-              onClick={() => router.push('/')}
+              onClick={() => clearSessionAndGoHome()}
               className="flex items-center gap-1 transition-all active:scale-95"
               style={{
                 height: 32,

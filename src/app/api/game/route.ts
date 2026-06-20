@@ -126,6 +126,12 @@ export async function POST(req: NextRequest) {
           // Tell the client which id to adopt so its localStorage points at the reclaimed seat.
           return NextResponse.json({ room, reclaimedPlayerId: reclaimable.id });
         }
+        // A round is live: don't let a brand-new player appear mid-submission (they'd show on
+        // the board without a fair shot at the active challenge). Existing players (handled
+        // above) and reconnecting dropped players (reclaim, above) are still allowed in.
+        if (room.phase === 'submission') {
+          return NextResponse.json({ error: 'A round is in progress — you can join when it ends.' }, { status: 400 });
+        }
         const updated = addPlayer(room, playerId, safeName, safeAvatarId);
         await setRoom(updated);
         await broadcastRoom(updated);
