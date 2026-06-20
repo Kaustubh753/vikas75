@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { after } from 'next/server';
 import { getRoom, setRoom, deleteRoom, checkRoomCreationLimit, checkRateLimit, acquireLock, releaseLock } from '@/lib/redis';
-import { broadcastRoom, pusherServer, getRoomChannel } from '@/lib/pusher';
+import { broadcastRoom, triggerEvent, getRoomChannel } from '@/lib/pusher';
 import {
   createRoom,
   generateRoomCode,
@@ -104,6 +104,27 @@ export async function POST(req: NextRequest) {
         }
         if (room.phase === 'game-over') {
           return NextResponse.json({ error: 'This game has ended — start a new one!' }, { status: 400 });
+        }
+        // Reconnection: if a *disconnected* player with the same name still holds a seat
+        // (e.g. they lost their localStorage identity when an incognito session closed and
+        // rejoined with a fresh UUID), reclaim that seat — preserving their score, hand and
+        // joinedRound — instead of creating a duplicate. Only seats that have gone stale
+        // (no heartbeat for >45 s, the same threshold presence/submission gating uses) are
+        // reclaimable, so an active player who happens to share a name is never hijacked.
+        const RECLAIM_STALE_MS = 45_000;
+        const reclaimNow = Date.now();
+        const reclaimable = Object.values(room.players).find(
+          (p) => p.name.toLowerCase() === safeName.toLowerCase() &&
+                 (!p.lastSeen || reclaimNow - p.lastSeen > RECLAIM_STALE_MS),
+        );
+        if (reclaimable) {
+          reclaimable.lastSeen = reclaimNow;
+          reclaimable.avatarId = safeAvatarId; // adopt the freshly chosen avatar
+          room.shutdownAt = undefined;          // someone's back — cancel any pending shutdown
+          await setRoom(room);
+          await broadcastRoom(room);
+          // Tell the client which id to adopt so its localStorage points at the reclaimed seat.
+          return NextResponse.json({ room, reclaimedPlayerId: reclaimable.id });
         }
         const updated = addPlayer(room, playerId, safeName, safeAvatarId);
         await setRoom(updated);
@@ -277,7 +298,7 @@ export async function POST(req: NextRequest) {
         const emoteRoom = await getRoom(code?.toUpperCase());
         const emotePlayer = emoteRoom?.players[playerId];
         if (!emotePlayer) return NextResponse.json({ ok: true }); // silently drop unknown senders
-        await pusherServer.trigger(getRoomChannel(code!.toUpperCase()), 'emote', {
+        await triggerEvent(getRoomChannel(code!.toUpperCase()), 'emote', {
           playerId,
           playerName: emotePlayer.name,
           avatarId: emotePlayer.avatarId,
@@ -311,7 +332,7 @@ export async function POST(req: NextRequest) {
         };
         const updated = addMessage(room, chatMsg);
         await setRoom(updated);
-        await pusherServer.trigger(getRoomChannel(code?.toUpperCase()), 'game:chat', chatMsg);
+        await triggerEvent(getRoomChannel(code?.toUpperCase()), 'game:chat', chatMsg);
         return NextResponse.json({ ok: true });
       }
 
@@ -371,7 +392,7 @@ export async function POST(req: NextRequest) {
         if (!rateLimit(`music-toggle:${musicHostId}`, 10, 60_000)) {
           return NextResponse.json({ ok: true });
         }
-        await pusherServer.trigger(getRoomChannel(code.toUpperCase()), 'music:toggle', { muted: Boolean(muted) });
+        await triggerEvent(getRoomChannel(code.toUpperCase()), 'music:toggle', { muted: Boolean(muted) });
         return NextResponse.json({ ok: true });
       }
 
@@ -495,9 +516,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Room not found' }, { status: 404 });
   }
   await deleteRoom(code);
-  // Notify any connected clients the room has closed
-  try {
-    await pusherServer.trigger(getRoomChannel(code), 'game:room-closed', {});
-  } catch { /* non-critical */ }
+  // Notify any connected clients the room has closed (best-effort)
+  await triggerEvent(getRoomChannel(code), 'game:room-closed', {});
   return NextResponse.json({ ok: true });
 }

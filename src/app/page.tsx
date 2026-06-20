@@ -420,14 +420,17 @@ function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: 
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Could not join room'); setLoading(false); return; }
-      localStorage.setItem('vikas75_playerId',  playerId);
+      // If the server reclaimed a disconnected seat with this name, adopt that seat's id
+      // so our localStorage identity points at the restored player (score/hand preserved).
+      const effectiveId = data.reclaimedPlayerId || playerId;
+      localStorage.setItem('vikas75_playerId',  effectiveId);
       localStorage.setItem('vikas75_playerName', name.trim());
       localStorage.setItem('vikas75_avatarId',   avatarId);
       localStorage.setItem('vikas75_roomCode',   trimmedCode);
       // Cache the player's hand from the join response so PlayerView has it immediately
       // (the GET endpoint will also return it via ?me=pid, but caching avoids a round-trip flash)
       try {
-        const myHand = data.room?.players?.[playerId]?.hand;
+        const myHand = data.room?.players?.[effectiveId]?.hand;
         if (Array.isArray(myHand) && myHand.length) {
           localStorage.setItem(`vikas75_hand_${trimmedCode}`, JSON.stringify(myHand));
         }

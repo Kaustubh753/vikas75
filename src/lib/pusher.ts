@@ -57,7 +57,18 @@ function stripForBroadcast(room: GameRoom) {
   };
 }
 
+// Best-effort Pusher trigger. Real-time delivery is a convenience, not a source of
+// truth: every client also polls GET /api/game as a fallback, and all state is already
+// persisted to Redis before we broadcast. So a Pusher failure (outage, rate limit,
+// blocked egress) must never turn a successful mutation into a 500 — we log and move on.
+export async function triggerEvent(channel: string, event: string, data: unknown): Promise<void> {
+  try {
+    await pusherServer.trigger(channel, event, data);
+  } catch (err) {
+    console.warn(`[pusher] broadcast of "${event}" failed (clients fall back to polling):`, err instanceof Error ? err.message : err);
+  }
+}
+
 export async function broadcastRoom(room: GameRoom): Promise<void> {
-  const payload = stripForBroadcast(room);
-  await pusherServer.trigger(getRoomChannel(room.code), 'game:room-updated', payload);
+  await triggerEvent(getRoomChannel(room.code), 'game:room-updated', stripForBroadcast(room));
 }
