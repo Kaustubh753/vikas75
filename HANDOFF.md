@@ -33,6 +33,42 @@ everyone has submitted, and (b) `judging` is fully automated — entering it fir
 
 ## 1. Chronology of recent work (newest first)
 
+### Completion pass — Milestone 1: playable-v1 hardening (this session)
+
+Goal of the session: take the game from "works" to complete/polished/shippable, in
+milestones. M1 closed the broken/silent/duplicate gaps.
+
+- **ESLint migration (`5565f6c`).** `next lint` is removed in Next 16 and the repo had
+  no ESLint config or dependency — lint was broken. Added `eslint` +
+  `eslint-config-next`, an `eslint.config.mjs` flat config (core-web-vitals + typescript),
+  and a `lint` script. `eslint-config-next@16` ships the React-Compiler-era react-hooks
+  rules (purity / refs / set-state-in-effect) as *errors*; they flag intentional patterns
+  here (live `Date.now()` in render for timers, ref-as-mount-snapshot, ref-mirror-of-state,
+  and the hydration-safe `setState`-in-effect that fixes bugs #9/#10 — converting that to
+  lazy initial state would reintroduce the SSR mismatch). Set those advisory rules to
+  `warn` with a documented rationale, fixed the genuine hygiene issues (unused vars,
+  `Math.random` in render → lazy `useState`). Result: `npx eslint .` exits 0.
+
+- **Procedural SFX fallback (`21c0e12`).** Projector phase stings
+  (challenge/ticking/drumroll/winner) referenced mp3s that don't ship — only `lobby.mp3`
+  exists — and the coded tone fallback was never called, so the projector was silent.
+  `music.ts` now tries the real mp3 first (drop-in upgrade path) and synthesises a
+  Web-Audio fallback on load error. Public API unchanged.
+
+- **Reconnection + best-effort broadcasts (`a402b72`).** Join now reclaims a *disconnected*
+  same-name seat (preserving score/hand) instead of creating a duplicate (HANDOFF §3 #1);
+  only stale seats are reclaimable so active players aren't hijacked. While verifying this
+  the curl harness surfaced that **every** mutating request was 500ing: `broadcastRoom`
+  and the emote/chat/music triggers called `pusherServer.trigger()` unwrapped, so a Pusher
+  failure (here: this env's egress policy blocks `api-ap2.pusher.com`) threw *after* the
+  state was already persisted. Added a `triggerEvent()` best-effort wrapper and routed all
+  broadcasts through it; clients fall back to their 30 s GET poll. A full 2-round game now
+  runs to `game-over` via curl with joins returning 200.
+
+  > Env note for testers: with dummy Pusher keys (or blocked Pusher egress) real-time
+  > updates won't fire — clients rely on the 30 s poll. Supply real `*PUSHER*` secrets for
+  > live sync. This is now graceful (no 500s) rather than fatal.
+
 ### 1.6 — Phase-stall fixes (`a98d296`) ← most important recent change
 
 While testing the full game loop end-to-end (via `curl`, see §2), two independent
