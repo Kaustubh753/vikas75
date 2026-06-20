@@ -64,7 +64,7 @@ export default function PlayerView({ code }: Props) {
     const pname = localStorage.getItem('vikas75_playerName') ?? '';
     const avid = (localStorage.getItem('vikas75_avatarId') as AvatarId) ?? 'a1';
     if (!pid || !pname) {
-      router.replace(`/?code=${code}`);
+      router.replace(`/join?code=${code}`);
       return;
     }
     setPlayerId(pid);

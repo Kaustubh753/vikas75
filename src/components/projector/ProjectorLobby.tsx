@@ -153,7 +153,7 @@ export default function ProjectorLobby({ room }: Props) {
   }, [room.players]);
 
   const players   = Object.values(room.players);
-  const joinUrl   = origin ? `${origin}/?code=${room.code}` : '';
+  const joinUrl   = origin ? `${origin}/join?code=${room.code}` : '';
   const letters   = room.code.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4).split('');
   while (letters.length < 4) letters.push('');
 
