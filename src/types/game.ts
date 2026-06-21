@@ -99,6 +99,10 @@ export interface GameRoom {
   code: string;
   hostId: string;
   hostName: string;
+  /** Per-player secret tokens (playerId → token), issued at join. Server-side only —
+   *  stripped from every client-facing payload. Used to authenticate state-changing
+   *  actions and own-hand reads so a player can't impersonate or read another's hand. */
+  tokens?: Record<string, string>;
   phase: GamePhase;
   round: number;
   totalRounds: number;

@@ -28,8 +28,11 @@ function stripCard(card: SchemeCard): SchemeCard {
 // Strip large data from room before sending via Pusher (free tier: 10 KB/message limit).
 // Players get full room (including hands) via GET /api/game on initial load.
 function stripForBroadcast(room: GameRoom) {
+  // Never broadcast secrets: the host credential or per-player tokens.
+  const { hostId: _h, tokens: _t, ...safe } = room;
+  void _h; void _t;
   return {
-    ...room,
+    ...safe,
     // Strip hands entirely — each hand is ~3 KB
     players: Object.fromEntries(
       Object.entries(room.players).map(([id, p]) => [id, { ...p, hand: [] }])

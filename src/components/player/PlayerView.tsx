@@ -84,6 +84,7 @@ export default function PlayerView({ code }: Props) {
 
   const clearSessionAndGoHome = useCallback((message?: string) => {
     localStorage.removeItem('vikas75_playerId');
+    localStorage.removeItem('vikas75_token');
     localStorage.removeItem('vikas75_playerName');
     localStorage.removeItem('vikas75_avatarId');
     localStorage.removeItem('vikas75_roomCode');
@@ -95,7 +96,9 @@ export default function PlayerView({ code }: Props) {
   const fetchRoom = useCallback(async () => {
     try {
       const pid = localStorage.getItem('vikas75_playerId') ?? '';
-      const res = await fetch(`/api/game?code=${code}${pid ? `&me=${encodeURIComponent(pid)}` : ''}`);
+      const tok = localStorage.getItem('vikas75_token') ?? '';
+      const res = await fetch(`/api/game?code=${code}${pid ? `&me=${encodeURIComponent(pid)}` : ''}`,
+        tok ? { headers: { 'x-player-token': tok } } : undefined);
       if (!res.ok) {
         // 404 = the room is genuinely gone (closed, expired, deleted). Always clear identity
         // and return home cleanly — no error, no dead end — even for an already-joined player.
@@ -226,6 +229,7 @@ export default function PlayerView({ code }: Props) {
         body: JSON.stringify({
           action: 'submit',
           code,
+          token: localStorage.getItem('vikas75_token') ?? '',
           submission: {
             playerId,
             playerName,
@@ -263,6 +267,7 @@ export default function PlayerView({ code }: Props) {
           playerName,
           avatarId,
           emote: emoteId,
+          token: localStorage.getItem('vikas75_token') ?? '',
         }),
       });
     } catch { /* fire-and-forget — emotes are non-critical */ }
@@ -276,6 +281,7 @@ export default function PlayerView({ code }: Props) {
         body: JSON.stringify({
           action: 'chat',
           code,
+          token: localStorage.getItem('vikas75_token') ?? '',
           message: { playerId, playerName, avatarId, text },
         }),
       });
@@ -290,7 +296,7 @@ export default function PlayerView({ code }: Props) {
       fetch('/api/game', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'heartbeat', code, playerId }),
+        body: JSON.stringify({ action: 'heartbeat', code, playerId, token: localStorage.getItem('vikas75_token') ?? '' }),
         keepalive: true,
       }).catch(() => {});
     };
@@ -301,7 +307,7 @@ export default function PlayerView({ code }: Props) {
     // sendBeacon on tab close / navigate away
     const onUnload = () => {
       const blob = new Blob(
-        [JSON.stringify({ action: 'heartbeat', code, playerId })],
+        [JSON.stringify({ action: 'heartbeat', code, playerId, token: localStorage.getItem('vikas75_token') ?? '' })],
         { type: 'application/json' }
       );
       navigator.sendBeacon?.('/api/game', blob);

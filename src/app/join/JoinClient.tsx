@@ -49,6 +49,7 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
           // so our localStorage identity points at the restored player (score/hand preserved).
           const effectiveId = data.reclaimedPlayerId || playerId;
           localStorage.setItem('vikas75_playerId', effectiveId);
+          if (data.token) localStorage.setItem('vikas75_token', data.token); // auth credential
           localStorage.setItem('vikas75_playerName', name.trim());
           localStorage.setItem('vikas75_avatarId', avatarId);
           localStorage.setItem('vikas75_roomCode', trimmedCode);

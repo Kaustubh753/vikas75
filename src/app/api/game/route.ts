@@ -16,7 +16,37 @@ import {
 } from '@/lib/game-engine';
 import { judgeRound, noWinnerVerdict } from '@/lib/ai-judge';
 import { filterText } from '@/lib/word-filter';
-import type { Submission, GameMode, AvatarId, ChatMessage } from '@/types/game';
+import type { Submission, GameMode, AvatarId, ChatMessage, GameRoom } from '@/types/game';
+
+// ── Secret handling ──────────────────────────────────────────────────────────
+// hostId and per-player tokens are credentials and must never reach a client other
+// than as the freshly-issued token in a join response.
+
+/** Remove the host credential and token map from a room before returning it to a client. */
+function stripSecrets(room: GameRoom): Omit<GameRoom, 'hostId' | 'tokens'> {
+  const { hostId: _h, tokens: _t, ...rest } = room;
+  void _h; void _t;
+  return rest;
+}
+
+/** Client-facing room for a specific player: secrets removed, and every hand except the
+ *  named player's stripped (hands are private). */
+function scrubRoomFor(room: GameRoom, playerId: string) {
+  return {
+    ...stripSecrets(room),
+    players: Object.fromEntries(
+      Object.entries(room.players).map(([id, p]) => [id, { ...p, hand: id === playerId ? p.hand : [] }]),
+    ),
+  };
+}
+
+/** A player's action/own-hand read is allowed if no token has been issued for them (legacy
+ *  rooms created before tokens existed) or the supplied token matches the issued one. */
+function tokenOk(room: GameRoom, playerId: string, token: unknown): boolean {
+  const expected = room.tokens?.[playerId];
+  if (!expected) return true; // legacy / no token issued — allow (transitional)
+  return typeof token === 'string' && token === expected;
+}
 
 // Simple in-memory rate limiter — best-effort (not shared across serverless instances)
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
@@ -85,7 +115,7 @@ export async function POST(req: NextRequest) {
 
         const room = createRoom(hostId, safeName, roomCode, safeRounds, safeTimer, safeGameMode);
         await setRoom(room);
-        return NextResponse.json({ room });
+        return NextResponse.json({ room: stripSecrets(room) });
       }
 
       case 'join': {
@@ -105,9 +135,16 @@ export async function POST(req: NextRequest) {
         const res = await withRoomLock(code, async () => {
           const room = await getRoom(code?.toUpperCase());
           if (!room) return NextResponse.json({ error: 'Room not found — check your code' }, { status: 404 });
-          // Idempotent rejoin — always allowed for existing players
+          // Idempotent rejoin — always allowed for existing players. Ensure a token exists
+          // for this seat and return it so the client can (re)store its credential.
           if (room.players[playerId]) {
-            return NextResponse.json({ room });
+            let token = room.tokens?.[playerId];
+            if (!token) {
+              token = crypto.randomUUID();
+              room.tokens = { ...(room.tokens ?? {}), [playerId]: token };
+              await setRoom(room);
+            }
+            return NextResponse.json({ room: scrubRoomFor(room, playerId), token });
           }
           if (room.phase === 'game-over') {
             return NextResponse.json({ error: 'This game has ended — start a new one!' }, { status: 400 });
@@ -128,10 +165,13 @@ export async function POST(req: NextRequest) {
             reclaimable.lastSeen = reclaimNow;
             reclaimable.avatarId = safeAvatarId; // adopt the freshly chosen avatar
             room.shutdownAt = undefined;          // someone's back — cancel any pending shutdown
+            // Issue a fresh token for the reclaimed seat (invalidates any prior one).
+            const token = crypto.randomUUID();
+            room.tokens = { ...(room.tokens ?? {}), [reclaimable.id]: token };
             await setRoom(room);
             await broadcastRoom(room);
             // Tell the client which id to adopt so its localStorage points at the reclaimed seat.
-            return NextResponse.json({ room, reclaimedPlayerId: reclaimable.id });
+            return NextResponse.json({ room: scrubRoomFor(room, reclaimable.id), reclaimedPlayerId: reclaimable.id, token });
           }
           // A round is live: don't let a brand-new player appear mid-submission (they'd show on
           // the board without a fair shot at the active challenge). Existing players (handled
@@ -140,9 +180,11 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'A round is in progress — you can join when it ends.' }, { status: 400 });
           }
           const updated = addPlayer(room, playerId, safeName, safeAvatarId);
+          const token = crypto.randomUUID();
+          updated.tokens = { ...(updated.tokens ?? {}), [playerId]: token };
           await setRoom(updated);
           await broadcastRoom(updated);
-          return NextResponse.json({ room: updated });
+          return NextResponse.json({ room: scrubRoomFor(updated, playerId), token });
         });
         return res ?? NextResponse.json({ error: 'Room busy — please try again' }, { status: 409 });
       }
@@ -167,7 +209,7 @@ export async function POST(req: NextRequest) {
           if (updated.phase === 'judging') {
             after(() => triggerJudge(code!.toUpperCase()).catch(() => {}));
           }
-          return NextResponse.json({ room: updated });
+          return NextResponse.json({ room: stripSecrets(updated) });
         });
         return res ?? NextResponse.json({ error: 'Room busy — please try again' }, { status: 409 });
       }
@@ -189,13 +231,13 @@ export async function POST(req: NextRequest) {
           const updated = updateSettings(room, { totalRounds: safeRounds, timerDuration: safeTimer, gameMode: safeGameMode });
           await setRoom(updated);
           await broadcastRoom(updated);
-          return NextResponse.json({ room: updated });
+          return NextResponse.json({ room: stripSecrets(updated) });
         });
         return res ?? NextResponse.json({ error: 'Room busy — please try again' }, { status: 409 });
       }
 
       case 'submit': {
-        const { code, submission } = body as { code: string; submission: Submission };
+        const { code, submission, token } = body as { code: string; submission: Submission; token?: string };
         // Input guard — playerId must be a non-empty string
         if (!submission?.playerId || typeof submission.playerId !== 'string') {
           return NextResponse.json({ error: 'Invalid submission' }, { status: 400 });
@@ -213,10 +255,14 @@ export async function POST(req: NextRequest) {
           if (room.submissions[submission.playerId]) {
             return NextResponse.json({ ok: true });
           }
-          // Validate submitter is an active player
+          // Validate submitter is an active player and holds the matching token (can't submit
+          // on another player's behalf).
           const submittingPlayer = room.players[submission.playerId];
           if (!submittingPlayer) {
             return NextResponse.json({ error: 'Player not in this room' }, { status: 403 });
+          }
+          if (!tokenOk(room, submission.playerId, token)) {
+            return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
           }
           // Validate the submitted card is actually in the player's hand — use server-side card data
           const serverCard = submittingPlayer.hand.find((c) => c.id === submission.schemeCard?.id);
@@ -300,8 +346,8 @@ export async function POST(req: NextRequest) {
       }
 
       case 'emote': {
-        const { code, playerId, emote } = body as {
-          code: string; playerId: string; playerName: string; avatarId: AvatarId; emote: string;
+        const { code, playerId, emote, token } = body as {
+          code: string; playerId: string; playerName: string; avatarId: AvatarId; emote: string; token?: string;
         };
         // Redis-backed rate limit — works across serverless instances (20 emotes/player/minute)
         if (!(await checkRateLimit(`ratelimit:emote:${playerId ?? 'anon'}`, 20, 60))) {
@@ -312,6 +358,7 @@ export async function POST(req: NextRequest) {
         const emoteRoom = await getRoom(code?.toUpperCase());
         const emotePlayer = emoteRoom?.players[playerId];
         if (!emotePlayer) return NextResponse.json({ ok: true }); // silently drop unknown senders
+        if (!tokenOk(emoteRoom!, playerId, token)) return NextResponse.json({ ok: true }); // can't emote as another player
         await triggerEvent(getRoomChannel(code!.toUpperCase()), 'emote', {
           playerId,
           playerName: emotePlayer.name,
@@ -323,7 +370,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'chat': {
-        const { code, message } = body as { code: string; message: Omit<ChatMessage, 'id' | 'sentAt'> & { text: string } };
+        const { code, message, token } = body as { code: string; message: Omit<ChatMessage, 'id' | 'sentAt'> & { text: string }; token?: string };
         // Redis-backed rate limit — works across serverless instances (30 messages/player/minute)
         if (!(await checkRateLimit(`ratelimit:chat:${message?.playerId ?? 'anon'}`, 30, 60))) {
           return NextResponse.json({ error: 'Sending too fast' }, { status: 429 });
@@ -331,9 +378,10 @@ export async function POST(req: NextRequest) {
         const res = await withRoomLock(code ?? '', async () => {
           const room = await getRoom(code?.toUpperCase());
           if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
-          // Validate sender is an actual room player
+          // Validate sender is an actual room player and holds the matching token.
           const chatPlayer = room.players[message?.playerId];
           if (!chatPlayer) return NextResponse.json({ error: 'Player not in room' }, { status: 403 });
+          if (!tokenOk(room, message.playerId, token)) return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
           const rawText = typeof message?.text === 'string' ? message.text.trim() : '';
           const filtered = filterText(rawText);
           if (!filtered) return NextResponse.json({ ok: true });
@@ -354,13 +402,14 @@ export async function POST(req: NextRequest) {
       }
 
       case 'heartbeat': {
-        const { code: hbCode, playerId: hbPid } = body as { code: string; playerId: string };
+        const { code: hbCode, playerId: hbPid, token: hbToken } = body as { code: string; playerId: string; token?: string };
         if (!hbCode || !hbPid) return NextResponse.json({ ok: true });
         // Under the room lock so this frequent full-room write never clobbers a concurrent
         // submission or verdict (the prior unlocked write was the main room-state race).
         await withRoomLock(hbCode, async () => {
           const hbRoom = await getRoom(hbCode.toUpperCase());
           if (!hbRoom || !hbRoom.players[hbPid]) return;
+          if (!tokenOk(hbRoom, hbPid, hbToken)) return; // can't refresh another player's presence
 
           const prevSeen = hbRoom.players[hbPid].lastSeen ?? 0;
           const now = Date.now();
@@ -394,11 +443,11 @@ export async function POST(req: NextRequest) {
           const egRoom = await getRoom(egCode.toUpperCase());
           if (!egRoom) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
           if (egRoom.hostId !== egHostId) return NextResponse.json({ error: 'Not the host' }, { status: 403 });
-          if (egRoom.phase === 'game-over') return NextResponse.json({ room: egRoom });
+          if (egRoom.phase === 'game-over') return NextResponse.json({ room: stripSecrets(egRoom) });
           const ended = { ...egRoom, phase: 'game-over' as const, shutdownAt: undefined };
           await setRoom(ended);
           await broadcastRoom(ended);
-          return NextResponse.json({ room: ended });
+          return NextResponse.json({ room: stripSecrets(ended) });
         });
         return res ?? NextResponse.json({ error: 'Room busy — please try again' }, { status: 409 });
       }
@@ -453,7 +502,9 @@ export async function GET(req: NextRequest) {
   try {
     const code = req.nextUrl.searchParams.get('code');
     if (!code) return NextResponse.json({ error: 'Missing code' }, { status: 400 });
-    // Optional: requesting player's own ID — they receive their own hand back; everyone else's is stripped.
+    // Optional: requesting player's own ID — they receive their own hand back; everyone else's
+    // is stripped. The hand is only returned if the caller proves identity with the matching
+    // token (sent as an x-player-token header), so one player can't read another's hand.
     const me = req.nextUrl.searchParams.get('me') ?? '';
     const room = await getRoom(code.toUpperCase());
     if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
@@ -464,14 +515,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Room closed — all players disconnected' }, { status: 404 });
     }
 
-    // Return the requesting player's own hand; strip everyone else's (hands are private).
-    const scrubbed = {
-      ...room,
-      players: Object.fromEntries(
-        Object.entries(room.players).map(([id, p]) => [id, { ...p, hand: id === me ? p.hand : [] }])
-      ),
-    };
-    return NextResponse.json({ room: scrubbed });
+    const token = req.headers.get('x-player-token');
+    const verifiedMe = me && tokenOk(room, me, token) ? me : '';
+    return NextResponse.json({ room: scrubRoomFor(room, verifiedMe) });
   } catch {
     return NextResponse.json({ error: 'Storage unavailable — try again in a moment' }, { status: 503 });
   }
