@@ -62,6 +62,12 @@ export async function POST(req: NextRequest) {
         if (!hostId || typeof hostId !== 'string') return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
         const VALID_GAME_MODES: GameMode[] = ['crowd', 'friends'];
         const safeGameMode: GameMode = VALID_GAME_MODES.includes(gameMode) ? gameMode : 'crowd';
+        // Clamp settings (mirrors update-settings) so a hand-crafted request can't seed a room
+        // with NaN/negative/huge values — a bad timerDuration otherwise breaks the timer.
+        const safeRounds = typeof totalRounds === 'number' && isFinite(totalRounds)
+          ? Math.max(1, Math.min(50, Math.round(totalRounds))) : undefined;
+        const safeTimer = typeof timerDuration === 'number' && isFinite(timerDuration)
+          ? Math.max(10, Math.min(300, Math.round(timerDuration))) : undefined;
 
         // Rate limit: max 10 rooms per IP per hour
         const ip = getIp(req);
@@ -77,7 +83,7 @@ export async function POST(req: NextRequest) {
         }
         if (!roomCode) return NextResponse.json({ error: 'Could not generate unique room code — try again' }, { status: 500 });
 
-        const room = createRoom(hostId, safeName, roomCode, totalRounds, timerDuration, safeGameMode);
+        const room = createRoom(hostId, safeName, roomCode, safeRounds, safeTimer, safeGameMode);
         await setRoom(room);
         return NextResponse.json({ room });
       }
@@ -422,6 +428,11 @@ export async function POST(req: NextRequest) {
         // takes the per-round lock), so repeated kicks are safe.
         const { code: kjCode } = body as { code: string };
         if (!kjCode || typeof kjCode !== 'string') return NextResponse.json({ ok: true });
+        // Rate-limit so a stuck-room watchdog (or an abuser) can't fan out paid Claude calls.
+        // The watchdog only fires every 12s while genuinely stuck, so this is generous.
+        if (!(await checkRateLimit(`ratelimit:kick:${kjCode.toUpperCase()}`, 6, 60))) {
+          return NextResponse.json({ ok: true });
+        }
         await triggerJudge(kjCode.toUpperCase()).catch(() => {});
         return NextResponse.json({ ok: true });
       }

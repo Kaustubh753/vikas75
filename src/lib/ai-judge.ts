@@ -104,18 +104,27 @@ function buildVerdict(
 ): JudgeVerdict {
   // Validate Claude ranked every submitted player, no unknown IDs, and scores are valid numbers
   const submissionIds = new Set(submissions.map((s) => s.playerId));
-  for (const r of rankingsRaw) {
+  // Dedupe by playerId (keep first occurrence) — a malformed response that lists the same
+  // player twice must never score them twice.
+  const seen = new Set<string>();
+  const deduped = rankingsRaw.filter((r) => {
+    if (seen.has(r.playerId)) return false;
+    seen.add(r.playerId);
+    return true;
+  });
+  for (const r of deduped) {
     if (!submissionIds.has(r.playerId)) throw new Error(`Unknown player ${r.playerId} in rankings`);
     if (typeof r.judgeScore !== 'number' || isNaN(r.judgeScore) || r.judgeScore < 1 || r.judgeScore > 10) {
       throw new Error(`Invalid judgeScore ${r.judgeScore} for player ${r.playerId} — must be 1–10`);
     }
   }
-  if (rankingsRaw.length < submissions.length) {
-    throw new Error(`Judge omitted ${submissions.length - rankingsRaw.length} player(s) from rankings`);
+  if (deduped.length < submissions.length) {
+    throw new Error(`Judge omitted ${submissions.length - deduped.length} player(s) from rankings`);
   }
 
-  // Sort by judgeScore desc
-  const sorted = [...rankingsRaw].sort((a, b) => b.judgeScore - a.judgeScore);
+  // Sort by judgeScore desc; tiebreak by playerId so a score tie yields a deterministic
+  // winner rather than an arbitrary, order-dependent one.
+  const sorted = [...deduped].sort((a, b) => b.judgeScore - a.judgeScore || a.playerId.localeCompare(b.playerId));
 
   const rankings: PlayerRanking[] = sorted.map((r, i) => {
     const sub = submissions.find((s) => s.playerId === r.playerId)!;

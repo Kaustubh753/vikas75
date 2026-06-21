@@ -10,9 +10,10 @@ import type { GameRoom } from '@/types/game';
 interface Props { room: GameRoom }
 
 export default function ProjectorGameOver({ room }: Props) {
-  // Overall winner is whoever won the most rounds; total points break ties.
+  // Overall winner is whoever won the most rounds; total points break ties, then a stable
+  // id tiebreak so an exact tie isn't decided by arbitrary insertion order.
   const players = Object.values(room.players).sort(
-    (a, b) => (b.roundsWon ?? 0) - (a.roundsWon ?? 0) || b.score - a.score,
+    (a, b) => (b.roundsWon ?? 0) - (a.roundsWon ?? 0) || b.score - a.score || a.id.localeCompare(b.id),
   );
   const [first, second, third] = players;
   const wins = (p: { roundsWon?: number }) => {

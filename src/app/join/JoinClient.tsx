@@ -13,9 +13,12 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
   const [code, setCode] = useState(initialCode);
   const [avatarId, setAvatarId] = useState<AvatarId>('a1');
   const [loading, setLoading] = useState(false);
+  const [waiting, setWaiting] = useState(false); // a round is in progress — auto-retrying
   const [error, setError] = useState('');
   const nameRef = useRef<HTMLInputElement>(null);
   const slotsRef = useRef<(HTMLInputElement | null)[]>([]);
+  const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (retryRef.current) clearTimeout(retryRef.current); }, []);
 
   useEffect(() => {
     // Focus name if we already have a code (came from QR), otherwise focus the code.
@@ -31,32 +34,47 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
     const trimmedCode = code.replace(/\s/g, '');
     if (!name.trim() || trimmedCode.length !== 4) return;
     setLoading(true); setError('');
+    // Stable id across retries so the server treats them as the same joiner.
     const playerId = crypto.randomUUID();
-    try {
-      const res = await fetch('/api/game', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'join', code: trimmedCode, playerId, playerName: name.trim(), avatarId }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Could not join room'); setLoading(false); return; }
-      // If the server reclaimed a disconnected seat with this name, adopt that seat's id
-      // so our localStorage identity points at the restored player (score/hand preserved).
-      const effectiveId = data.reclaimedPlayerId || playerId;
-      localStorage.setItem('vikas75_playerId', effectiveId);
-      localStorage.setItem('vikas75_playerName', name.trim());
-      localStorage.setItem('vikas75_avatarId', avatarId);
-      localStorage.setItem('vikas75_roomCode', trimmedCode);
+
+    const attempt = async () => {
       try {
-        const myHand = data.room?.players?.[effectiveId]?.hand;
-        if (Array.isArray(myHand) && myHand.length) {
-          localStorage.setItem(`vikas75_hand_${trimmedCode}`, JSON.stringify(myHand));
+        const res = await fetch('/api/game', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'join', code: trimmedCode, playerId, playerName: name.trim(), avatarId }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          // If the server reclaimed a disconnected seat with this name, adopt that seat's id
+          // so our localStorage identity points at the restored player (score/hand preserved).
+          const effectiveId = data.reclaimedPlayerId || playerId;
+          localStorage.setItem('vikas75_playerId', effectiveId);
+          localStorage.setItem('vikas75_playerName', name.trim());
+          localStorage.setItem('vikas75_avatarId', avatarId);
+          localStorage.setItem('vikas75_roomCode', trimmedCode);
+          try {
+            const myHand = data.room?.players?.[effectiveId]?.hand;
+            if (Array.isArray(myHand) && myHand.length) {
+              localStorage.setItem(`vikas75_hand_${trimmedCode}`, JSON.stringify(myHand));
+            }
+          } catch { /* ignore */ }
+          router.push(`/room/${trimmedCode}`);
+          return;
         }
-      } catch { /* ignore */ }
-      router.push(`/room/${trimmedCode}`);
-    } catch {
-      setError('Network error. Please try again.');
-      setLoading(false);
-    }
+        // A round is in progress — don't dead-end: wait and auto-retry until it ends.
+        if (res.status === 400 && /round is in progress/i.test(data.error || '')) {
+          setWaiting(true);
+          retryRef.current = setTimeout(attempt, 4000);
+          return;
+        }
+        setError(data.error || 'Could not join room');
+        setLoading(false); setWaiting(false);
+      } catch {
+        setError('Network error. Please try again.');
+        setLoading(false); setWaiting(false);
+      }
+    };
+    await attempt();
   }
 
   const baseSlot: React.CSSProperties = {
@@ -147,6 +165,7 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
           <AvatarPicker value={avatarId} onChange={setAvatarId} disabled={loading} />
 
           {error && <div style={{ color: '#f87171', fontSize: 13, fontFamily: 'var(--font-inter),sans-serif' }}>{error}</div>}
+          {waiting && <div style={{ color: '#FF9933', fontSize: 13, fontFamily: 'var(--font-inter),sans-serif' }}>A round is in progress — you&apos;ll join automatically when it ends…</div>}
 
           <button
             type="submit"
@@ -161,7 +180,7 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
               transition: 'opacity .15s ease',
             }}
           >
-            {loading ? 'Joining…' : 'Join'}
+            {waiting ? 'Waiting for round…' : loading ? 'Joining…' : 'Join'}
           </button>
 
           <button
