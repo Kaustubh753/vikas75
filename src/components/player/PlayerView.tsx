@@ -473,8 +473,13 @@ export default function PlayerView({ code }: Props) {
         );
       }
       case 'game-over':
-        // Clear saved draft so it doesn't bleed into the next game
-        try { sessionStorage.removeItem('vikas75_draft_explanation'); } catch { /* ignore */ }
+        // Clear saved drafts (now scoped per challenge id) so none bleed into the next game
+        try {
+          for (let i = sessionStorage.length - 1; i >= 0; i--) {
+            const k = sessionStorage.key(i);
+            if (k && k.startsWith('vikas75_draft_explanation')) sessionStorage.removeItem(k);
+          }
+        } catch { /* ignore */ }
         return (
           <div className="flex flex-col items-center justify-center gap-4 min-h-[50vh] px-4">
             <p className="text-4xl">🎉</p>

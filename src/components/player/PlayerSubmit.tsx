@@ -72,6 +72,9 @@ export default function PlayerSubmit({
   const [step, setStep] = useState<'select' | 'justify'>(submitted ? 'justify' : 'select');
   const [selected, setSelected] = useState<SchemeCard | null>(submittedCard ?? null);
   const [explanation, setExplanation] = useState(submittedExplanation ?? '');
+  // Draft is scoped to this round's challenge so an unsubmitted draft from a previous round
+  // can never bleed into the next round's answer box.
+  const draftKey = `${DRAFT_KEY}_${challenge.id}`;
   const [loading, setLoading] = useState(false);
   const [throwing, setThrowing] = useState(false);
   const didRestoreDraft = useRef(false);
@@ -88,17 +91,17 @@ export default function PlayerSubmit({
   useEffect(() => {
     if (didRestoreDraft.current || submittedRef.current || submittedExplanationRef.current) return;
     didRestoreDraft.current = true;
-    const draft = sessionStorage.getItem(DRAFT_KEY);
+    const draft = sessionStorage.getItem(draftKey);
     if (draft) setExplanation(draft);
-  }, []);  
+  }, [draftKey]);
 
   useEffect(() => {
-    if (!submitted) sessionStorage.setItem(DRAFT_KEY, explanation);
-  }, [explanation, submitted]);
+    if (!submitted) sessionStorage.setItem(draftKey, explanation);
+  }, [explanation, submitted, draftKey]);
 
   useEffect(() => {
-    if (submitted) sessionStorage.removeItem(DRAFT_KEY);
-  }, [submitted]);
+    if (submitted) sessionStorage.removeItem(draftKey);
+  }, [submitted, draftKey]);
 
   const wordCount = countWords(explanation);
   const wordsLeft = MAX_WORDS - wordCount;
