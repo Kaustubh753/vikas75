@@ -28,6 +28,26 @@ textarea:focus-visible,
   outline-offset: 2px;
 }
 
+/* Disabled controls shouldn't show the interactive (pointer) cursor */
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+/* Respect the OS "reduce motion" setting. Durations collapse to ~instant (rather than
+   `animation: none`) so animations still land on their END state — many screens use
+   forwards-filled fade-in/slide-up to become visible, and disabling outright would leave
+   that content stuck invisible/off-screen. Infinite loops (pulse-ring, skeleton, confetti)
+   run once and settle. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Animations */
 @keyframes bounce-in {
   0% { transform: scale(0) translateY(-20px); opacity: 0; }

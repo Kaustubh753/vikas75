@@ -150,9 +150,9 @@ User text is cleaned before storage: `sanitizeName()` (length/trim) and `filterT
 - `src/components/projector/ProjectorGameOver.tsx` — Final standings.
 
 ### UI Components
-- `src/components/ui/CodeInput.tsx` — OTP-style 4-box room code input. `onChange` for mobile compatibility (IME-safe); `onKeyDown` for backspace navigation; `onPaste` fills all boxes; `onFocus` selects content; `caret-transparent` hides cursor.
-- `src/components/ui/Button.tsx` — Generic button with variant styles.
-- `src/components/ui/TricolourBar.tsx` — Saffron/white/green stripe used in headers.
+Buttons are styled inline per-component — there is **no shared `Button` primitive**. App-wide visual concerns live in `globals.css` (focus-visible rings, `prefers-reduced-motion` collapse, iOS input-zoom guard, safe-area padding, keyframes/animation utilities). The `ui/` directory holds:
+- `CodeInput.tsx` — OTP-style 4-box room code input. `onChange` for mobile compatibility (IME-safe); `onKeyDown` for backspace navigation; `onPaste` fills all boxes; `onFocus` selects content; `caret-transparent` hides cursor.
+- `AvatarPicker.tsx`, `CardBack.tsx`, `Confetti.tsx`, `ConnectionBanner.tsx`, `CountUp.tsx`, `LogoLockup.tsx`, `MuteButton.tsx`, `SkeletonCard.tsx`, `SocialLinks.tsx`, `ToasterProvider.tsx`.
 
 ### Cards and Cards Components
 - `context/cards_challenges.json` — 30 challenge cards (c001–c030). Fields: `id`, `en`, `hi`, `icon`.
@@ -225,7 +225,7 @@ Without Redis env vars, state lives in a module-level `Map` — rooms are lost o
 ## Known Issues / What Still Needs Fixing
 
 ### Functional
-- **No reconnection handling for incognito** — If a player opens the room in a private/incognito window and refreshes, localStorage is gone and they're redirected to the home screen. They must re-join with the same name (gets a new playerId, appears as a duplicate). No fix currently.
+- **Reconnection is by stale-seat reclaim, not durable identity** — A player who loses localStorage (e.g. closes an incognito window) and re-joins with the **same name** reclaims their existing seat — preserving score/hand/`joinedRound` — *provided that seat has gone stale* (no heartbeat for >45 s; see the `join` handler's reclaim block and `JoinClient.tsx`'s `reclaimedPlayerId` adoption). The remaining edge: if they re-join within 45 s (seat still "fresh"), reclaim doesn't fire and they briefly appear as a duplicate until the old seat ages out. Two players sharing a name is likewise ambiguous (first stale match wins).
 
 ### Infrastructure
 - **In-memory fallback doesn't work across serverless instances** — In production (Vercel), multiple instances will not share the `devStore` Map. Upstash Redis is required for production.
