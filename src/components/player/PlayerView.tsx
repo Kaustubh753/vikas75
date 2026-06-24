@@ -231,7 +231,7 @@ export default function PlayerView({ code }: Props) {
     }
   }, [hydrated, room?.phase, fetchRoom]);
 
-  const handleSubmit = useCallback(async (card: SchemeCard, explanation: string) => {
+  const handleSubmit = useCallback(async (card: SchemeCard, explanation: string, auto = false) => {
     try {
       const res = await fetch('/api/game', {
         method: 'POST',
@@ -240,6 +240,7 @@ export default function PlayerView({ code }: Props) {
           action: 'submit',
           code,
           token: localStorage.getItem('vikas75_token') ?? '',
+          auto,
           submission: {
             playerId,
             playerName,
@@ -253,11 +254,14 @@ export default function PlayerView({ code }: Props) {
       if (!res.ok) {
         // Room vanished mid-game — send the player home cleanly rather than showing an error.
         if (res.status === 404) { clearSessionAndGoHome(); return; }
+        // An auto-submit racing the phase advance can legitimately fail (round already moved
+        // on) — stay silent rather than alarming the player.
+        if (auto) return;
         const data = await res.json().catch(() => ({}));
         toast.error((data as { error?: string }).error || 'Submission failed — please try again');
         return;
       }
-      toast.success('Answer submitted!');
+      toast.success(auto ? 'Time! Your answer was submitted.' : 'Answer submitted!');
       vibrate(50);
     } catch {
       toast.error('Network error — please check your connection and try again');

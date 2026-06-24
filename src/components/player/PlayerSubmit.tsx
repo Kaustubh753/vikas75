@@ -9,7 +9,7 @@ import PlayerWaiting from '@/components/player/PlayerWaiting';
 interface Props {
   hand: SchemeCard[];
   challenge: ChallengeCard;
-  onSubmit: (card: SchemeCard, explanation: string) => Promise<void>;
+  onSubmit: (card: SchemeCard, explanation: string, auto?: boolean) => Promise<void>;
   submitted?: boolean;
   submittedCard?: SchemeCard;
   submittedExplanation?: string;
@@ -78,6 +78,7 @@ export default function PlayerSubmit({
   const [loading, setLoading] = useState(false);
   const [throwing, setThrowing] = useState(false);
   const didRestoreDraft = useRef(false);
+  const autoFiredRef = useRef(false);
   const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
@@ -102,6 +103,27 @@ export default function PlayerSubmit({
   useEffect(() => {
     if (submitted) sessionStorage.removeItem(draftKey);
   }, [submitted, draftKey]);
+
+  // Auto-submit on timeout: shortly before the timer hits zero, flush whatever the player
+  // has — their selected card (or a random one from their hand if none picked) plus whatever
+  // justification they've typed (possibly empty). The small lead lets the submission land
+  // before the round advances to reveal. The server applies the same safety net for players
+  // whose phones are closed, so everyone ends the round with a card in play.
+  useEffect(() => {
+    if (!timerEndsAt || submitted || autoFiredRef.current) return;
+    const LEAD_MS = 1500;
+    const fire = () => {
+      if (autoFiredRef.current || submitted) return;
+      const card = selected ?? (hand.length ? hand[Math.floor(Math.random() * hand.length)] : null);
+      if (!card) return; // hand not loaded yet — server safety net will cover this player
+      autoFiredRef.current = true;
+      void onSubmit(card, explanation.trim(), true);
+    };
+    const delay = timerEndsAt - Date.now() - LEAD_MS;
+    if (delay <= 0) { fire(); return; }
+    const t = setTimeout(fire, delay);
+    return () => clearTimeout(t);
+  }, [timerEndsAt, submitted, selected, explanation, hand, onSubmit]);
 
   const wordCount = countWords(explanation);
   const wordsLeft = MAX_WORDS - wordCount;

@@ -287,7 +287,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'submit': {
-        const { code, submission, token } = body as { code: string; submission: Submission; token?: string };
+        const { code, submission, token, auto } = body as { code: string; submission: Submission; token?: string; auto?: boolean };
         // Input guard — playerId must be a non-empty string
         if (!submission?.playerId || typeof submission.playerId !== 'string') {
           return NextResponse.json({ error: 'Invalid submission' }, { status: 400 });
@@ -323,7 +323,10 @@ export async function POST(req: NextRequest) {
           const safeExplanation = typeof submission.explanation === 'string'
             ? filterText(submission.explanation.trim().slice(0, 200))
             : '';
-          if (!safeExplanation) {
+          // A manual submit requires a justification; an auto-submit at timer expiry (the
+          // player's own device flushing its draft) may have an empty one — they still play
+          // their selected/random card so they have an entry in the round.
+          if (!safeExplanation && !auto) {
             return NextResponse.json({ error: 'Explanation is required' }, { status: 400 });
           }
           // Enforce 25-word limit server-side (mirrors client UI)
@@ -387,8 +390,27 @@ export async function POST(req: NextRequest) {
           // once the timer is genuinely up.
           if (room.phase !== 'submission') return;
           if (!room.timerEndsAt || Date.now() < room.timerEndsAt) return;
-          // Advance to reveal — players who didn't submit are simply skipped
-          const revealed = advancePhase(room);
+          // Safety net so every in-round player has a card in play this round: auto-submit a
+          // random card (no justification) for anyone who hasn't submitted. Connected players'
+          // own devices flush their typed draft just before expiry (handled client-side); this
+          // covers players who typed nothing or whose phone is closed. Mid-round late joiners
+          // (joinedRound === room.round) sit the round out, matching allPlayersSubmitted().
+          let filled = room;
+          for (const p of Object.values(room.players)) {
+            if (p.joinedRound >= room.round) continue;
+            if (filled.submissions[p.id]) continue;
+            if (!p.hand || p.hand.length === 0) continue;
+            const card = p.hand[Math.floor(Math.random() * p.hand.length)];
+            filled = addSubmission(filled, {
+              playerId: p.id,
+              playerName: p.name,
+              avatarId: p.avatarId,
+              schemeCard: card,
+              explanation: '',
+              submittedAt: Date.now(),
+            });
+          }
+          const revealed = advancePhase(filled);
           await setRoom(revealed);
           await broadcastRoom(revealed);
         });
