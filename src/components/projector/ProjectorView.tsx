@@ -259,13 +259,17 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
       animate={{ backgroundColor: PHASE_BG[room.phase] ?? '#0d1b35' }}
       transition={{ duration: 0.8, ease: 'easeInOut' }}
     >
-      {/* Portrait orientation guard */}
-      <div className="portrait-lock">
-        <span style={{ fontSize: 64 }}>🔄</span>
-        <p className="font-[family-name:var(--font-bebas)] text-white text-3xl tracking-wide text-center px-8">
-          Please rotate your screen to landscape
-        </p>
-      </div>
+      {/* Portrait orientation guard — only for a pure projector/TV display. A host who opened
+          this on their phone (?h=) must not be hard-blocked: their control bar works in
+          portrait, so they can still run the game from a phone. */}
+      {!isHost && (
+        <div className="portrait-lock">
+          <span style={{ fontSize: 64 }}>🔄</span>
+          <p className="font-[family-name:var(--font-bebas)] text-white text-3xl tracking-wide text-center px-8">
+            Please rotate your screen to landscape
+          </p>
+        </div>
+      )}
 
       <AnimatePresence mode="wait">
         <motion.div

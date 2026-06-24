@@ -13,6 +13,14 @@ body {
   background: #0d1b35;
 }
 
+/* Never let a stray wide element create a horizontal scroll / zoomed-out feel on phones.
+   Affects every route via the root layout. */
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
 /* Visible focus ring for keyboard accessibility */
 :focus-visible {
   outline: 2px solid #FF9933;
