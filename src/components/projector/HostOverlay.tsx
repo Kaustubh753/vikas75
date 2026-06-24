@@ -61,6 +61,17 @@ export default function HostOverlay({ room, code, hostId }: Props) {
   const [playersHover, setPlayersHover] = useState(false);
   const [showPlayers, setShowPlayers] = useState(false);
   const [kickingId, setKickingId] = useState<string | null>(null);
+  // Narrow screens (a host running the game from their phone): the control bar must shrink
+  // its zones and buttons so the advance button and the right-hand icons stay on-screen and
+  // tappable instead of overflowing off the right edge.
+  const [isNarrow, setIsNarrow] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)');
+    const update = () => setIsNarrow(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
 
   // Sync sliders when room updates (e.g. from another client)
   useEffect(() => {
@@ -211,7 +222,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
     left: 0,
     right: 0,
     width: '100%',
-    height: 72,
+    height: isNarrow ? 60 : 72,
     zIndex: 200,
     background: 'rgba(7,16,31,0.92)',
     backdropFilter: 'blur(24px)',
@@ -219,9 +230,9 @@ export default function HostOverlay({ room, code, hostId }: Props) {
     borderTop: '1px solid rgba(255,153,51,0.22)',
     display: 'flex',
     alignItems: 'center',
-    paddingLeft: 20,
-    paddingRight: 20,
-    gap: 12,
+    paddingLeft: isNarrow ? 8 : 20,
+    paddingRight: isNarrow ? 8 : 20,
+    gap: isNarrow ? 6 : 12,
     transform: collapsed ? 'translateY(100%)' : 'translateY(0)',
     transition: 'transform 0.32s cubic-bezier(.4,0,.2,1)',
     boxSizing: 'border-box',
@@ -263,13 +274,13 @@ export default function HostOverlay({ room, code, hostId }: Props) {
   };
 
   const iconBtnStyle = (hovered: boolean): React.CSSProperties => ({
-    width: 38,
-    height: 38,
+    width: isNarrow ? 32 : 38,
+    height: isNarrow ? 32 : 38,
     borderRadius: 8,
     background: hovered ? 'rgba(255,153,51,0.18)' : 'rgba(255,255,255,0.06)',
     border: `1px solid ${hovered ? 'rgba(255,153,51,0.5)' : 'rgba(255,255,255,0.10)'}`,
     color: hovered ? '#FF9933' : 'rgba(255,255,255,0.6)',
-    fontSize: 18,
+    fontSize: isNarrow ? 15 : 18,
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
@@ -449,8 +460,9 @@ export default function HostOverlay({ room, code, hostId }: Props) {
 
       {/* Main bar */}
       <div style={barStyle}>
-        {/* LEFT ZONE */}
-        <div style={{ minWidth: 220, display: 'flex', flexDirection: 'column', gap: 3, justifyContent: 'center' }}>
+        {/* LEFT ZONE — shrinks/truncates on narrow screens so the advance button and right-hand
+            icons always stay on-screen. */}
+        <div style={{ minWidth: 0, flex: isNarrow ? '1 1 0' : undefined, ...(isNarrow ? {} : { minWidth: 220 }), display: 'flex', flexDirection: 'column', gap: 3, justifyContent: 'center', overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {/* HOST badge */}
             <span style={{
@@ -519,7 +531,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
         </div>
 
         {/* CENTER ZONE */}
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ flex: isNarrow ? '0 1 auto' : 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {isJudging ? (
             /* Pulsing AI judging indicator */
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -549,22 +561,24 @@ export default function HostOverlay({ room, code, hostId }: Props) {
               onMouseEnter={() => setAdvanceHover(true)}
               onMouseLeave={() => setAdvanceHover(false)}
               style={{
-                height: 44,
-                minWidth: 200,
-                paddingLeft: 28,
-                paddingRight: 28,
+                height: isNarrow ? 38 : 44,
+                minWidth: isNarrow ? 0 : 200,
+                paddingLeft: isNarrow ? 14 : 28,
+                paddingRight: isNarrow ? 14 : 28,
                 borderRadius: 22,
                 background: advanceHover && !isDisabled ? '#e8872a' : '#FF9933',
                 border: 'none',
                 color: '#07101f',
                 fontFamily: 'var(--font-bebas)',
-                fontSize: 22,
+                fontSize: isNarrow ? 15 : 22,
                 letterSpacing: '0.08em',
                 cursor: isDisabled ? 'not-allowed' : 'pointer',
                 opacity: isDisabled ? 0.4 : 1,
                 transition: 'background 0.15s, opacity 0.15s',
                 outline: 'none',
                 whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
               }}
             >
               {loading ? 'Working…' : getAdvanceLabel(room)}
@@ -572,8 +586,8 @@ export default function HostOverlay({ room, code, hostId }: Props) {
           )}
         </div>
 
-        {/* RIGHT ZONE */}
-        <div style={{ minWidth: 140, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+        {/* RIGHT ZONE — never shrinks, so the host's controls stay reachable. */}
+        <div style={{ minWidth: isNarrow ? 0 : 140, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: isNarrow ? 4 : 6 }}>
           {/* End Game — available in any non-finished phase */}
           {room.phase !== 'game-over' && (
             <button

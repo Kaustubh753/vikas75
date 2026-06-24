@@ -544,9 +544,12 @@ export default function PlayerView({ code }: Props) {
     >
       <ConnectionBanner />
 
-      <div className="flex items-center justify-between px-4 pt-4 pb-2">
-        <LogoLockup size="sm" />
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-2">
+        {/* Logo may clip its long tagline on narrow phones; the controls below never shrink. */}
+        <div className="min-w-0 overflow-hidden">
+          <LogoLockup size="sm" />
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
           {/* Per-device lobby music toggle — independent, no Pusher */}
           {phase !== 'game-over' && (
             <button
