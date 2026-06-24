@@ -11,7 +11,9 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
   const router = useRouter();
   const [name, setName] = useState('');
   const [code, setCode] = useState(initialCode);
-  const [avatarId, setAvatarId] = useState<AvatarId>('a1');
+  // 'a0' = "auto" — if the player doesn't pick, the server assigns a revolving default
+  // so a lobby of players gets distinct avatars instead of all defaulting to the same one.
+  const [avatarId, setAvatarId] = useState<AvatarId>('a0');
   const [loading, setLoading] = useState(false);
   const [waiting, setWaiting] = useState(false); // a round is in progress — auto-retrying
   const [error, setError] = useState('');
@@ -51,7 +53,10 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
           localStorage.setItem('vikas75_playerId', effectiveId);
           if (data.token) localStorage.setItem('vikas75_token', data.token); // auth credential
           localStorage.setItem('vikas75_playerName', name.trim());
-          localStorage.setItem('vikas75_avatarId', avatarId);
+          // Store the avatar the server actually assigned (the revolving default, or our pick),
+          // not the requested value — which may be the 'a0' auto sentinel.
+          const assignedAvatar = (data.room?.players?.[effectiveId]?.avatarId as AvatarId) || (avatarId === 'a0' ? 'a1' : avatarId);
+          localStorage.setItem('vikas75_avatarId', assignedAvatar);
           localStorage.setItem('vikas75_roomCode', trimmedCode);
           try {
             const myHand = data.room?.players?.[effectiveId]?.hand;

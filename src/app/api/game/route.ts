@@ -13,6 +13,7 @@ import {
   allPlayersSubmitted,
   updateSettings,
   addMessage,
+  removePlayer,
 } from '@/lib/game-engine';
 import { judgeRound, noWinnerVerdict } from '@/lib/ai-judge';
 import { filterText } from '@/lib/word-filter';
@@ -46,6 +47,33 @@ function tokenOk(room: GameRoom, playerId: string, token: unknown): boolean {
   const expected = room.tokens?.[playerId];
   if (!expected) return true; // legacy / no token issued — allow (transitional)
   return typeof token === 'string' && token === expected;
+}
+
+// Real selectable avatars (a0 is the picker's "auto/random" sentinel — never stored).
+const VALID_AVATAR_IDS: AvatarId[] = ['a1','a2','a3','a4','a5','a6','a7','a8','a9','a10','a11'];
+
+/** Resolve the avatar to store for a joining/reconnecting player. An explicit, still-free
+ *  choice is honoured; otherwise (the "auto" sentinel a0, an invalid id, or a collision with
+ *  another player) we hand out a *revolving default* — the next avatar in rotation that no one
+ *  else in the room is using — so players get visually distinct avatars instead of everyone
+ *  defaulting to the same one. `excludePlayerId` lets a reconnecting seat ignore its own
+ *  current avatar when checking for collisions. */
+function resolveAvatar(room: GameRoom, requested: unknown, excludePlayerId?: string): AvatarId {
+  const used = new Set(
+    Object.values(room.players)
+      .filter((p) => p.id !== excludePlayerId)
+      .map((p) => p.avatarId),
+  );
+  if (typeof requested === 'string' && VALID_AVATAR_IDS.includes(requested as AvatarId) && !used.has(requested as AvatarId)) {
+    return requested as AvatarId;
+  }
+  const order = Object.keys(room.players).length;
+  for (let i = 0; i < VALID_AVATAR_IDS.length; i++) {
+    const cand = VALID_AVATAR_IDS[(order + i) % VALID_AVATAR_IDS.length];
+    if (!used.has(cand)) return cand;
+  }
+  // Every avatar is in use (>11 players) — overlap is unavoidable; pick a rotation slot.
+  return VALID_AVATAR_IDS[order % VALID_AVATAR_IDS.length];
 }
 
 // Simple in-memory rate limiter — best-effort (not shared across serverless instances)
@@ -130,8 +158,6 @@ export async function POST(req: NextRequest) {
         const safeName = filterText(sanitizeName(playerName));
         if (!safeName) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
         if (!playerId || typeof playerId !== 'string' || playerId.length > 64) return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
-        const VALID_AVATAR_IDS: AvatarId[] = ['a1','a2','a3','a4','a5','a6','a7','a8','a9','a10','a11'];
-        const safeAvatarId: AvatarId = VALID_AVATAR_IDS.includes(avatarId) ? avatarId : 'a1';
         const res = await withRoomLock(code, async () => {
           const room = await getRoom(code?.toUpperCase());
           if (!room) return NextResponse.json({ error: 'Room not found — check your code' }, { status: 404 });
@@ -163,7 +189,11 @@ export async function POST(req: NextRequest) {
           );
           if (reclaimable) {
             reclaimable.lastSeen = reclaimNow;
-            reclaimable.avatarId = safeAvatarId; // adopt the freshly chosen avatar
+            // Honour a fresh explicit pick; otherwise keep the seat's existing avatar so a
+            // silent reconnect doesn't churn the player's identity to a new revolving default.
+            if (typeof avatarId === 'string' && VALID_AVATAR_IDS.includes(avatarId)) {
+              reclaimable.avatarId = resolveAvatar(room, avatarId, reclaimable.id);
+            }
             room.shutdownAt = undefined;          // someone's back — cancel any pending shutdown
             // Issue a fresh token for the reclaimed seat (invalidates any prior one).
             const token = crypto.randomUUID();
@@ -179,12 +209,32 @@ export async function POST(req: NextRequest) {
           if (room.phase === 'submission') {
             return NextResponse.json({ error: 'A round is in progress — you can join when it ends.' }, { status: 400 });
           }
-          const updated = addPlayer(room, playerId, safeName, safeAvatarId);
+          const updated = addPlayer(room, playerId, safeName, resolveAvatar(room, avatarId));
           const token = crypto.randomUUID();
           updated.tokens = { ...(updated.tokens ?? {}), [playerId]: token };
           await setRoom(updated);
           await broadcastRoom(updated);
           return NextResponse.json({ room: scrubRoomFor(updated, playerId), token });
+        });
+        return res ?? NextResponse.json({ error: 'Room busy — please try again' }, { status: 409 });
+      }
+
+      case 'kick-player': {
+        const { code, hostId, playerId: targetId } = body as { code: string; hostId: string; playerId: string };
+        if (!code || typeof code !== 'string') return NextResponse.json({ error: 'Room code is required' }, { status: 400 });
+        if (!targetId || typeof targetId !== 'string') return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+        const res = await withRoomLock(code, async () => {
+          const room = await getRoom(code.toUpperCase());
+          if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+          // Host-only: match the raw hostId credential against the room's.
+          if (!hostId || room.hostId !== hostId) return NextResponse.json({ error: 'Not the host' }, { status: 403 });
+          // Idempotent — already gone is success, not an error.
+          if (!room.players[targetId]) return NextResponse.json({ room: scrubRoomFor(room, '') });
+          const updated = removePlayer(room, targetId);
+          if (updated.tokens) delete updated.tokens[targetId]; // revoke the kicked seat's credential
+          await setRoom(updated);
+          await broadcastRoom(updated); // the kicked client sees itself gone from players → exits
+          return NextResponse.json({ room: scrubRoomFor(updated, '') });
         });
         return res ?? NextResponse.json({ error: 'Room busy — please try again' }, { status: 409 });
       }

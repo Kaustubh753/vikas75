@@ -196,6 +196,16 @@ export default function PlayerView({ code }: Props) {
     if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
   }, []);
 
+  // Kicked by the host: once we've confirmed we were in the room, our seat vanishing from a
+  // fresh room payload (outside the normal game-over flow) means the host removed us. Exit
+  // cleanly to home rather than getting stuck on a stale screen.
+  useEffect(() => {
+    if (!hydrated || !room || !playerId) return;
+    if (toastedJoin.current && room.phase !== 'game-over' && !room.players[playerId]) {
+      clearSessionAndGoHome('You were removed from the room by the host.');
+    }
+  }, [room, playerId, hydrated, clearSessionAndGoHome]);
+
   // Toast + overlay on phase change
   useEffect(() => {
     if (!room) return;

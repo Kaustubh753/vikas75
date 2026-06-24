@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { GameRoom, GameMode } from '@/types/game';
+import Avatar from '@/lib/avatars';
 
 interface Props {
   room: GameRoom;
@@ -57,6 +58,9 @@ export default function HostOverlay({ room, code, hostId }: Props) {
   const [expandHover, setExpandHover] = useState(false);
   const [endGameHover, setEndGameHover] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const [playersHover, setPlayersHover] = useState(false);
+  const [showPlayers, setShowPlayers] = useState(false);
+  const [kickingId, setKickingId] = useState<string | null>(null);
 
   // Sync sliders when room updates (e.g. from another client)
   useEffect(() => {
@@ -143,6 +147,23 @@ export default function HostOverlay({ room, code, hostId }: Props) {
     setLoading(false);
   }
 
+  async function handleKick(targetId: string) {
+    setKickingId(targetId);
+    setError('');
+    try {
+      const res = await fetch('/api/game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'kick-player', code, hostId, playerId: targetId }),
+      });
+      const data = await res.json();
+      if (!res.ok) setError(data.error || 'Could not remove player');
+    } catch {
+      setError('Network error');
+    }
+    setKickingId(null);
+  }
+
   const scheduleSettingsUpdate = useCallback((nextRounds: number, nextTimer: number, nextMode: GameMode) => {
     if (settingsDebounceRef.current) clearTimeout(settingsDebounceRef.current);
     settingsDebounceRef.current = setTimeout(async () => {
@@ -222,6 +243,22 @@ export default function HostOverlay({ room, code, hostId }: Props) {
     gap: 32,
     alignItems: 'flex-start',
     transform: showSettings ? 'translateY(0)' : 'translateY(100%)',
+    transition: 'transform 0.28s cubic-bezier(.4,0,.2,1)',
+  };
+
+  const playersPanelStyle: React.CSSProperties = {
+    position: 'fixed',
+    bottom: 72,
+    left: 0,
+    right: 0,
+    zIndex: 199,
+    background: 'rgba(7,16,31,0.96)',
+    borderTop: '1px solid rgba(255,153,51,0.22)',
+    borderLeft: '1px solid rgba(255,153,51,0.10)',
+    borderRight: '1px solid rgba(255,153,51,0.10)',
+    borderRadius: '12px 12px 0 0',
+    padding: '14px 24px',
+    transform: showPlayers ? 'translateY(0)' : 'translateY(100%)',
     transition: 'transform 0.28s cubic-bezier(.4,0,.2,1)',
   };
 
@@ -354,6 +391,59 @@ export default function HostOverlay({ room, code, hostId }: Props) {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Players panel — manage/kick players; available in any non-finished phase */}
+      {room.phase !== 'game-over' && (
+        <div style={playersPanelStyle}>
+          <span style={{
+            display: 'block', marginBottom: 10,
+            fontFamily: 'var(--font-inter)', fontSize: 10, letterSpacing: '0.1em',
+            fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase',
+          }}>
+            Players · {playerCount}
+          </span>
+          {playerCount === 0 ? (
+            <p style={{ fontFamily: 'var(--font-inter)', fontSize: 12, color: 'rgba(255,255,255,0.4)', margin: 0 }}>
+              No players have joined yet.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 220, overflowY: 'auto' }}>
+              {Object.values(room.players).map((p) => (
+                <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 2px' }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 6, overflow: 'hidden', flexShrink: 0 }}>
+                    <Avatar id={p.avatarId} size={28} />
+                  </div>
+                  <span style={{
+                    flex: 1, fontFamily: 'var(--font-inter)', fontSize: 13, fontWeight: 500,
+                    color: 'rgba(255,255,255,0.85)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  }}>
+                    {p.name}
+                  </span>
+                  <span style={{ fontFamily: 'var(--font-bebas)', fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>
+                    {p.score}
+                  </span>
+                  <button
+                    onClick={() => handleKick(p.id)}
+                    disabled={kickingId === p.id}
+                    title={`Remove ${p.name}`}
+                    aria-label={`Remove ${p.name}`}
+                    style={{
+                      height: 28, paddingLeft: 12, paddingRight: 12, borderRadius: 7,
+                      background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.4)',
+                      color: '#ef4444', fontFamily: 'var(--font-inter)', fontSize: 11, fontWeight: 600,
+                      letterSpacing: '0.04em', cursor: kickingId === p.id ? 'not-allowed' : 'pointer',
+                      opacity: kickingId === p.id ? 0.5 : 1, flexShrink: 0,
+                      transition: 'background .15s, opacity .15s',
+                    }}
+                  >
+                    {kickingId === p.id ? '…' : 'Kick'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -504,10 +594,24 @@ export default function HostOverlay({ room, code, hostId }: Props) {
             </button>
           )}
 
+          {/* Players manager — kick players; any non-finished phase */}
+          {room.phase !== 'game-over' && (
+            <button
+              onClick={() => { setShowPlayers((p) => !p); setShowSettings(false); }}
+              onMouseEnter={() => setPlayersHover(true)}
+              onMouseLeave={() => setPlayersHover(false)}
+              title="Manage players"
+              style={iconBtnStyle(playersHover || showPlayers)}
+              aria-label="Manage players"
+            >
+              👥
+            </button>
+          )}
+
           {/* Settings gear — lobby only */}
           {room.phase === 'lobby' && (
             <button
-              onClick={() => setShowSettings((p) => !p)}
+              onClick={() => { setShowSettings((p) => !p); setShowPlayers(false); }}
               onMouseEnter={() => setSettingsHover(true)}
               onMouseLeave={() => setSettingsHover(false)}
               title="Settings"

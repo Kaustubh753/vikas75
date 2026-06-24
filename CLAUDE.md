@@ -73,7 +73,7 @@ Best-effort in-memory `rateLimit(key, max, windowMs)` (not shared across serverl
 User text is cleaned before storage: `sanitizeName()` (length/trim) and `filterText()` (profanity/junk) on names and chat. Settings actions clamp `totalRounds`/`timerDuration`/`gameMode` server-side — never trust the slider values as sent.
 
 ### Full POST action list
-`create-room`, `join`, `advance`, `update-settings`, `submit`, `timer-expire`, `emote`, `chat`, `heartbeat`, `end-game`, `music-toggle` — plus `GET ?code=&me=`. (The File Map below details the core game actions; the rest follow the same lock + token/host-gate pattern.)
+`create-room`, `join`, `advance`, `update-settings`, `submit`, `timer-expire`, `emote`, `chat`, `heartbeat`, `end-game`, `music-toggle`, `kick-player` — plus `GET ?code=&me=`. (The File Map below details the core game actions; the rest follow the same lock + token/host-gate pattern.)
 
 ---
 
@@ -122,14 +122,14 @@ User text is cleaned before storage: `sanitizeName()` (length/trim) and `filterT
 
 ### Pages (all async, all await params/searchParams)
 - `src/app/page.tsx` — Home. Passes `initialCode` from `searchParams.code` to `<HomePage>`.
-- `src/app/host/[code]/page.tsx` — Host panel. Passes `code` and `hostId` (from `searchParams.h`) to `<HostPanel>`.
+- `src/app/host/[code]/page.tsx` — **Redirects** to `/projector/[code]?h=[hostId]` — the projector view already renders the full host control bar (`HostOverlay`), so the host sees the same screen as the big display.
 - `src/app/room/[code]/page.tsx` — Player room. Passes `code` to `<PlayerView>`.
 - `src/app/projector/[code]/page.tsx` — Projector. Passes `code` to `<ProjectorView>`.
 - `src/app/admin/page.tsx` — Admin login.
 - `src/app/admin/dashboard/page.tsx` — Admin dashboard.
 
 ### Host Components
-- `src/components/host/HostDashboard.tsx` — Host controls. Accepts `hostId` as prop (from URL, not localStorage). Shows advance button with phase-appropriate label, error display, player list, leaderboard, game settings sliders.
+- `src/components/projector/HostOverlay.tsx` — Fixed bottom control bar rendered on the projector when `?h=[hostId]` is present. Accepts `hostId` as prop (from URL, not localStorage). Phase-appropriate advance button, error display, lobby settings panel (rounds/timer/mode sliders), music toggle, end-game confirm, and a **players panel with per-player Kick** (`kick-player` action, host-gated). Sends `hostId` on every host action.
 
 ### Player Components
 - `src/app/page.tsx` — Home page (join/create screen). Uses `<CodeInput>`. Stores `vikas75_playerId`, `vikas75_playerName`, `vikas75_avatarId` in localStorage on join. Host redirected to `/host/[code]?h=[hostId]`.

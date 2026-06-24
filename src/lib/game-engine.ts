@@ -100,6 +100,16 @@ export function addPlayer(room: GameRoom, playerId: string, playerName: string, 
   };
 }
 
+/** Remove a player (and any in-flight submission of theirs) from the room — used by the
+ *  host "kick" action. The caller is responsible for also dropping the player's auth token. */
+export function removePlayer(room: GameRoom, playerId: string): GameRoom {
+  const players = { ...room.players };
+  delete players[playerId];
+  const submissions = { ...room.submissions };
+  delete submissions[playerId];
+  return { ...room, players, submissions };
+}
+
 export function startRound(room: GameRoom): GameRoom {
   const nextRound = room.round + 1;
   // Use the per-room tracking of drawn challenge IDs (falls back to empty for old rooms)
