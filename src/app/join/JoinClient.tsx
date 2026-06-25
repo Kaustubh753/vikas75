@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { AvatarId } from '@/types/game';
 import AvatarPicker from '@/components/ui/AvatarPicker';
+import IntroAnimation from '@/components/intro/IntroAnimation';
 
 // Dedicated join screen. Reached from the home "Join a Game" button and from the lobby QR
 // code (which deep-links here with ?code=XXXX prefilled). Keeps joining off the landing page.
@@ -21,6 +22,10 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
   const slotsRef = useRef<(HTMLInputElement | null)[]>([]);
   const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (retryRef.current) clearTimeout(retryRef.current); }, []);
+  // Play the brand intro when arriving from a QR / deep link (a code is prefilled). Manual
+  // "Join a Game" from the home page already showed the intro there, so don't replay it.
+  const [showIntro, setShowIntro] = useState(() => initialCode.length === 4);
+  const dismissIntro = useCallback(() => setShowIntro(false), []);
 
   useEffect(() => {
     // Focus name if we already have a code (came from QR), otherwise focus the code.
@@ -100,6 +105,7 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       padding: 'clamp(20px, 6vw, 48px) 20px', boxSizing: 'border-box',
     }}>
+      {showIntro && <IntroAnimation onDone={dismissIntro} />}
       <div style={{ width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 24 }}>
 
         {/* Heading */}

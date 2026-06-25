@@ -402,14 +402,16 @@ function LandingPage() {
   const initialCode = (searchParams.get('code') ?? '').toUpperCase().slice(0, 4);
   const [musicOn, setMusicOn] = useState(false);
   const [hosting, setHosting] = useState(false);
-  // Brand intro: plays once per browser session over the landing (a fixed, opaque overlay).
-  // Optimistic-true so the dark overlay covers the page from first paint (no landing flash);
-  // the redirect effect below turns it off when we're navigating away or it's already been seen.
+  // Brand intro: plays on every load of the landing (a fixed, opaque overlay over the page).
+  // Default-true so it covers the page from first paint; the redirect effect below decides
+  // where to go *after* the intro (so a returning player still sees it, then lands in /room).
   const [showIntro, setShowIntro] = useState(true);
+  const pendingRedirect = useRef<string | null>(null);
   const dismissIntro = useCallback(() => {
-    try { sessionStorage.setItem('vikas75_intro_seen', '1'); } catch { /* ignore */ }
     setShowIntro(false);
-  }, []);
+    const dest = pendingRedirect.current;
+    if (dest) { pendingRedirect.current = null; router.replace(dest); }
+  }, [router]);
   // Starts false (desktop) so SSR and first client render agree, then corrects on mount.
   const [isMobile, setIsMobile] = useState(false);
 
@@ -457,15 +459,16 @@ function LandingPage() {
   }
 
   useEffect(() => {
-    // A shared link / legacy QR landing on the home page with ?code= goes to the join page.
+    // A shared link / legacy QR landing on the home page with ?code= goes to the join page,
+    // which plays the intro itself — so skip it here and redirect immediately.
     if (initialCode) { setShowIntro(false); router.replace(`/join?code=${initialCode}`); return; }
     const pid  = localStorage.getItem('vikas75_playerId');
     const pname = localStorage.getItem('vikas75_playerName');
     const avid = localStorage.getItem('vikas75_avatarId');
     const rc   = localStorage.getItem('vikas75_roomCode');
-    if (pid && pname && avid && rc) { setShowIntro(false); router.replace(`/room/${rc}`); return; }
-    // Staying on the landing — play the intro unless it's already been seen this session.
-    try { if (sessionStorage.getItem('vikas75_intro_seen')) setShowIntro(false); } catch { /* ignore */ }
+    // A returning player gets bounced back to their room — but only *after* the intro plays
+    // (or they hit Skip), so the opening animation still shows on every load of the game.
+    if (pid && pname && avid && rc) pendingRedirect.current = `/room/${rc}`;
   }, [router, initialCode]);
 
   // Sync music button state from saved preference and attempt to resume playback.
