@@ -15,6 +15,7 @@ import ProjectorJudging from '@/components/projector/ProjectorJudging';
 import ProjectorWinner from '@/components/projector/ProjectorWinner';
 import ProjectorBetweenRounds from '@/components/projector/ProjectorBetweenRounds';
 import ProjectorGameOver from '@/components/projector/ProjectorGameOver';
+import MobileHostContent from '@/components/projector/MobileHostContent';
 import SkeletonCard from '@/components/ui/SkeletonCard';
 import type { GameRoom } from '@/types/game';
 
@@ -53,6 +54,15 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
   // then URL is cleaned so the credential doesn't live in browser history or server logs.
   const [hostId, setHostId] = useState('');
   const isHost = Boolean(hostId);
+  // A host on a phone gets a portrait-native control view instead of the 16:9 TV layout.
+  const [isMobileHost, setIsMobileHost] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const update = () => setIsMobileHost(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
 
   useEffect(() => {
     const storageKey = `vikas75_hostId_${code}`;
@@ -255,7 +265,9 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
 
   return (
     <motion.div
-      className="w-screen h-screen overflow-hidden relative"
+      className="w-screen overflow-hidden relative"
+      // 100dvh (not 100vh) so on iOS Safari the content/host bar isn't hidden behind the toolbar.
+      style={{ height: '100dvh' }}
       animate={{ backgroundColor: PHASE_BG[room.phase] ?? '#0d1b35' }}
       transition={{ duration: 0.8, ease: 'easeInOut' }}
     >
@@ -271,19 +283,27 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
         </div>
       )}
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={room.phase}
-          className="w-full h-full"
-          style={{ paddingBottom: isHost ? 72 : 0, boxSizing: 'border-box' }}
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -16 }}
-          transition={{ duration: 0.3, ease: 'easeInOut' }}
-        >
-          {renderPhase()}
-        </motion.div>
-      </AnimatePresence>
+      {isHost && isMobileHost ? (
+        // Host running the game from a phone — portrait-native game state; controls come from
+        // <HostOverlay> (the fixed bar below). The TV phase layouts are 16:9-first and cramped here.
+        <div className="w-full overflow-y-auto" style={{ height: '100dvh' }}>
+          <MobileHostContent room={room} />
+        </div>
+      ) : (
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={room.phase}
+            className="w-full h-full"
+            style={{ paddingBottom: isHost ? 72 : 0, boxSizing: 'border-box' }}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+          >
+            {renderPhase()}
+          </motion.div>
+        </AnimatePresence>
+      )}
 
       {/* Full-screen interstitial — "GET READY", "LET'S SEE WHAT YOU PLAYED", etc. */}
       <AnimatePresence>
@@ -340,7 +360,9 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
       </AnimatePresence>
 
       <EmoteOverlay code={code} />
-      <MuteButton />
+      {/* Mobile host already has a music toggle in the control bar — hide the floating one
+          so it doesn't collide with the room-code header. */}
+      {!(isHost && isMobileHost) && <MuteButton />}
       {isHost && hostId && <HostOverlay room={room} code={code} hostId={hostId} />}
     </motion.div>
   );
