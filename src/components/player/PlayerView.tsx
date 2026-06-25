@@ -445,7 +445,7 @@ export default function PlayerView({ code }: Props) {
       case 'lobby':
         return <PlayerLobby room={room} playerId={playerId} />;
       case 'challenge-reveal':
-        if (room.gameMode === 'friends' && room.currentChallenge) {
+        if (room.currentChallenge) {
           return <PlayerChallengeReveal challenge={room.currentChallenge} />;
         }
         return <PlayerWaiting phase={phase} hint="Look at the big screen for the challenge!" />;

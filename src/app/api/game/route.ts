@@ -17,7 +17,7 @@ import {
 } from '@/lib/game-engine';
 import { judgeRound, noWinnerVerdict } from '@/lib/ai-judge';
 import { filterText } from '@/lib/word-filter';
-import type { Submission, GameMode, AvatarId, ChatMessage, GameRoom } from '@/types/game';
+import type { Submission, AvatarId, ChatMessage, GameRoom } from '@/types/game';
 
 // ── Secret handling ──────────────────────────────────────────────────────────
 // hostId and per-player tokens are credentials and must never reach a client other
@@ -114,12 +114,10 @@ export async function POST(req: NextRequest) {
 
     switch (action) {
       case 'create-room': {
-        const { hostId, hostName, totalRounds, timerDuration, gameMode } = body;
+        const { hostId, hostName, totalRounds, timerDuration } = body;
         const safeName = sanitizeName(hostName);
         if (!safeName) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
         if (!hostId || typeof hostId !== 'string') return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
-        const VALID_GAME_MODES: GameMode[] = ['crowd', 'friends'];
-        const safeGameMode: GameMode = VALID_GAME_MODES.includes(gameMode) ? gameMode : 'crowd';
         // Clamp settings (mirrors update-settings) so a hand-crafted request can't seed a room
         // with NaN/negative/huge values — a bad timerDuration otherwise breaks the timer.
         const safeRounds = typeof totalRounds === 'number' && isFinite(totalRounds)
@@ -141,7 +139,7 @@ export async function POST(req: NextRequest) {
         }
         if (!roomCode) return NextResponse.json({ error: 'Could not generate unique room code — try again' }, { status: 500 });
 
-        const room = createRoom(hostId, safeName, roomCode, safeRounds, safeTimer, safeGameMode);
+        const room = createRoom(hostId, safeName, roomCode, safeRounds, safeTimer);
         await setRoom(room);
         return NextResponse.json({ room: stripSecrets(room) });
       }
@@ -265,9 +263,9 @@ export async function POST(req: NextRequest) {
       }
 
       case 'update-settings': {
-        const { code, hostId, totalRounds, timerDuration, gameMode } = body as {
+        const { code, hostId, totalRounds, timerDuration } = body as {
           code: string; hostId: string;
-          totalRounds?: number; timerDuration?: number; gameMode?: GameMode;
+          totalRounds?: number; timerDuration?: number;
         };
         const res = await withRoomLock(code ?? '', async () => {
           const room = await getRoom(code?.toUpperCase());
@@ -276,9 +274,7 @@ export async function POST(req: NextRequest) {
           if (room.phase !== 'lobby') return NextResponse.json({ error: 'Can only update settings in lobby' }, { status: 400 });
           const safeRounds = typeof totalRounds === 'number' ? Math.max(1, Math.min(50, Math.round(totalRounds))) : room.totalRounds;
           const safeTimer = typeof timerDuration === 'number' ? Math.max(10, Math.min(300, Math.round(timerDuration))) : room.timerDuration;
-          const VALID_MODES: GameMode[] = ['crowd', 'friends'];
-          const safeGameMode: GameMode = VALID_MODES.includes(gameMode as GameMode) ? (gameMode as GameMode) : room.gameMode;
-          const updated = updateSettings(room, { totalRounds: safeRounds, timerDuration: safeTimer, gameMode: safeGameMode });
+          const updated = updateSettings(room, { totalRounds: safeRounds, timerDuration: safeTimer });
           await setRoom(updated);
           await broadcastRoom(updated);
           return NextResponse.json({ room: stripSecrets(updated) });

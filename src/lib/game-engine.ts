@@ -1,6 +1,5 @@
 import type {
   GameRoom,
-  GameMode,
   Player,
   AvatarId,
   SchemeCard,
@@ -46,7 +45,6 @@ export function createRoom(
   code: string,
   totalRounds = DEFAULT_TOTAL_ROUNDS,
   timerDuration = DEFAULT_TIMER_DURATION,
-  gameMode: GameMode = 'crowd',
 ): GameRoom {
   return {
     code,
@@ -56,7 +54,6 @@ export function createRoom(
     round: 0,
     totalRounds,
     timerDuration,
-    gameMode,
     players: {},  // host is not a player
     currentChallenge: null,
     submissions: {},
@@ -71,13 +68,12 @@ export function createRoom(
 
 export function updateSettings(
   room: GameRoom,
-  settings: { totalRounds?: number; timerDuration?: number; gameMode?: GameMode },
+  settings: { totalRounds?: number; timerDuration?: number },
 ): GameRoom {
   return {
     ...room,
     totalRounds: settings.totalRounds ?? room.totalRounds,
     timerDuration: settings.timerDuration ?? room.timerDuration,
-    gameMode: settings.gameMode ?? room.gameMode,
   };
 }
 

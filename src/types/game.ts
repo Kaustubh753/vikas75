@@ -72,8 +72,6 @@ export type GamePhase =
   | 'between-rounds'
   | 'game-over';
 
-export type GameMode = 'crowd' | 'friends';
-
 // Chat
 export interface ChatMessage {
   id: string;
@@ -107,7 +105,6 @@ export interface GameRoom {
   round: number;
   totalRounds: number;
   timerDuration: number;   // seconds per submission phase
-  gameMode: GameMode;
   players: Record<string, Player>;
   currentChallenge: ChallengeCard | null;
   submissions: Record<string, Submission>;
