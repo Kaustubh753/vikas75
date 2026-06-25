@@ -23,6 +23,13 @@ interface Props {
   code: string;
 }
 
+// Drop a room snapshot that's older than what we already have. A slow poll (GET) can resolve
+// after a newer Pusher event and would otherwise revert the phase (e.g. winner → judging).
+// Legacy rooms without a rev always apply, preserving prior behaviour.
+function staleRoom(prev: GameRoom | null, next: GameRoom): boolean {
+  return !!prev && prev.rev != null && next.rev != null && next.rev < prev.rev;
+}
+
 const PHASE_BG: Record<string, string> = {
   lobby: '#0d1b35',
   'challenge-reveal': '#1a0d2e',
@@ -120,6 +127,7 @@ export default function PlayerView({ code }: Props) {
       }
       // Merge messages: deduplicate by id so server's authoritative list wins without dropping local-only messages
       setRoom(prev => {
+        if (staleRoom(prev, r)) return prev; // drop a slow poll that resolved after a newer update
         const serverMsgs = r.messages ?? [];
         const localMsgs = prev?.messages ?? [];
         const merged = [...serverMsgs, ...localMsgs.filter(m => !serverMsgs.find(s => s.id === m.id))];
@@ -165,7 +173,7 @@ export default function PlayerView({ code }: Props) {
     const channel = pusher.subscribe(getRoomChannel(code));
 
     const onRoomUpdated = (updated: GameRoom) => {
-      setRoom(prev => ({ ...updated, messages: prev?.messages ?? [] }));
+      setRoom(prev => staleRoom(prev, updated) ? prev : { ...updated, messages: prev?.messages ?? [] });
       // Also sync cachedHand — Pusher payload is the full room, so the hand is here.
       // fetchRoom() does the same thing, but can lose a race when Pusher fires first.
       const pid = localStorage.getItem('vikas75_playerId') ?? '';

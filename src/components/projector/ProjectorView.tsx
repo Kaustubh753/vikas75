@@ -21,6 +21,13 @@ import type { GameRoom } from '@/types/game';
 
 interface Props { code: string; hostId?: string }
 
+// Drop a room snapshot older than what we already have. A slow poll (GET) can resolve after a
+// newer Pusher event and would otherwise revert the phase on the big screen. Legacy rooms
+// without a rev always apply.
+function staleRoom(prev: GameRoom | null, next: GameRoom): boolean {
+  return !!prev && prev.rev != null && next.rev != null && next.rev < prev.rev;
+}
+
 const PHASE_BG: Record<string, string> = {
   lobby: '#0d1b35',
   'challenge-reveal': '#1a0d2e',
@@ -96,7 +103,7 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
         if (r.status === 404) { setRoomMissing(true); return null; }
         return r.ok ? r.json() : null;
       })
-      .then((d) => { if (d?.room) { setRoom(d.room); setRoomMissing(false); } })
+      .then((d) => { if (d?.room) { setRoom(prev => staleRoom(prev, d.room) ? prev : d.room); setRoomMissing(false); } })
       .catch(() => {});
   }, [code]);
 
@@ -116,7 +123,7 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
           if (r.status === 404) { setRoomMissing(true); return null; }
           return r.ok ? r.json() : null;
         })
-        .then((d) => { if (d?.room) { setRoom(d.room); setRoomMissing(false); } })
+        .then((d) => { if (d?.room) { setRoom(prev => staleRoom(prev, d.room) ? prev : d.room); setRoomMissing(false); } })
         .catch(() => {});
     }, base + Math.random() * (active ? 1_500 : 8_000));
     return () => clearInterval(poll);
@@ -125,7 +132,7 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
   useEffect(() => {
     const pusher = getPusherClient();
     const channel = pusher.subscribe(getRoomChannel(code));
-    const onRoomUpdated = (updated: GameRoom) => setRoom(updated);
+    const onRoomUpdated = (updated: GameRoom) => setRoom(prev => staleRoom(prev, updated) ? prev : updated);
     const onMusicToggle = (payload: { muted: boolean }) => getLobbyMusic().forceMute(payload.muted);
     channel.bind('game:room-updated', onRoomUpdated);
     channel.bind('music:toggle', onMusicToggle);

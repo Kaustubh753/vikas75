@@ -118,6 +118,8 @@ export interface GameRoom {
   messages: ChatMessage[]; // last 20 chat messages
   usedChallengeIds: string[]; // tracks which challenge cards have been drawn this game
   shutdownAt?: number;    // epoch ms — set when ≤1 player active; room deleted after this passes
+  rev?: number;           // monotonic write counter, bumped on every setRoom; clients drop
+                          // any snapshot older than what they already have (stale-poll guard)
 }
 
 // Pusher event map — event names must match server triggers in api/game/route.ts exactly

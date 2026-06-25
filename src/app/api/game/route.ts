@@ -359,15 +359,20 @@ export async function POST(req: NextRequest) {
             // tick before the phase switches. Runs after the response is sent so the
             // submitting player's request isn't held open.
             after(async () => {
-              await new Promise<void>(resolve => setTimeout(resolve, 2000));
-              await withRoomLock(code, async () => {
-                const fresh = await getRoom(code.toUpperCase());
-                if (fresh?.phase === 'submission') {
-                  const revealed = advancePhase(fresh);
-                  await setRoom(revealed);
-                  await broadcastRoom(revealed);
-                }
-              });
+              // Background task: a throw here (e.g. a Redis blip) would be an unhandled
+              // rejection since the response has already been sent. Swallow it — the
+              // timer-expire path is the fallback that still advances the stalled phase.
+              try {
+                await new Promise<void>(resolve => setTimeout(resolve, 2000));
+                await withRoomLock(code, async () => {
+                  const fresh = await getRoom(code.toUpperCase());
+                  if (fresh?.phase === 'submission') {
+                    const revealed = advancePhase(fresh);
+                    await setRoom(revealed);
+                    await broadcastRoom(revealed);
+                  }
+                });
+              } catch { /* fallback: timer-expire advances the phase */ }
             });
           }
           return NextResponse.json({ ok: true });
