@@ -67,7 +67,10 @@ These three mechanisms span the whole API and are invisible if you only read one
 `withRoomLock(code, fn)` (built on `acquireLock`/`releaseLock` in `redis.ts`) serializes all read-modify-write sequences for a room. Without it, concurrent writers clobber each other's snapshot (a stale heartbeat reverting `winner`→`judging`, a lost submission, double-scoring). **Any handler that reads a room, mutates it, and writes it back must run inside `withRoomLock`.** It briefly retries (~1s) then returns `null` so the caller can surface a safe "busy" fallback rather than corrupting state.
 
 ### 3. Rate limiting & client IP
-Best-effort in-memory `rateLimit(key, max, windowMs)` (not shared across serverless instances). Derive the client key from `getIp(req)`, which reads `x-real-ip` (Vercel edge, unspoofable) and the **last** `x-forwarded-for` value — never the first, which is client-controlled and trivially spoofable.
+Best-effort in-memory `rateLimit(key, max, windowMs)` (not shared across serverless instances). Derive the client key from `getIp(req)`, which reads `x-real-ip` (Vercel edge, unspoofable) and the **last** `x-forwarded-for` value — never the first, which is client-controlled and trivially spoofable. Note: emote/chat buckets are keyed on `playerId` **on purpose** — all players share one venue Wi-Fi, so IP-keying would make them share a quota.
+
+### 4. Revision counter — clients must drop stale snapshots
+`GameRoom.rev` is a monotonic write counter bumped inside `setRoom` (concern #2's lock guarantees no race on it). Clients receive room state from **two channels** — the Pusher broadcast and the GET poll — and a slow poll can resolve *after* a newer broadcast. Both `PlayerView` and `ProjectorView` therefore guard every `setRoom(...)` with a `staleRoom(prev, next)` check that discards any snapshot whose `rev` is lower than what's already in state (rooms without a `rev` always apply, for legacy/back-compat). Without this the visible phase flickers backwards (e.g. `winner → judging`). **Any new client surface that consumes room state from both channels must apply the same guard.**
 
 ### Input sanitization
 User text is cleaned before storage: `sanitizeName()` (length/trim) and `filterText()` (profanity/junk) on names and chat. Settings actions clamp `totalRounds`/`timerDuration`/`gameMode` server-side — never trust the slider values as sent.
@@ -90,7 +93,7 @@ User text is cleaned before storage: `sanitizeName()` (length/trim) and `filterT
   - `startRound(room)` — increments round, picks a challenge card, resets submissions
   - `startSubmission(room)` — sets `timerEndsAt = now + 90s`
   - `addSubmission(room, submission)` — idempotent add to submissions map
-  - `applyVerdict(room, verdict)` — +2 pts to winner, +1 bonus if `bonusPoint` true, sets `phase: 'winner'`
+  - `applyVerdict(room, verdict)` — awards each ranked player by placement (**1st=3, 2nd=2, 3rd=1**, others 0) plus **+1 per player whose `bonusPoint` is true**; the winner's `roundsWon` is incremented (that count, not total score, decides the overall game winner); sets `phase: 'winner'`. A `noWinner` verdict has empty rankings → nobody scores. Not internally idempotent, but every caller re-checks `phase === 'judging'` under the lock first, so it never double-applies.
   - `advancePhase(room)` — state machine dispatcher; `judging` phase does nothing (AI handles it)
   - `allPlayersSubmitted(room)` — true when every player who joined *before* this round has submitted (excludes mid-round late joiners)
   - `getLeaderboard(room)` — sorted player array
@@ -99,16 +102,17 @@ User text is cleaned before storage: `sanitizeName()` (length/trim) and `filterT
   - Uses module-level `Map` when `UPSTASH_REDIS_REST_URL` is absent (local dev)
   - Lazily requires `@upstash/redis` to avoid startup crash without env vars
   - TTL: 24 hours
-  - Exports: `getRoom`, `setRoom`, `deleteRoom`, `listActiveRooms`
+  - `setRoom` **bumps `room.rev`** (monotonic write counter) on every write — see the *Revision counter* cross-cutting concern. It mutates the passed object, so the same reference broadcast right after carries the new `rev`.
+  - Exports: `getRoom`, `setRoom`, `deleteRoom`, `listActiveRooms`, plus `acquireLock`/`releaseLock` (used by `withRoomLock`).
 
-- `src/lib/pusher.ts` — `pusherServer` (server-side SDK), `getPusherClient()` (singleton), `getRoomChannel(code)` → `private-game-${code.toUpperCase()}`.
+- `src/lib/pusher.ts` — `pusherServer` (server-side SDK), `getRoomChannel(code)` → `private-game-${code.toUpperCase()}`, `broadcastRoom`/`triggerEvent`. `pusherServer` is **`null` when the `PUSHER_*` env vars are absent** (constructing the SDK without them throws at import). In that state `triggerEvent` no-ops and the auth route returns 503, so real-time silently degrades to polling — mirroring the Redis in-memory fallback. (Client singleton lives in `pusher-client.ts`, not here.)
 
 - `src/lib/ai-judge.ts` — Dual-mode judge.
-  - Uses `claude-sonnet-4-20250514` when `ANTHROPIC_API_KEY` present
-  - Falls back to `fallbackJudge()` (random winner + 8 fun Hindi-flavoured verdicts) when key absent
-  - Strips accidental markdown fences from Claude's JSON response
-  - Bonus point: `explanation.trim().split(/[.!?]/).filter(Boolean).length <= 1`
-  - If Claude throws, falls back silently
+  - Live model id is `JUDGE_MODEL = 'claude-sonnet-4-6'` (used when `ANTHROPIC_API_KEY` present). This is the current Sonnet 4.6 id — do not "correct" it to an older dated id.
+  - The judge **ranks all submissions** and returns per-player `gamePoints` (1st=3, 2nd=2, 3rd=1); `applyVerdict` consumes that.
+  - Falls back to `fallbackJudge()` (random winner + Hindi-flavoured verdicts) when the key is absent, and **silently** if the live call throws/times out (8s `AbortController`) or returns unparseable JSON.
+  - Strips accidental markdown fences before `JSON.parse`; `buildVerdict` rejects a verdict that names an unknown `playerId`.
+  - Bonus rule on the **fallback** path: `explanation.trim().split(/[.!?]/).filter(Boolean).length <= 1`. On the **live** path the model supplies `bonusPoint` directly (same one-sentence intent, not server-recomputed).
 
 ### API
 - `src/app/api/game/route.ts` — Single POST + GET endpoint.
@@ -219,6 +223,14 @@ Without Redis env vars, state lives in a module-level `Map` — rooms are lost o
 16. **`ProjectorView` / `HostDashboard` stalled on 404** — If room was deleted, both showed infinite spinner. Fixed: added `roomMissing` state with a "Room Closed" screen.
 
 17. **Reveal pacing ignored player count** — Sequential card reveal always used 1800 ms delay regardless of how many players there were. Fixed in `ProjectorReveal`: scales to 1800/1200/900 ms for ≤4/≤8/9+ players.
+
+18. **Fallback poll thundering herd** — With no player cap, a large room drops to polling once Pusher's payload limit is hit; all clients polled on the same 3 s beat. Fixed: per-client random jitter on the poll interval in `PlayerView`/`ProjectorView`.
+
+19. **Phase flickered backwards on the client** — A slow GET poll resolving after a newer Pusher event reverted the visible phase. Fixed via the `rev` revision counter + `staleRoom` guard (see cross-cutting concern #4).
+
+20. **Unhandled rejection in `submit` auto-advance** — The `after()` background task that advances `submission → reveal` had no try/catch (unlike `advance`'s `triggerJudge().catch`), so a Redis blip became an unhandled rejection and the phase silently stalled. Fixed: wrapped it; `timer-expire` is the fallback.
+
+21. **Pusher crashed the API when unconfigured** — `pusherServer` was built at import with non-null-asserted env vars; missing vars threw and 500'd all of `/api/game`. Fixed: construct only when configured, otherwise `null` + no-op broadcasts (degrade to polling).
 
 ---
 
