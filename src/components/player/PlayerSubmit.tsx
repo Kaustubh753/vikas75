@@ -261,6 +261,13 @@ export default function PlayerSubmit({
                 <motion.div
                   key={card.id}
                   onClick={() => setSelected(card)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(card); }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Select scheme ${card.name}`}
+                  aria-pressed={isSelected}
                   className={`relative cursor-pointer flex-shrink-0 rounded-xl overflow-hidden ${
                     isSelected ? 'border-2 border-[#FF9933]' : 'border border-white/10'
                   }`}

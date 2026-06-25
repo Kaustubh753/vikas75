@@ -3,15 +3,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { listActiveRooms, getRoom, checkRateLimit } from '@/lib/redis';
 import type { GameRoom } from '@/types/game';
 
-/** Strip player hands before returning rooms to the admin — hands are private card data. */
-function scrubRoom(room: GameRoom): Omit<GameRoom, 'players'> & { players: Record<string, Omit<GameRoom['players'][string], 'hand'>> } {
+/** Strip room-level credentials (hostId, the playerId→token secret map) AND every player's
+ *  private hand before returning rooms to the admin. The admin dashboard needs none of these,
+ *  and leaking tokens/hostId would let anyone holding them impersonate a player or the host —
+ *  the same invariant the game route enforces via stripSecrets/scrubRoomFor. */
+function scrubRoom(room: GameRoom) {
+  const { hostId: _hostId, tokens: _tokens, ...rest } = room;
+  void _hostId; void _tokens;
   const players = Object.fromEntries(
     Object.entries(room.players).map(([id, p]) => {
-      const { hand: _hand, ...rest } = p;
-      return [id, rest];
+      const { hand: _hand, ...pRest } = p;
+      return [id, pRest];
     })
   );
-  return { ...room, players };
+  return { ...rest, players };
 }
 
 function timingSafeStringEqual(a: string, b: string): boolean {

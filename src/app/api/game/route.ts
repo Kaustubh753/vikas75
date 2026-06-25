@@ -429,16 +429,17 @@ export async function POST(req: NextRequest) {
         const { code, playerId, emote, token } = body as {
           code: string; playerId: string; playerName: string; avatarId: AvatarId; emote: string; token?: string;
         };
-        // Redis-backed rate limit — works across serverless instances (20 emotes/player/minute)
-        if (!(await checkRateLimit(`ratelimit:emote:${playerId ?? 'anon'}`, 20, 60))) {
-          return NextResponse.json({ ok: true });
-        }
         const VALID_EMOTES = ['masterstroke','aatmanirbhar','vishwaguru','fakir','antinational','56inch'];
         if (!emote || !VALID_EMOTES.includes(emote)) return NextResponse.json({ ok: true });
         const emoteRoom = await getRoom(code?.toUpperCase());
         const emotePlayer = emoteRoom?.players[playerId];
         if (!emotePlayer) return NextResponse.json({ ok: true }); // silently drop unknown senders
         if (!tokenOk(emoteRoom!, playerId, token)) return NextResponse.json({ ok: true }); // can't emote as another player
+        // Rate-limit AFTER auth: the bucket is keyed on playerId, so charging it before the
+        // token check let anyone spoof a victim's playerId and exhaust the victim's own quota.
+        if (!(await checkRateLimit(`ratelimit:emote:${playerId}`, 20, 60))) {
+          return NextResponse.json({ ok: true });
+        }
         await triggerEvent(getRoomChannel(code!.toUpperCase()), 'emote', {
           playerId,
           playerName: emotePlayer.name,
@@ -451,10 +452,6 @@ export async function POST(req: NextRequest) {
 
       case 'chat': {
         const { code, message, token } = body as { code: string; message: Omit<ChatMessage, 'id' | 'sentAt'> & { text: string }; token?: string };
-        // Redis-backed rate limit — works across serverless instances (30 messages/player/minute)
-        if (!(await checkRateLimit(`ratelimit:chat:${message?.playerId ?? 'anon'}`, 30, 60))) {
-          return NextResponse.json({ error: 'Sending too fast' }, { status: 429 });
-        }
         const res = await withRoomLock(code ?? '', async () => {
           const room = await getRoom(code?.toUpperCase());
           if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
@@ -462,6 +459,12 @@ export async function POST(req: NextRequest) {
           const chatPlayer = room.players[message?.playerId];
           if (!chatPlayer) return NextResponse.json({ error: 'Player not in room' }, { status: 403 });
           if (!tokenOk(room, message.playerId, token)) return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+          // Rate-limit AFTER auth (30 messages/player/minute): the bucket is keyed on playerId,
+          // so charging it before the token check let anyone spoof a victim's playerId and burn
+          // the victim's own quota. Now only an authenticated sender charges their own bucket.
+          if (!(await checkRateLimit(`ratelimit:chat:${message.playerId}`, 30, 60))) {
+            return NextResponse.json({ error: 'Sending too fast' }, { status: 429 });
+          }
           const rawText = typeof message?.text === 'string' ? message.text.trim() : '';
           const filtered = filterText(rawText);
           if (!filtered) return NextResponse.json({ ok: true });
