@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { FaGlobe, FaInstagram, FaXTwitter, FaLinkedin, FaFacebook, FaYoutube } from 'react-icons/fa6';
 import { getLobbyMusic } from '@/lib/music-manager';
+import IntroAnimation from '@/components/intro/IntroAnimation';
 import type { AvatarId } from '@/types/game';
 
 // ─────────────────────────────────────────────────────────────
@@ -401,6 +402,14 @@ function LandingPage() {
   const initialCode = (searchParams.get('code') ?? '').toUpperCase().slice(0, 4);
   const [musicOn, setMusicOn] = useState(false);
   const [hosting, setHosting] = useState(false);
+  // Brand intro: plays once per browser session over the landing (a fixed, opaque overlay).
+  // Optimistic-true so the dark overlay covers the page from first paint (no landing flash);
+  // the redirect effect below turns it off when we're navigating away or it's already been seen.
+  const [showIntro, setShowIntro] = useState(true);
+  const dismissIntro = useCallback(() => {
+    try { sessionStorage.setItem('vikas75_intro_seen', '1'); } catch { /* ignore */ }
+    setShowIntro(false);
+  }, []);
   // Starts false (desktop) so SSR and first client render agree, then corrects on mount.
   const [isMobile, setIsMobile] = useState(false);
 
@@ -449,12 +458,14 @@ function LandingPage() {
 
   useEffect(() => {
     // A shared link / legacy QR landing on the home page with ?code= goes to the join page.
-    if (initialCode) { router.replace(`/join?code=${initialCode}`); return; }
+    if (initialCode) { setShowIntro(false); router.replace(`/join?code=${initialCode}`); return; }
     const pid  = localStorage.getItem('vikas75_playerId');
     const pname = localStorage.getItem('vikas75_playerName');
     const avid = localStorage.getItem('vikas75_avatarId');
     const rc   = localStorage.getItem('vikas75_roomCode');
-    if (pid && pname && avid && rc) router.replace(`/room/${rc}`);
+    if (pid && pname && avid && rc) { setShowIntro(false); router.replace(`/room/${rc}`); return; }
+    // Staying on the landing — play the intro unless it's already been seen this session.
+    try { if (sessionStorage.getItem('vikas75_intro_seen')) setShowIntro(false); } catch { /* ignore */ }
   }, [router, initialCode]);
 
   // Sync music button state from saved preference and attempt to resume playback.
@@ -502,6 +513,7 @@ function LandingPage() {
   if (isMobile) {
     return (
       <div style={{ position: 'relative', minHeight: '100dvh', width: '100%', background: '#07101f', overflowX: 'hidden', isolation: 'isolate' }}>
+        {showIntro && <IntroAnimation onDone={dismissIntro} />}
         {backdrop}
         <div style={{
           position: 'relative', zIndex: 3, minHeight: '100dvh',
@@ -576,6 +588,7 @@ function LandingPage() {
   return (
     /* Outer container — fills viewport, no scrollbars */
     <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', isolation: 'isolate' }}>
+      {showIntro && <IntroAnimation onDone={dismissIntro} />}
       {backdrop}
 
       {/* 3-column grid */}
