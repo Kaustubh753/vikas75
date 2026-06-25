@@ -108,6 +108,8 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
     // "the round won't end" or "stuck on AI deliberating"). Idle phases poll slowly.
     const active = room?.phase === 'submission' || room?.phase === 'reveal'
       || room?.phase === 'judging' || room?.phase === 'winner';
+    // Jitter per client so fallback polls don't all land on the same beat under load.
+    const base = active ? 3_000 : 30_000;
     const poll = setInterval(() => {
       fetch(`/api/game?code=${code}`)
         .then(async (r) => {
@@ -116,7 +118,7 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
         })
         .then((d) => { if (d?.room) { setRoom(d.room); setRoomMissing(false); } })
         .catch(() => {});
-    }, active ? 3_000 : 30_000);
+    }, base + Math.random() * (active ? 1_500 : 8_000));
     return () => clearInterval(poll);
   }, [code, room?.phase]);
 

@@ -152,7 +152,10 @@ export default function PlayerView({ code }: Props) {
     if (!hydrated) return;
     const active = room?.phase === 'submission' || room?.phase === 'reveal'
       || room?.phase === 'judging' || room?.phase === 'winner';
-    const id = setInterval(fetchRoom, active ? 3_000 : 30_000);
+    // Jitter per client so a large room (which falls back to polling once Pusher's limit is
+    // hit) doesn't stampede the API on the same 3s beat — spread the load across the window.
+    const base = active ? 3_000 : 30_000;
+    const id = setInterval(fetchRoom, base + Math.random() * (active ? 1_500 : 8_000));
     return () => clearInterval(id);
   }, [hydrated, fetchRoom, room?.phase]);
 
