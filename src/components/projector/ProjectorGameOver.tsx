@@ -11,7 +11,7 @@ interface Props { room: GameRoom }
 
 export default function ProjectorGameOver({ room }: Props) {
   // Overall winner is whoever won the most rounds; total points break ties, then a stable
-  // id tiebreak so an exact tie isn't decided by arbitrary insertion order.
+  // id tiebreak so ordering isn't decided by arbitrary insertion order.
   const players = Object.values(room.players).sort(
     (a, b) => (b.roundsWon ?? 0) - (a.roundsWon ?? 0) || b.score - a.score || a.id.localeCompare(b.id),
   );
@@ -20,6 +20,14 @@ export default function ProjectorGameOver({ room }: Props) {
     const w = p.roundsWon ?? 0;
     return `${w} ${w === 1 ? 'win' : 'wins'}`;
   };
+
+  // A genuine tie for first: more than one player shares the leader's exact round-win count
+  // AND total points (the id tiebreak above can't separate them, so don't crown one alone).
+  const champions = first
+    ? players.filter(p => (p.roundsWon ?? 0) === (first.roundsWon ?? 0) && p.score === first.score)
+    : [];
+  const isTie = champions.length > 1;
+  const rest = players.filter(p => !champions.includes(p));
 
   useEffect(() => {
     getMusicManager().play('winner');
@@ -44,80 +52,117 @@ export default function ProjectorGameOver({ room }: Props) {
           GAME OVER
         </p>
         <h1 className="font-[family-name:var(--font-bebas)] text-white leading-none tracking-widest"
-          style={{ fontSize: '96px' }}>
-          KHEL KHATAM!
+          style={{ fontSize: isTie ? '84px' : '96px' }}>
+          {isTie ? "IT'S A TIE!" : 'KHEL KHATAM!'}
         </h1>
       </div>
 
-      {/* Podium */}
-      <div className="flex items-end justify-center gap-4 w-full max-w-3xl px-8">
-        {/* 2nd place */}
-        {second && (
-          <div className="flex flex-col items-center gap-3 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-            <div className="rounded-2xl overflow-hidden shadow-lg ring-4 ring-[#C0C0C0]/40">
-              <Avatar id={second.avatarId} size={72} />
-            </div>
-            <div className="text-center">
-              <p className="font-[family-name:var(--font-bebas)] text-[#C0C0C0] text-2xl tracking-wide">{second.name}</p>
-              <p className="font-[family-name:var(--font-bebas)] text-white/60 text-lg">🏆 {wins(second)}</p>
-              <p className="font-[family-name:var(--font-inter)] text-white/40 text-xs">{second.score} pts</p>
-            </div>
-            <div className="w-32 bg-[#C0C0C0]/20 border-2 border-[#C0C0C0]/40 rounded-t-xl flex items-center justify-center py-5">
-              <span className="font-[family-name:var(--font-bebas)] text-[#C0C0C0] text-4xl">2</span>
-            </div>
+      {isTie ? (
+        /* ── Joint champions — exact tie on round wins AND total points ── */
+        <div className="flex flex-col items-center gap-6 w-full max-w-4xl px-8">
+          <p className="font-[family-name:var(--font-bebas)] text-[#FFD700] text-2xl tracking-[0.3em] text-center">
+            {champions.length === 2 ? 'JOINT CHAMPIONS' : `${champions.length}-WAY TIE`}
+            <span className="text-white/60"> · 🏆 {wins(champions[0])} · {champions[0].score} pts</span>
+          </p>
+          <div className="flex flex-wrap items-start justify-center gap-x-10 gap-y-6">
+            {champions.map((c, i) => (
+              <div key={c.id} className="flex flex-col items-center gap-3 animate-slam-in" style={{ animationDelay: `${i * 0.12}s` }}>
+                <span className="text-5xl">👑</span>
+                <div className="rounded-2xl overflow-hidden shadow-[0_0_60px_#FFD70060] ring-4 ring-[#FFD700]/60">
+                  <Avatar id={c.avatarId} size={champions.length > 3 ? 76 : 96} />
+                </div>
+                <p className="font-[family-name:var(--font-bebas)] text-[#FFD700] text-2xl tracking-wide text-center">{c.name}</p>
+              </div>
+            ))}
           </div>
-        )}
-
-        {/* 1st place */}
-        {first && (
-          <div className="flex flex-col items-center gap-3 animate-slam-in">
-            <span className="text-5xl">👑</span>
-            <div className="rounded-2xl overflow-hidden shadow-[0_0_60px_#FFD70060] ring-4 ring-[#FFD700]/60">
-              <Avatar id={first.avatarId} size={100} />
+          {rest.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-4 px-8 mt-1">
+              {rest.map((p, i) => (
+                <div key={p.id} className="flex items-center gap-2 bg-white/5 rounded-xl px-4 py-2 animate-fade-in"
+                  style={{ animationDelay: `${i * 0.08}s` }}>
+                  <span className="font-[family-name:var(--font-bebas)] text-white/40 text-lg w-5">{champions.length + i + 1}</span>
+                  <div className="rounded-lg overflow-hidden"><Avatar id={p.avatarId} size={28} /></div>
+                  <span className="font-[family-name:var(--font-inter)] text-white/70 text-sm">{p.name}</span>
+                  <span className="font-[family-name:var(--font-bebas)] text-white/50 text-sm">🏆 {wins(p)}</span>
+                  <span className="font-[family-name:var(--font-inter)] text-white/30 text-xs">{p.score} pts</span>
+                </div>
+              ))}
             </div>
-            <div className="text-center">
-              <p className="font-[family-name:var(--font-bebas)] text-[#FFD700] text-3xl tracking-wide">{first.name}</p>
-              <p className="font-[family-name:var(--font-bebas)] text-white/80 text-xl">🏆 {wins(first)}</p>
-              <p className="font-[family-name:var(--font-inter)] text-white/50 text-sm">{first.score} pts</p>
-            </div>
-            <div className="w-32 bg-[#FFD700]/20 border-2 border-[#FFD700]/50 rounded-t-xl flex items-center justify-center py-10">
-              <span className="font-[family-name:var(--font-bebas)] text-[#FFD700] text-5xl">1</span>
-            </div>
-          </div>
-        )}
-
-        {/* 3rd place */}
-        {third && (
-          <div className="flex flex-col items-center gap-3 animate-fade-in" style={{ animationDelay: '0.4s' }}>
-            <div className="rounded-2xl overflow-hidden shadow-lg ring-4 ring-[#CD7F32]/40">
-              <Avatar id={third.avatarId} size={60} />
-            </div>
-            <div className="text-center">
-              <p className="font-[family-name:var(--font-bebas)] text-[#CD7F32] text-xl tracking-wide">{third.name}</p>
-              <p className="font-[family-name:var(--font-bebas)] text-white/50 text-base">🏆 {wins(third)}</p>
-              <p className="font-[family-name:var(--font-inter)] text-white/40 text-xs">{third.score} pts</p>
-            </div>
-            <div className="w-32 bg-[#CD7F32]/20 border-2 border-[#CD7F32]/40 rounded-t-xl flex items-center justify-center py-3">
-              <span className="font-[family-name:var(--font-bebas)] text-[#CD7F32] text-3xl">3</span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Remaining players */}
-      {players.length > 3 && (
-        <div className="flex flex-wrap justify-center gap-4 px-8 mt-2">
-          {players.slice(3).map((p, i) => (
-            <div key={p.id} className="flex items-center gap-2 bg-white/5 rounded-xl px-4 py-2 animate-fade-in"
-              style={{ animationDelay: `${(i + 3) * 0.08}s` }}>
-              <span className="font-[family-name:var(--font-bebas)] text-white/40 text-lg w-5">{i + 4}</span>
-              <div className="rounded-lg overflow-hidden"><Avatar id={p.avatarId} size={28} /></div>
-              <span className="font-[family-name:var(--font-inter)] text-white/70 text-sm">{p.name}</span>
-              <span className="font-[family-name:var(--font-bebas)] text-white/50 text-sm">🏆 {wins(p)}</span>
-              <span className="font-[family-name:var(--font-inter)] text-white/30 text-xs">{p.score} pts</span>
-            </div>
-          ))}
+          )}
         </div>
+      ) : (
+        <>
+          {/* Podium */}
+          <div className="flex items-end justify-center gap-4 w-full max-w-3xl px-8">
+            {/* 2nd place */}
+            {second && (
+              <div className="flex flex-col items-center gap-3 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                <div className="rounded-2xl overflow-hidden shadow-lg ring-4 ring-[#C0C0C0]/40">
+                  <Avatar id={second.avatarId} size={72} />
+                </div>
+                <div className="text-center">
+                  <p className="font-[family-name:var(--font-bebas)] text-[#C0C0C0] text-2xl tracking-wide">{second.name}</p>
+                  <p className="font-[family-name:var(--font-bebas)] text-white/60 text-lg">🏆 {wins(second)}</p>
+                  <p className="font-[family-name:var(--font-inter)] text-white/40 text-xs">{second.score} pts</p>
+                </div>
+                <div className="w-32 bg-[#C0C0C0]/20 border-2 border-[#C0C0C0]/40 rounded-t-xl flex items-center justify-center py-5">
+                  <span className="font-[family-name:var(--font-bebas)] text-[#C0C0C0] text-4xl">2</span>
+                </div>
+              </div>
+            )}
+
+            {/* 1st place */}
+            {first && (
+              <div className="flex flex-col items-center gap-3 animate-slam-in">
+                <span className="text-5xl">👑</span>
+                <div className="rounded-2xl overflow-hidden shadow-[0_0_60px_#FFD70060] ring-4 ring-[#FFD700]/60">
+                  <Avatar id={first.avatarId} size={100} />
+                </div>
+                <div className="text-center">
+                  <p className="font-[family-name:var(--font-bebas)] text-[#FFD700] text-3xl tracking-wide">{first.name}</p>
+                  <p className="font-[family-name:var(--font-bebas)] text-white/80 text-xl">🏆 {wins(first)}</p>
+                  <p className="font-[family-name:var(--font-inter)] text-white/50 text-sm">{first.score} pts</p>
+                </div>
+                <div className="w-32 bg-[#FFD700]/20 border-2 border-[#FFD700]/50 rounded-t-xl flex items-center justify-center py-10">
+                  <span className="font-[family-name:var(--font-bebas)] text-[#FFD700] text-5xl">1</span>
+                </div>
+              </div>
+            )}
+
+            {/* 3rd place */}
+            {third && (
+              <div className="flex flex-col items-center gap-3 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+                <div className="rounded-2xl overflow-hidden shadow-lg ring-4 ring-[#CD7F32]/40">
+                  <Avatar id={third.avatarId} size={60} />
+                </div>
+                <div className="text-center">
+                  <p className="font-[family-name:var(--font-bebas)] text-[#CD7F32] text-xl tracking-wide">{third.name}</p>
+                  <p className="font-[family-name:var(--font-bebas)] text-white/50 text-base">🏆 {wins(third)}</p>
+                  <p className="font-[family-name:var(--font-inter)] text-white/40 text-xs">{third.score} pts</p>
+                </div>
+                <div className="w-32 bg-[#CD7F32]/20 border-2 border-[#CD7F32]/40 rounded-t-xl flex items-center justify-center py-3">
+                  <span className="font-[family-name:var(--font-bebas)] text-[#CD7F32] text-3xl">3</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Remaining players */}
+          {players.length > 3 && (
+            <div className="flex flex-wrap justify-center gap-4 px-8 mt-2">
+              {players.slice(3).map((p, i) => (
+                <div key={p.id} className="flex items-center gap-2 bg-white/5 rounded-xl px-4 py-2 animate-fade-in"
+                  style={{ animationDelay: `${(i + 3) * 0.08}s` }}>
+                  <span className="font-[family-name:var(--font-bebas)] text-white/40 text-lg w-5">{i + 4}</span>
+                  <div className="rounded-lg overflow-hidden"><Avatar id={p.avatarId} size={28} /></div>
+                  <span className="font-[family-name:var(--font-inter)] text-white/70 text-sm">{p.name}</span>
+                  <span className="font-[family-name:var(--font-bebas)] text-white/50 text-sm">🏆 {wins(p)}</span>
+                  <span className="font-[family-name:var(--font-inter)] text-white/30 text-xs">{p.score} pts</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       <div className="flex flex-col items-center gap-3">
