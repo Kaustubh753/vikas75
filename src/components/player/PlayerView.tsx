@@ -64,7 +64,7 @@ export default function PlayerView({ code }: Props) {
   const prevPhaseRef = useRef<string | null>(null);
   const visibilityNotifiedRef = useRef(false);
   const overlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const timerExpireScheduledRef = useRef(false);
+  const timerFiredForRef = useRef<number>(0);
 
   useEffect(() => {
     const pid = localStorage.getItem('vikas75_playerId') ?? '';
@@ -357,30 +357,32 @@ export default function PlayerView({ code }: Props) {
   // one actually advances. This means the timer works even without a projector open.
   useEffect(() => {
     if (!room?.timerEndsAt || room.phase !== 'submission') {
-      timerExpireScheduledRef.current = false;
+      // Phase left submission — reset so the next round's timer fires fresh.
+      timerFiredForRef.current = 0;
       return;
     }
-    if (timerExpireScheduledRef.current) return; // already scheduled for this timer
-    timerExpireScheduledRef.current = true;
-    const delay = room.timerEndsAt - Date.now();
-    if (delay <= 0) {
+    // Guard keyed on the exact timer value (not a boolean): prevents a duplicate fire for the
+    // same period while still firing fresh for a new round, regardless of cleanup timing.
+    if (timerFiredForRef.current === room.timerEndsAt) return;
+    const expire = () => {
       fetch('/api/game', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'timer-expire', code }),
         keepalive: true,
       }).catch(() => {});
+    };
+    const delay = room.timerEndsAt - Date.now();
+    if (delay <= 0) {
+      timerFiredForRef.current = room.timerEndsAt;
+      expire();
       return;
     }
     const t = setTimeout(() => {
-      fetch('/api/game', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'timer-expire', code }),
-        keepalive: true,
-      }).catch(() => {});
+      timerFiredForRef.current = room.timerEndsAt!;
+      expire();
     }, delay);
-    return () => { clearTimeout(t); timerExpireScheduledRef.current = false; };
+    return () => clearTimeout(t);
   }, [room?.timerEndsAt, room?.phase, code]);
 
   useEffect(() => {

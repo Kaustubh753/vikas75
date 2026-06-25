@@ -233,7 +233,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
 
   const settingsPanelStyle: React.CSSProperties = {
     position: 'fixed',
-    bottom: 72,
+    bottom: isNarrow ? 60 : 72, // sit flush on top of the bar, whose height tracks isNarrow
     left: 0,
     right: 0,
     zIndex: 199,
@@ -252,7 +252,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
 
   const playersPanelStyle: React.CSSProperties = {
     position: 'fixed',
-    bottom: 72,
+    bottom: isNarrow ? 60 : 72, // sit flush on top of the bar, whose height tracks isNarrow
     left: 0,
     right: 0,
     zIndex: 199,

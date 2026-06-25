@@ -74,10 +74,14 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
   useEffect(() => {
     const storageKey = `vikas75_hostId_${code}`;
     if (hostIdProp) {
-      // First visit with ?h= param — persist to sessionStorage and strip from URL
-      try { sessionStorage.setItem(storageKey, hostIdProp); } catch { /* ignore */ }
+      // First visit with ?h= param — persist to sessionStorage, then strip from URL.
       setHostId(hostIdProp);
-      router.replace(`/projector/${code}`);
+      let persisted = false;
+      try { sessionStorage.setItem(storageKey, hostIdProp); persisted = true; } catch { /* storage blocked */ }
+      // Only strip the credential from the URL once it's safely persisted. If sessionStorage
+      // is unavailable (iOS private mode, locked-down device), keeping ?h= in the URL is what
+      // lets a reload restore host control instead of silently demoting the host to spectator.
+      if (persisted) router.replace(`/projector/${code}`);
     } else {
       // Subsequent visits (after URL cleaned, or direct nav) — read from sessionStorage
       try {

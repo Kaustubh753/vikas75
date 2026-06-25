@@ -162,12 +162,19 @@ export async function POST(req: NextRequest) {
           // Idempotent rejoin — always allowed for existing players. Ensure a token exists
           // for this seat and return it so the client can (re)store its credential.
           if (room.players[playerId]) {
+            // Mark present immediately (don't wait up to 20s for the first heartbeat) and
+            // cancel any pending auto-shutdown — a returning player means the room is alive.
+            const wasStale = !room.players[playerId].lastSeen
+              || Date.now() - room.players[playerId].lastSeen! > 45_000;
+            room.players[playerId].lastSeen = Date.now();
+            room.shutdownAt = undefined;
             let token = room.tokens?.[playerId];
             if (!token) {
               token = crypto.randomUUID();
               room.tokens = { ...(room.tokens ?? {}), [playerId]: token };
-              await setRoom(room);
             }
+            await setRoom(room);
+            if (wasStale) await broadcastRoom(room); // host/projector sees them reconnect
             return NextResponse.json({ room: scrubRoomFor(room, playerId), token });
           }
           if (room.phase === 'game-over') {
