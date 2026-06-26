@@ -10,6 +10,13 @@ export default function ProjectorBetweenRounds({ room }: Props) {
   const roundWinner = room.lastVerdict ? room.players[room.lastVerdict.winnerId] : null;
   const n = players.length;
 
+  // Standard competition ranking — players on the same score share a rank (1,1,3,…) so a tie
+  // isn't shown as an arbitrary 1st/2nd. Anyone on the (non-zero) top score is a co-leader.
+  const topScore = players[0]?.score ?? 0;
+  const ranks: number[] = [];
+  players.forEach((p, i) => { ranks[i] = i > 0 && players[i - 1].score === p.score ? ranks[i - 1] : i + 1; });
+  const isLeader = (score: number) => topScore > 0 && score === topScore;
+
   // Compress leaderboard rows when there are many players
   const rowPy  = n <= 6  ? 14 : n <= 10 ? 10 : 7;
   const rowFs  = n <= 6  ? 18 : n <= 10 ? 15 : 13;
@@ -69,20 +76,22 @@ export default function ProjectorBetweenRounds({ room }: Props) {
 
       {/* Full leaderboard */}
       <div style={{ width: '100%', maxWidth: 'clamp(480px, 55vw, 900px)' }} className="space-y-2">
-        {players.map((p, i) => (
+        {players.map((p, i) => {
+          const leader = isLeader(p.score);
+          return (
           <motion.div
             key={p.id}
             initial={{ x: -24, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ delay: i * 0.04, type: 'spring', stiffness: 260, damping: 22 }}
             className={`rounded-xl border flex items-center gap-3 ${
-              i === 0 ? 'border-[#FFD700]/40 bg-[#FFD700]/5' : 'border-white/[0.12] bg-white/[0.06]'
+              leader ? 'border-[#FFD700]/40 bg-[#FFD700]/5' : 'border-white/[0.12] bg-white/[0.06]'
             }`}
             style={{ padding: `${rowPy}px 16px`, boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}
           >
-            <span className={`font-[family-name:var(--font-bebas)] w-7 ${i === 0 ? 'text-[#FFD700]' : 'text-white/40'}`}
+            <span className={`font-[family-name:var(--font-bebas)] w-7 ${leader ? 'text-[#FFD700]' : 'text-white/40'}`}
                   style={{ fontSize: rankFs }}>
-              {i + 1}
+              {ranks[i]}
             </span>
             <div className="rounded-lg overflow-hidden flex-shrink-0">
               <Avatar id={p.avatarId} size={avatarSz} />
@@ -91,12 +100,13 @@ export default function ProjectorBetweenRounds({ room }: Props) {
                   style={{ fontSize: rowFs, fontWeight: 500 }}>
               {p.name}
             </span>
-            <span className={`font-[family-name:var(--font-bebas)] ${i === 0 ? 'text-[#FFD700]' : 'text-white'}`}
+            <span className={`font-[family-name:var(--font-bebas)] ${leader ? 'text-[#FFD700]' : 'text-white'}`}
                   style={{ fontSize: rankFs }}>
               {p.score}
             </span>
           </motion.div>
-        ))}
+          );
+        })}
       </div>
 
       <p className="text-white/40 font-[family-name:var(--font-inter)] uppercase text-center"

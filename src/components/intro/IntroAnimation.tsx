@@ -305,24 +305,29 @@ const PRELOAD = [
 export default function IntroAnimation({ onDone }: { onDone: () => void }) {
   const [time, setTime] = useState(0);
   const [scale, setScale] = useState(1);
+  const [exiting, setExiting] = useState(false);
   const raf = useRef(0);
   const last = useRef<number | null>(null);
   const tRef = useRef(0);
   const doneRef = useRef(false);
 
+  // Fade the overlay out for a smooth handoff to the landing instead of an instant cut,
+  // then unmount via onDone once the fade completes.
   const finish = useCallback(() => {
     if (doneRef.current) return;
     doneRef.current = true;
     if (raf.current) cancelAnimationFrame(raf.current);
-    onDone();
+    setExiting(true);
+    setTimeout(onDone, 380);
   }, [onDone]);
 
-  // Respect reduced-motion: skip straight to the app.
+  // Respect reduced-motion: skip straight to the app with no animation or fade.
   useEffect(() => {
     if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-      finish();
+      doneRef.current = true;
+      onDone();
     }
-  }, [finish]);
+  }, [onDone]);
 
   // Preload every frame's assets so nothing pops in mid-animation.
   useEffect(() => { PRELOAD.forEach(s => { const im = new Image(); im.src = s; }); }, []);
@@ -363,7 +368,8 @@ export default function IntroAnimation({ onDone }: { onDone: () => void }) {
       role="button"
       tabIndex={-1}
       aria-label="Intro animation — tap to skip"
-      style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#08070f', overflow: 'hidden', cursor: 'pointer' }}
+      style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#08070f', overflow: 'hidden', cursor: 'pointer',
+        opacity: exiting ? 0 : 1, transition: 'opacity 0.38s ease' }}
     >
       <div style={{ position: 'absolute', left: '50%', top: '50%', width: STAGE_W, height: STAGE_H, transform: `translate(-50%, -50%) scale(${scale})`, transformOrigin: 'center center' }}>
         <TimeCtx.Provider value={time}><Scene /></TimeCtx.Provider>
