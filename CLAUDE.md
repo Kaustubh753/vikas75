@@ -1,8 +1,28 @@
 @AGENTS.md
 
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+> Read `AGENTS.md` (imported above) first: this repo runs **Next.js 16** (App Router) + **React 19**, which differ from older training data. Consult `node_modules/next/dist/docs/` before writing framework code.
+
 # Vikas 75 — Developer Guide
 
-A multiplayer Indian government schemes card game. Players use their phones as controllers; a host laptop runs the game; a TV/projector shows the public screen. Built with Next.js 15 App Router, Pusher for real-time sync, Upstash Redis for persistence, and Claude as the AI judge.
+A multiplayer Indian government schemes card game. Players use their phones as controllers; a host laptop runs the game; a TV/projector shows the public screen. Built with Next.js 16 App Router, React 19, Pusher for real-time sync, Upstash Redis for persistence, and Claude as the AI judge.
+
+---
+
+## Commands
+
+```bash
+npm run dev          # next dev — local server on :3000
+npm run build        # next build — production build (run this to catch type errors)
+npm run start        # next start — serve the production build
+npm run lint         # eslint .
+npx tsc --noEmit     # type-check only (no test runner exists in this repo)
+```
+
+There is **no test framework** — no `test` script, no `*.test.*` files. Verification is done by `npm run build` (which type-checks), `npm run lint`, and manual play-testing across the three windows described in *Running Locally*. Don't reference a test suite that doesn't exist.
 
 ---
 
@@ -32,6 +52,34 @@ The host calls `POST /api/game { action: 'advance' }` at each step. The `judging
 
 ---
 
+## Cross-Cutting Concerns (read before touching `api/game/route.ts`)
+
+These three mechanisms span the whole API and are invisible if you only read one handler. Get them wrong and you reintroduce races, impersonation, or hand leaks.
+
+### 1. Auth & secrets — nothing trusts the client's claimed identity
+`GameRoom.hostId` and `GameRoom.tokens` (a `playerId → secret` map) are **credentials** and must never reach a client.
+- `stripSecrets(room)` removes both; `scrubRoomFor(room, playerId)` additionally **strips every hand except `playerId`'s** (hands are private). Every client-facing payload — POST responses, GET, and Pusher broadcasts — must go through one of these. Never return a raw `room`.
+- On `join`, the server issues a per-player token (`crypto.randomUUID()`) and returns it once; the client stores it and sends it back on every state-changing action (`submit`, `chat`, `emote`, `heartbeat`) and on own-hand reads (GET `?me=` + `x-player-token` header).
+- `tokenOk(room, playerId, token)` gates those actions. Note the **transitional rule**: if no token was ever issued for a player (legacy rooms), it returns `true`. Keep that escape hatch until legacy rooms expire, or you'll lock out in-flight games.
+- Host-only actions (`advance`, `update-settings`, `end-game`, `music-toggle`) are gated by matching the raw `hostId` from the body against `room.hostId` (403 otherwise).
+
+### 2. Concurrency — every write goes through one per-room lock
+`withRoomLock(code, fn)` (built on `acquireLock`/`releaseLock` in `redis.ts`) serializes all read-modify-write sequences for a room. Without it, concurrent writers clobber each other's snapshot (a stale heartbeat reverting `winner`→`judging`, a lost submission, double-scoring). **Any handler that reads a room, mutates it, and writes it back must run inside `withRoomLock`.** It briefly retries (~1s) then returns `null` so the caller can surface a safe "busy" fallback rather than corrupting state.
+
+### 3. Rate limiting & client IP
+Best-effort in-memory `rateLimit(key, max, windowMs)` (not shared across serverless instances). Derive the client key from `getIp(req)`, which reads `x-real-ip` (Vercel edge, unspoofable) and the **last** `x-forwarded-for` value — never the first, which is client-controlled and trivially spoofable. Note: emote/chat buckets are keyed on `playerId` **on purpose** — all players share one venue Wi-Fi, so IP-keying would make them share a quota.
+
+### 4. Revision counter — clients must drop stale snapshots
+`GameRoom.rev` is a monotonic write counter bumped inside `setRoom` (concern #2's lock guarantees no race on it). Clients receive room state from **two channels** — the Pusher broadcast and the GET poll — and a slow poll can resolve *after* a newer broadcast. Both `PlayerView` and `ProjectorView` therefore guard every `setRoom(...)` with a `staleRoom(prev, next)` check that discards any snapshot whose `rev` is lower than what's already in state (rooms without a `rev` always apply, for legacy/back-compat). Without this the visible phase flickers backwards (e.g. `winner → judging`). **Any new client surface that consumes room state from both channels must apply the same guard.**
+
+### Input sanitization
+User text is cleaned before storage: `sanitizeName()` (length/trim) and `filterText()` (profanity/junk) on names and chat. Settings actions clamp `totalRounds`/`timerDuration` server-side — never trust the slider values as sent.
+
+### Full POST action list
+`create-room`, `join`, `advance`, `update-settings`, `submit`, `timer-expire`, `emote`, `chat`, `heartbeat`, `end-game`, `music-toggle`, `kick-player` — plus `GET ?code=&me=`. (The File Map below details the core game actions; the rest follow the same lock + token/host-gate pattern.)
+
+---
+
 ## File Map
 
 ### Types
@@ -45,7 +93,7 @@ The host calls `POST /api/game { action: 'advance' }` at each step. The `judging
   - `startRound(room)` — increments round, picks a challenge card, resets submissions
   - `startSubmission(room)` — sets `timerEndsAt = now + 90s`
   - `addSubmission(room, submission)` — idempotent add to submissions map
-  - `applyVerdict(room, verdict)` — +2 pts to winner, +1 bonus if `bonusPoint` true, sets `phase: 'winner'`
+  - `applyVerdict(room, verdict)` — awards each ranked player by placement (**1st=3, 2nd=2, 3rd=1**, others 0) plus **+1 per player whose `bonusPoint` is true**; the winner's `roundsWon` is incremented (that count, not total score, decides the overall game winner); sets `phase: 'winner'`. A `noWinner` verdict has empty rankings → nobody scores. Not internally idempotent, but every caller re-checks `phase === 'judging'` under the lock first, so it never double-applies.
   - `advancePhase(room)` — state machine dispatcher; `judging` phase does nothing (AI handles it)
   - `allPlayersSubmitted(room)` — true when every player who joined *before* this round has submitted (excludes mid-round late joiners)
   - `getLeaderboard(room)` — sorted player array
@@ -54,16 +102,17 @@ The host calls `POST /api/game { action: 'advance' }` at each step. The `judging
   - Uses module-level `Map` when `UPSTASH_REDIS_REST_URL` is absent (local dev)
   - Lazily requires `@upstash/redis` to avoid startup crash without env vars
   - TTL: 24 hours
-  - Exports: `getRoom`, `setRoom`, `deleteRoom`, `listActiveRooms`
+  - `setRoom` **bumps `room.rev`** (monotonic write counter) on every write — see the *Revision counter* cross-cutting concern. It mutates the passed object, so the same reference broadcast right after carries the new `rev`.
+  - Exports: `getRoom`, `setRoom`, `deleteRoom`, `listActiveRooms`, plus `acquireLock`/`releaseLock` (used by `withRoomLock`).
 
-- `src/lib/pusher.ts` — `pusherServer` (server-side SDK), `getPusherClient()` (singleton), `getRoomChannel(code)` → `private-game-${code.toUpperCase()}`.
+- `src/lib/pusher.ts` — `pusherServer` (server-side SDK), `getRoomChannel(code)` → `private-game-${code.toUpperCase()}`, `broadcastRoom`/`triggerEvent`. `pusherServer` is **`null` when the `PUSHER_*` env vars are absent** (constructing the SDK without them throws at import). In that state `triggerEvent` no-ops and the auth route returns 503, so real-time silently degrades to polling — mirroring the Redis in-memory fallback. (Client singleton lives in `pusher-client.ts`, not here.)
 
 - `src/lib/ai-judge.ts` — Dual-mode judge.
-  - Uses `claude-sonnet-4-20250514` when `ANTHROPIC_API_KEY` present
-  - Falls back to `fallbackJudge()` (random winner + 8 fun Hindi-flavoured verdicts) when key absent
-  - Strips accidental markdown fences from Claude's JSON response
-  - Bonus point: `explanation.trim().split(/[.!?]/).filter(Boolean).length <= 1`
-  - If Claude throws, falls back silently
+  - Live model id is `JUDGE_MODEL = 'claude-sonnet-4-6'` (used when `ANTHROPIC_API_KEY` present). This is the current Sonnet 4.6 id — do not "correct" it to an older dated id.
+  - The judge **ranks all submissions** and returns per-player `gamePoints` (1st=3, 2nd=2, 3rd=1); `applyVerdict` consumes that.
+  - Falls back to `fallbackJudge()` (random winner + Hindi-flavoured verdicts) when the key is absent, and **silently** if the live call throws/times out (8s `AbortController`) or returns unparseable JSON.
+  - Strips accidental markdown fences before `JSON.parse`; `buildVerdict` rejects a verdict that names an unknown `playerId`.
+  - Bonus rule on the **fallback** path: `explanation.trim().split(/[.!?]/).filter(Boolean).length <= 1`. On the **live** path the model supplies `bonusPoint` directly (same one-sentence intent, not server-recomputed).
 
 ### API
 - `src/app/api/game/route.ts` — Single POST + GET endpoint.
@@ -77,14 +126,14 @@ The host calls `POST /api/game { action: 'advance' }` at each step. The `judging
 
 ### Pages (all async, all await params/searchParams)
 - `src/app/page.tsx` — Home. Passes `initialCode` from `searchParams.code` to `<HomePage>`.
-- `src/app/host/[code]/page.tsx` — Host panel. Passes `code` and `hostId` (from `searchParams.h`) to `<HostPanel>`.
+- `src/app/host/[code]/page.tsx` — **Redirects** to `/projector/[code]?h=[hostId]` — the projector view already renders the full host control bar (`HostOverlay`), so the host sees the same screen as the big display.
 - `src/app/room/[code]/page.tsx` — Player room. Passes `code` to `<PlayerView>`.
 - `src/app/projector/[code]/page.tsx` — Projector. Passes `code` to `<ProjectorView>`.
 - `src/app/admin/page.tsx` — Admin login.
 - `src/app/admin/dashboard/page.tsx` — Admin dashboard.
 
 ### Host Components
-- `src/components/host/HostDashboard.tsx` — Host controls. Accepts `hostId` as prop (from URL, not localStorage). Shows advance button with phase-appropriate label, error display, player list, leaderboard, game settings sliders.
+- `src/components/projector/HostOverlay.tsx` — Fixed bottom control bar rendered on the projector when `?h=[hostId]` is present. Accepts `hostId` as prop (from URL, not localStorage). Phase-appropriate advance button, error display, lobby settings panel (rounds/timer sliders), music toggle, end-game confirm, and a **players panel with per-player Kick** (`kick-player` action, host-gated). Sends `hostId` on every host action.
 
 ### Player Components
 - `src/app/page.tsx` — Home page (join/create screen). Uses `<CodeInput>`. Stores `vikas75_playerId`, `vikas75_playerName`, `vikas75_avatarId` in localStorage on join. Host redirected to `/host/[code]?h=[hostId]`.
@@ -105,9 +154,9 @@ The host calls `POST /api/game { action: 'advance' }` at each step. The `judging
 - `src/components/projector/ProjectorGameOver.tsx` — Final standings.
 
 ### UI Components
-- `src/components/ui/CodeInput.tsx` — OTP-style 4-box room code input. `onChange` for mobile compatibility (IME-safe); `onKeyDown` for backspace navigation; `onPaste` fills all boxes; `onFocus` selects content; `caret-transparent` hides cursor.
-- `src/components/ui/Button.tsx` — Generic button with variant styles.
-- `src/components/ui/TricolourBar.tsx` — Saffron/white/green stripe used in headers.
+Buttons are styled inline per-component — there is **no shared `Button` primitive**. App-wide visual concerns live in `globals.css` (focus-visible rings, `prefers-reduced-motion` collapse, iOS input-zoom guard, safe-area padding, keyframes/animation utilities). The `ui/` directory holds:
+- `CodeInput.tsx` — OTP-style 4-box room code input. `onChange` for mobile compatibility (IME-safe); `onKeyDown` for backspace navigation; `onPaste` fills all boxes; `onFocus` selects content; `caret-transparent` hides cursor.
+- `AvatarPicker.tsx`, `CardBack.tsx`, `Confetti.tsx`, `ConnectionBanner.tsx`, `CountUp.tsx`, `LogoLockup.tsx`, `MuteButton.tsx`, `SkeletonCard.tsx`, `SocialLinks.tsx`, `ToasterProvider.tsx`.
 
 ### Cards and Cards Components
 - `context/cards_challenges.json` — 30 challenge cards (c001–c030). Fields: `id`, `en`, `hi`, `icon`.
@@ -175,12 +224,20 @@ Without Redis env vars, state lives in a module-level `Map` — rooms are lost o
 
 17. **Reveal pacing ignored player count** — Sequential card reveal always used 1800 ms delay regardless of how many players there were. Fixed in `ProjectorReveal`: scales to 1800/1200/900 ms for ≤4/≤8/9+ players.
 
+18. **Fallback poll thundering herd** — With no player cap, a large room drops to polling once Pusher's payload limit is hit; all clients polled on the same 3 s beat. Fixed: per-client random jitter on the poll interval in `PlayerView`/`ProjectorView`.
+
+19. **Phase flickered backwards on the client** — A slow GET poll resolving after a newer Pusher event reverted the visible phase. Fixed via the `rev` revision counter + `staleRoom` guard (see cross-cutting concern #4).
+
+20. **Unhandled rejection in `submit` auto-advance** — The `after()` background task that advances `submission → reveal` had no try/catch (unlike `advance`'s `triggerJudge().catch`), so a Redis blip became an unhandled rejection and the phase silently stalled. Fixed: wrapped it; `timer-expire` is the fallback.
+
+21. **Pusher crashed the API when unconfigured** — `pusherServer` was built at import with non-null-asserted env vars; missing vars threw and 500'd all of `/api/game`. Fixed: construct only when configured, otherwise `null` + no-op broadcasts (degrade to polling).
+
 ---
 
 ## Known Issues / What Still Needs Fixing
 
 ### Functional
-- **No reconnection handling for incognito** — If a player opens the room in a private/incognito window and refreshes, localStorage is gone and they're redirected to the home screen. They must re-join with the same name (gets a new playerId, appears as a duplicate). No fix currently.
+- **Reconnection is by stale-seat reclaim, not durable identity** — A player who loses localStorage (e.g. closes an incognito window) and re-joins with the **same name** reclaims their existing seat — preserving score/hand/`joinedRound` — *provided that seat has gone stale* (no heartbeat for >45 s; see the `join` handler's reclaim block and `JoinClient.tsx`'s `reclaimedPlayerId` adoption). The remaining edge: if they re-join within 45 s (seat still "fresh"), reclaim doesn't fire and they briefly appear as a duplicate until the old seat ages out. Two players sharing a name is likewise ambiguous (first stale match wins).
 
 ### Infrastructure
 - **In-memory fallback doesn't work across serverless instances** — In production (Vercel), multiple instances will not share the `devStore` Map. Upstash Redis is required for production.

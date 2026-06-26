@@ -128,9 +128,6 @@ export default function AdminDashboard() {
                         <span className="bg-white/10 text-white/60 text-xs px-2 py-0.5 rounded-full font-[family-name:var(--font-inter)]">
                           {room.phase}
                         </span>
-                        <span className="bg-white/10 text-white/60 text-xs px-2 py-0.5 rounded-full font-[family-name:var(--font-inter)]">
-                          {room.gameMode}
-                        </span>
                       </div>
                       <p className="text-white/50 text-sm font-[family-name:var(--font-inter)]">
                         Host: {room.hostName} · Round {room.round}/{room.totalRounds} · {players.length} players

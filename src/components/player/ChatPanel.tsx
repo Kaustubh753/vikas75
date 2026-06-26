@@ -12,7 +12,7 @@ interface Props {
 
 const MAX_CHARS = 120;
 
-export default function ChatPanel({ messages, onSend, playerId, avatarId }: Props) {
+export default function ChatPanel({ messages, onSend, playerId }: Props) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);

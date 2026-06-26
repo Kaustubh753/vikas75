@@ -5,8 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { FaGlobe, FaInstagram, FaXTwitter, FaLinkedin, FaFacebook, FaYoutube } from 'react-icons/fa6';
 import { getLobbyMusic } from '@/lib/music-manager';
+import IntroAnimation from '@/components/intro/IntroAnimation';
 import type { AvatarId } from '@/types/game';
-import AvatarPicker from '@/components/ui/AvatarPicker';
 
 // ─────────────────────────────────────────────────────────────
 // Card data — real game card images
@@ -392,160 +392,6 @@ function HowToPlay() {
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// JoinForm — collapsible, wired to real game API
-// ─────────────────────────────────────────────────────────────
-function JoinForm({ open, initialCode, onClose }: { open: boolean; initialCode: string; onClose: () => void }) {
-  const router = useRouter();
-  const [name, setName]     = useState('');
-  const [code, setCode]     = useState(initialCode);
-  const [avatarId, setAvatarId] = useState<AvatarId>('a1');
-  const [loading, setLoading] = useState(false);
-  const [error, setError]   = useState('');
-  const nameRef             = useRef<HTMLInputElement>(null);
-  const slotsRef            = useRef<(HTMLInputElement | null)[]>([]);
-
-  useEffect(() => { if (open) setTimeout(() => nameRef.current?.focus(), 350); }, [open]);
-
-  async function handleJoin(e: React.FormEvent) {
-    e.preventDefault();
-    const trimmedCode = code.replace(/\s/g, '');
-    if (!name.trim() || trimmedCode.length !== 4) return;
-    setLoading(true); setError('');
-    const playerId = crypto.randomUUID();
-    try {
-      const res = await fetch('/api/game', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'join', code: trimmedCode, playerId, playerName: name.trim(), avatarId }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Could not join room'); setLoading(false); return; }
-      localStorage.setItem('vikas75_playerId',  playerId);
-      localStorage.setItem('vikas75_playerName', name.trim());
-      localStorage.setItem('vikas75_avatarId',   avatarId);
-      localStorage.setItem('vikas75_roomCode',   trimmedCode);
-      // Cache the player's hand from the join response so PlayerView has it immediately
-      // (the GET endpoint will also return it via ?me=pid, but caching avoids a round-trip flash)
-      try {
-        const myHand = data.room?.players?.[playerId]?.hand;
-        if (Array.isArray(myHand) && myHand.length) {
-          localStorage.setItem(`vikas75_hand_${trimmedCode}`, JSON.stringify(myHand));
-        }
-      } catch { /* ignore */ }
-      router.push(`/room/${trimmedCode}`);
-    } catch {
-      setError('Network error. Please try again.');
-      setLoading(false);
-    }
-  }
-
-  const baseSlot: React.CSSProperties = {
-    width: 44, height: 52,
-    background: 'rgba(250,248,240,.04)',
-    border: '1px solid rgba(250,248,240,.14)',
-    borderRadius: 4, color: '#fff',
-    fontFamily: 'var(--font-inter),sans-serif', fontWeight: 600, fontSize: 22,
-    textAlign: 'center', textTransform: 'uppercase', outline: 'none',
-    transition: 'border-color .12s ease',
-  };
-
-  return (
-    <div style={{
-      maxWidth: 380, overflow: 'hidden',
-      display: 'grid',
-      gridTemplateRows: open ? '1fr' : '0fr',
-      transition: 'grid-template-rows .35s cubic-bezier(.6,0,.3,1), opacity .25s ease, margin-top .25s ease',
-      marginTop: open ? 4 : 0,
-      opacity: open ? 1 : 0,
-    }}>
-      <div style={{ minHeight: 0 }}>
-        <form onSubmit={handleJoin} style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 8 }}>
-          <input
-            ref={nameRef}
-            style={{
-              height: 44, background: 'rgba(250,248,240,.04)',
-              border: '1px solid rgba(250,248,240,.14)', borderRadius: 4,
-              padding: '0 14px', color: '#fff',
-              fontFamily: 'var(--font-inter),sans-serif', fontSize: 14,
-              outline: 'none', width: '100%',
-              transition: 'border-color .12s ease',
-            }}
-            placeholder="Your name"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            maxLength={20} autoComplete="off"
-            onFocus={e => (e.target.style.borderColor = '#FF9933')}
-            onBlur={e => (e.target.style.borderColor = 'rgba(250,248,240,.14)')}
-          />
-
-          {/* OTP code slots */}
-          <div style={{ display: 'flex', gap: 8 }}>
-            {[0, 1, 2, 3].map(i => (
-              <input
-                key={i}
-                ref={el => { slotsRef.current[i] = el; }}
-                style={{ ...baseSlot, borderColor: code[i] ? '#FF9933' : 'rgba(250,248,240,.14)' }}
-                value={code[i] ?? ''}
-                maxLength={1} inputMode="text"
-                aria-label={`Room code character ${i + 1}`}
-                onChange={e => {
-                  // Exclude I and O — generateRoomCode never produces them (too similar to 1 and 0)
-                  const ch = e.target.value.slice(-1).toUpperCase().replace(/[^ABCDEFGHJKLMNPQRSTUVWXYZ23456789]/g, '');
-                  // Maintain full 4-slot array so editing slot i never collapses other slots
-                  const arr = [code[0] ?? '', code[1] ?? '', code[2] ?? '', code[3] ?? ''];
-                  arr[i] = ch;
-                  setCode(arr.join(''));
-                  if (ch) slotsRef.current[i + 1]?.focus();
-                }}
-                onKeyDown={e => {
-                  if (e.key === 'Backspace' && !code[i] && i > 0) slotsRef.current[i - 1]?.focus();
-                }}
-                onFocus={e => (e.target.style.borderColor = '#FF9933')}
-                onBlur={e => (e.target.style.borderColor = code[i] ? '#FF9933' : 'rgba(250,248,240,.14)')}
-              />
-            ))}
-          </div>
-
-          <AvatarPicker value={avatarId} onChange={setAvatarId} disabled={loading} />
-
-          {error && <div style={{ color: '#f87171', fontSize: 13, fontFamily: 'var(--font-inter),sans-serif' }}>{error}</div>}
-
-          <button
-            type="submit"
-            disabled={loading || !name.trim() || code.length !== 4}
-            style={{
-              height: 44, padding: '0 18px',
-              background: '#FF9933', color: '#1a1208',
-              border: '1.5px solid #FF9933', borderRadius: 6,
-              fontFamily: 'var(--font-inter),sans-serif', fontWeight: 600,
-              fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase',
-              cursor: 'pointer', opacity: (loading || !name.trim() || code.length !== 4) ? 0.45 : 1,
-              transition: 'opacity .15s ease',
-            }}
-          >
-            {loading ? 'Joining…' : 'Join'}
-          </button>
-
-          <button
-            type="button" onClick={onClose}
-            style={{
-              background: 'none', border: 'none',
-              color: 'rgba(250,248,240,.55)',
-              fontFamily: 'var(--font-inter),sans-serif', fontSize: 12,
-              cursor: 'pointer', textAlign: 'left',
-              letterSpacing: '0.04em',
-              transition: 'color .15s ease',
-            }}
-            onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = 'rgba(250,248,240,.85)'}
-            onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = 'rgba(250,248,240,.55)'}
-          >
-            ← back
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-}
 
 // ─────────────────────────────────────────────────────────────
 // Full-page landing layout — fully responsive, no fixed canvas
@@ -554,8 +400,49 @@ function LandingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialCode = (searchParams.get('code') ?? '').toUpperCase().slice(0, 4);
-  const [joinOpen, setJoinOpen] = useState(Boolean(initialCode));
   const [musicOn, setMusicOn] = useState(false);
+  const [hosting, setHosting] = useState(false);
+  // Brand intro: plays on every load of the landing (a fixed, opaque overlay over the page).
+  // Default-true so it covers the page from first paint; the redirect effect below decides
+  // where to go *after* the intro (so a returning player still sees it, then lands in /room).
+  const [showIntro, setShowIntro] = useState(true);
+  const pendingRedirect = useRef<string | null>(null);
+  const dismissIntro = useCallback(() => {
+    setShowIntro(false);
+    const dest = pendingRedirect.current;
+    if (dest) { pendingRedirect.current = null; router.replace(dest); }
+  }, [router]);
+  // Starts false (desktop) so SSR and first client render agree, then corrects on mount.
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+
+  // Create a room directly and go straight to the projector/lobby. Game settings
+  // (rounds, timer, mode) live in the lobby's host controls, so there's no separate
+  // setup page — hosting is one click.
+  async function handleHostGame() {
+    if (hosting) return;
+    setHosting(true);
+    const hostId = crypto.randomUUID();
+    try {
+      const res = await fetch('/api/game', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create-room', hostId, hostName: 'Host' }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'Could not create room'); setHosting(false); return; }
+      router.push(`/projector/${data.room.code}?h=${hostId}`);
+    } catch {
+      toast.error('Network error. Please try again.');
+      setHosting(false);
+    }
+  }
 
   const logoClickCount = useRef(0);
   const logoEasterEggShown = useRef(false);
@@ -572,12 +459,16 @@ function LandingPage() {
   }
 
   useEffect(() => {
-    if (initialCode) return;
+    // A shared link / legacy QR landing on the home page with ?code= goes to the join page,
+    // which plays the intro itself — so skip it here and redirect immediately.
+    if (initialCode) { setShowIntro(false); router.replace(`/join?code=${initialCode}`); return; }
     const pid  = localStorage.getItem('vikas75_playerId');
     const pname = localStorage.getItem('vikas75_playerName');
     const avid = localStorage.getItem('vikas75_avatarId');
     const rc   = localStorage.getItem('vikas75_roomCode');
-    if (pid && pname && avid && rc) router.replace(`/room/${rc}`);
+    // A returning player gets bounced back to their room — but only *after* the intro plays
+    // (or they hit Skip), so the opening animation still shows on every load of the game.
+    if (pid && pname && avid && rc) pendingRedirect.current = `/room/${rc}`;
   }, [router, initialCode]);
 
   // Sync music button state from saved preference and attempt to resume playback.
@@ -601,14 +492,10 @@ function LandingPage() {
     transition: 'transform .15s ease, background .15s ease, box-shadow .15s ease, border-color .15s ease',
   };
 
-  return (
-    /* Outer container — fills viewport, no scrollbars */
-    <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', isolation: 'isolate' }}>
-
-      {/* Dark background */}
+  // Shared background layers (dark base, saffron glow, film grain) used by both layouts.
+  const backdrop = (
+    <>
       <div style={{ position: 'absolute', inset: 0, background: '#07101f', zIndex: 0 }} />
-
-      {/* Warm saffron radial-gradient light from top */}
       <div style={{
         position: 'absolute', left: '50%', top: '-25%',
         width: '83vw', height: '100vh',
@@ -616,13 +503,96 @@ function LandingPage() {
         background: 'radial-gradient(ellipse at center,rgba(255,153,51,.16) 0%,rgba(255,153,51,.06) 28%,rgba(255,153,51,0) 60%)',
         pointerEvents: 'none', zIndex: 1,
       }} />
-
-      {/* Film grain SVG overlay */}
       <div style={{
         position: 'absolute', inset: 0,
         backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")`,
         opacity: 0.12, mixBlendMode: 'overlay', pointerEvents: 'none', zIndex: 2,
       }} />
+    </>
+  );
+
+  // ── Mobile: a stacked, scrollable single column (the desktop 3-column grid needs
+  //    ~440px of side columns alone and would clip on phones). ───────────────────
+  if (isMobile) {
+    return (
+      <div style={{ position: 'relative', minHeight: '100dvh', width: '100%', background: '#07101f', overflowX: 'hidden', isolation: 'isolate' }}>
+        {showIntro && <IntroAnimation onDone={dismissIntro} />}
+        {backdrop}
+        <div style={{
+          position: 'relative', zIndex: 3, minHeight: '100dvh',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          gap: 'clamp(22px,5vh,40px)', padding: '40px 24px', boxSizing: 'border-box',
+        }}>
+          {/* Logo */}
+          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+            <div style={{ fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(250,248,240,.7)' }}>
+              An initiative of the Office of Shri Sujeet Kumar
+            </div>
+            <button onClick={handleLogoClick} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              <h1 style={{ fontFamily: 'var(--font-yatra),var(--font-bebas),sans-serif', fontWeight: 400, fontSize: 'clamp(56px,18vw,84px)', lineHeight: 0.9, color: '#fff', margin: 0 }}>
+                Vikas 75
+              </h1>
+            </button>
+            <div style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 'clamp(15px,4.5vw,20px)', color: '#FF9933', lineHeight: 1.35 }}>
+              The best answer isn&apos;t always right
+            </div>
+          </div>
+
+          {/* CTAs */}
+          <div style={{ width: '100%', maxWidth: 340, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <button
+              style={{ ...btnBase, height: 52, fontSize: 13, width: '100%', background: '#FF9933', color: '#1a1208', borderColor: '#FF9933' }}
+              onClick={handleHostGame}
+            >
+              {hosting ? 'Creating…' : 'Host a Game'}
+            </button>
+            <button
+              style={{ ...btnBase, height: 52, fontSize: 13, width: '100%', background: 'transparent', color: '#FF9933', borderColor: '#FF9933' }}
+              onClick={() => router.push('/join')}
+            >
+              Join a Game
+            </button>
+            <a href="/how-to-play" style={{ textAlign: 'center', marginTop: 4, fontFamily: 'var(--font-inter),sans-serif', fontSize: 12, letterSpacing: '0.08em', color: 'rgba(250,248,240,.55)', textDecoration: 'none' }}>
+              How to play →
+            </a>
+          </div>
+
+          {/* Footer */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, marginTop: 'auto', paddingTop: 24 }}>
+            <div style={{ display: 'flex', gap: 18, alignItems: 'center' }}>
+              {SOCIAL_LINKS.map(({ label, href, Icon }) => (
+                <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label}
+                  style={{ color: 'rgba(250,248,240,.6)', fontSize: 18, display: 'flex' }}>
+                  <Icon />
+                </a>
+              ))}
+            </div>
+            <a href="/explore" style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 11, letterSpacing: '0.08em', color: 'rgba(250,248,240,0.4)', textDecoration: 'none' }}>
+              Curious what&apos;s in the deck? →
+            </a>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <button
+                onClick={() => { const next = getLobbyMusic().toggle(); setMusicOn(next); }}
+                aria-label={musicOn ? 'Turn off music' : 'Turn on music'}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: musicOn ? 'rgba(255,153,51,0.7)' : 'rgba(250,248,240,0.3)', padding: 0 }}
+              >
+                {musicOn ? '🔊' : '🔇'}
+              </button>
+              <div style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(250,248,240,.4)' }}>
+                © 2026 · Vikas 75
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    /* Outer container — fills viewport, no scrollbars */
+    <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', isolation: 'isolate' }}>
+      {showIntro && <IntroAnimation onDone={dismissIntro} />}
+      {backdrop}
 
       {/* 3-column grid */}
       <div style={{
@@ -684,19 +654,18 @@ function LandingPage() {
               style={{ ...btnBase, width: '100%', background: '#FF9933', color: '#1a1208', borderColor: '#FF9933' }}
               onMouseEnter={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = '#e6862b'; b.style.transform = 'translateY(-1px)'; b.style.boxShadow = '0 6px 24px rgba(255,153,51,.32)'; }}
               onMouseLeave={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = '#FF9933'; b.style.transform = ''; b.style.boxShadow = ''; }}
-              onClick={() => router.push('/host/setup')}
+              onClick={handleHostGame}
             >
-              Host a Game
+              {hosting ? 'Creating…' : 'Host a Game'}
             </button>
             <button
-              style={{ ...btnBase, width: '100%', background: joinOpen ? 'rgba(255,153,51,.12)' : 'transparent', color: '#FF9933', borderColor: '#FF9933' }}
-              onMouseEnter={e => { const b = e.currentTarget as HTMLButtonElement; if (!joinOpen) b.style.background = 'rgba(255,153,51,.08)'; b.style.transform = 'translateY(-1px)'; }}
-              onMouseLeave={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = joinOpen ? 'rgba(255,153,51,.12)' : 'transparent'; b.style.transform = ''; }}
-              onClick={() => setJoinOpen(o => !o)}
+              style={{ ...btnBase, width: '100%', background: 'transparent', color: '#FF9933', borderColor: '#FF9933' }}
+              onMouseEnter={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = 'rgba(255,153,51,.08)'; b.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = 'transparent'; b.style.transform = ''; }}
+              onClick={() => router.push('/join')}
             >
               Join a Game
             </button>
-            <JoinForm open={joinOpen} initialCode={initialCode} onClose={() => setJoinOpen(false)} />
           </div>
           </div>{/* end shared width wrapper */}
         </div>

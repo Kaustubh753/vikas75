@@ -13,6 +13,14 @@ body {
   background: #0d1b35;
 }
 
+/* Never let a stray wide element create a horizontal scroll / zoomed-out feel on phones.
+   Affects every route via the root layout. */
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
 /* Visible focus ring for keyboard accessibility */
 :focus-visible {
   outline: 2px solid #FF9933;
@@ -26,6 +34,26 @@ textarea:focus-visible,
 [role="button"]:focus-visible {
   outline: 2px solid #FF9933;
   outline-offset: 2px;
+}
+
+/* Disabled controls shouldn't show the interactive (pointer) cursor */
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+/* Respect the OS "reduce motion" setting. Durations collapse to ~instant (rather than
+   `animation: none`) so animations still land on their END state — many screens use
+   forwards-filled fade-in/slide-up to become visible, and disabling outright would leave
+   that content stuck invisible/off-screen. Infinite loops (pulse-ring, skeleton, confetti)
+   run once and settle. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Animations */

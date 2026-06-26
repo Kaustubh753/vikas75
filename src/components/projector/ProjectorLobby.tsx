@@ -4,16 +4,6 @@ import dynamic from 'next/dynamic';
 import Avatar from '@/lib/avatars';
 import { getLobbyMusic } from '@/lib/music-manager';
 import type { GameRoom, Player } from '@/types/game';
-import { FaGlobe, FaInstagram, FaXTwitter, FaLinkedin, FaFacebook, FaYoutube } from 'react-icons/fa6';
-
-const SOCIAL = [
-  { label: 'Website',   href: 'https://www.sujeetkofficial.com/',                                    Icon: FaGlobe     },
-  { label: 'Instagram', href: 'https://www.instagram.com/sujeetkofficial/',                          Icon: FaInstagram  },
-  { label: 'X',         href: 'https://x.com/SujeetKOfficial',                                       Icon: FaXTwitter   },
-  { label: 'LinkedIn',  href: 'https://www.linkedin.com/in/sujeet--kumar/',                          Icon: FaLinkedin   },
-  { label: 'Facebook',  href: 'https://www.facebook.com/SujeetKOfficial/',                           Icon: FaFacebook   },
-  { label: 'YouTube',   href: 'https://www.youtube.com/channel/UC6yGMDZkljNPgX8vGUcBTbA/playlists', Icon: FaYoutube    },
-];
 
 const QRCodeSVG = dynamic(
   () => import('qrcode.react').then((m) => ({ default: m.QRCodeSVG })),
@@ -163,7 +153,7 @@ export default function ProjectorLobby({ room }: Props) {
   }, [room.players]);
 
   const players   = Object.values(room.players);
-  const joinUrl   = origin ? `${origin}/?code=${room.code}` : '';
+  const joinUrl   = origin ? `${origin}/join?code=${room.code}` : '';
   const letters   = room.code.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4).split('');
   while (letters.length < 4) letters.push('');
 
@@ -191,7 +181,10 @@ export default function ProjectorLobby({ room }: Props) {
   const tileFsz  = Math.round(tileW * 0.70);
 
   return (
-    <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', isolation: 'isolate' }}>
+    // Fill the parent (ProjectorView reserves space for the host control bar via
+    // paddingBottom) instead of position:fixed, which would escape that reservation and
+    // let the host bar overlap the lobby's bottom strip.
+    <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', isolation: 'isolate' }}>
 
       {/* ── Background ────────────────────────────────────────────── */}
       <div style={{ position: 'absolute', inset: 0, background: '#07101f', zIndex: 0 }} />
@@ -517,31 +510,16 @@ export default function ProjectorLobby({ room }: Props) {
           </div>
         </div>
 
-        {/* ── BOTTOM STRIP — socials + attribution ─────────────────── */}
+        {/* ── BOTTOM STRIP — attribution, centred ──────────────────── */}
         <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          display: 'flex', justifyContent: 'center', alignItems: 'center',
           paddingBottom: 'clamp(8px,1vh,14px)',
         }}>
-          <div style={{ display: 'flex', gap: 'clamp(12px,1.2vw,18px)', alignItems: 'center' }}>
-            {SOCIAL.map(({ label, href, Icon }) => (
-              <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label}
-                style={{
-                  color: 'rgba(250,248,240,0.55)', transition: 'color .15s ease',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 'clamp(14px,1.2vw,18px)',
-                }}
-                onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = '#FF9933'}
-                onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(250,248,240,0.55)'}
-              >
-                <Icon />
-              </a>
-            ))}
-          </div>
           <div style={{
             fontFamily: 'var(--font-inter),sans-serif',
             fontSize: 'clamp(9px,0.76vw,11px)',
             letterSpacing: '0.12em', textTransform: 'uppercase',
-            color: 'rgba(250,248,240,0.4)',
+            color: 'rgba(250,248,240,0.4)', textAlign: 'center',
           }}>An initiative of the Office of Shri Sujeet Kumar</div>
         </div>
 

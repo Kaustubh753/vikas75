@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { GameRoom } from '@/types/game';
+import Avatar from '@/lib/avatars';
 
 interface Props {
   room: GameRoom;
@@ -56,6 +57,20 @@ export default function HostOverlay({ room, code, hostId }: Props) {
   const [expandHover, setExpandHover] = useState(false);
   const [endGameHover, setEndGameHover] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const [playersHover, setPlayersHover] = useState(false);
+  const [showPlayers, setShowPlayers] = useState(false);
+  const [kickingId, setKickingId] = useState<string | null>(null);
+  // Narrow screens (a host running the game from their phone): the control bar must shrink
+  // its zones and buttons so the advance button and the right-hand icons stay on-screen and
+  // tappable instead of overflowing off the right edge.
+  const [isNarrow, setIsNarrow] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)');
+    const update = () => setIsNarrow(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
 
   // Sync sliders when room updates (e.g. from another client)
   useEffect(() => {
@@ -90,7 +105,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
 
   async function handleAdvance() {
     if (room.phase === 'game-over') {
-      router.push('/host/setup');
+      router.push('/');
       return;
     }
     setLoading(true);
@@ -141,6 +156,23 @@ export default function HostOverlay({ room, code, hostId }: Props) {
     setLoading(false);
   }
 
+  async function handleKick(targetId: string) {
+    setKickingId(targetId);
+    setError('');
+    try {
+      const res = await fetch('/api/game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'kick-player', code, hostId, playerId: targetId }),
+      });
+      const data = await res.json();
+      if (!res.ok) setError(data.error || 'Could not remove player');
+    } catch {
+      setError('Network error');
+    }
+    setKickingId(null);
+  }
+
   const scheduleSettingsUpdate = useCallback((nextRounds: number, nextTimer: number) => {
     if (settingsDebounceRef.current) clearTimeout(settingsDebounceRef.current);
     settingsDebounceRef.current = setTimeout(async () => {
@@ -156,17 +188,21 @@ export default function HostOverlay({ room, code, hostId }: Props) {
     }, 400);
   }, [code, hostId]);
 
-  async function handleSettingsSave() {
+  const saveSettings = useCallback(async (nextRounds: number, nextTimer: number) => {
     if (settingsDebounceRef.current) clearTimeout(settingsDebounceRef.current);
     try {
       await fetch('/api/game', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'update-settings', code, hostId, totalRounds: rounds, timerDuration: timer }),
+        body: JSON.stringify({ action: 'update-settings', code, hostId, totalRounds: nextRounds, timerDuration: nextTimer }),
       });
     } catch {
       // non-critical
     }
+  }, [code, hostId]);
+
+  function handleSettingsSave() {
+    saveSettings(rounds, timer);
   }
 
   const playerCount = Object.values(room.players).length;
@@ -179,7 +215,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
     left: 0,
     right: 0,
     width: '100%',
-    height: 72,
+    height: isNarrow ? 60 : 72,
     zIndex: 200,
     background: 'rgba(7,16,31,0.92)',
     backdropFilter: 'blur(24px)',
@@ -187,9 +223,9 @@ export default function HostOverlay({ room, code, hostId }: Props) {
     borderTop: '1px solid rgba(255,153,51,0.22)',
     display: 'flex',
     alignItems: 'center',
-    paddingLeft: 20,
-    paddingRight: 20,
-    gap: 12,
+    paddingLeft: isNarrow ? 8 : 20,
+    paddingRight: isNarrow ? 8 : 20,
+    gap: isNarrow ? 6 : 12,
     transform: collapsed ? 'translateY(100%)' : 'translateY(0)',
     transition: 'transform 0.32s cubic-bezier(.4,0,.2,1)',
     boxSizing: 'border-box',
@@ -197,7 +233,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
 
   const settingsPanelStyle: React.CSSProperties = {
     position: 'fixed',
-    bottom: 72,
+    bottom: isNarrow ? 60 : 72, // sit flush on top of the bar, whose height tracks isNarrow
     left: 0,
     right: 0,
     zIndex: 199,
@@ -214,14 +250,30 @@ export default function HostOverlay({ room, code, hostId }: Props) {
     transition: 'transform 0.28s cubic-bezier(.4,0,.2,1)',
   };
 
+  const playersPanelStyle: React.CSSProperties = {
+    position: 'fixed',
+    bottom: isNarrow ? 60 : 72, // sit flush on top of the bar, whose height tracks isNarrow
+    left: 0,
+    right: 0,
+    zIndex: 199,
+    background: 'rgba(7,16,31,0.96)',
+    borderTop: '1px solid rgba(255,153,51,0.22)',
+    borderLeft: '1px solid rgba(255,153,51,0.10)',
+    borderRight: '1px solid rgba(255,153,51,0.10)',
+    borderRadius: '12px 12px 0 0',
+    padding: '14px 24px',
+    transform: showPlayers ? 'translateY(0)' : 'translateY(100%)',
+    transition: 'transform 0.28s cubic-bezier(.4,0,.2,1)',
+  };
+
   const iconBtnStyle = (hovered: boolean): React.CSSProperties => ({
-    width: 38,
-    height: 38,
+    width: isNarrow ? 32 : 38,
+    height: isNarrow ? 32 : 38,
     borderRadius: 8,
     background: hovered ? 'rgba(255,153,51,0.18)' : 'rgba(255,255,255,0.06)',
     border: `1px solid ${hovered ? 'rgba(255,153,51,0.5)' : 'rgba(255,255,255,0.10)'}`,
     color: hovered ? '#FF9933' : 'rgba(255,255,255,0.6)',
-    fontSize: 18,
+    fontSize: isNarrow ? 15 : 18,
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
@@ -316,10 +368,64 @@ export default function HostOverlay({ room, code, hostId }: Props) {
         </div>
       )}
 
+      {/* Players panel — manage/kick players; available in any non-finished phase */}
+      {room.phase !== 'game-over' && (
+        <div style={playersPanelStyle}>
+          <span style={{
+            display: 'block', marginBottom: 10,
+            fontFamily: 'var(--font-inter)', fontSize: 10, letterSpacing: '0.1em',
+            fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase',
+          }}>
+            Players · {playerCount}
+          </span>
+          {playerCount === 0 ? (
+            <p style={{ fontFamily: 'var(--font-inter)', fontSize: 12, color: 'rgba(255,255,255,0.4)', margin: 0 }}>
+              No players have joined yet.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 220, overflowY: 'auto' }}>
+              {Object.values(room.players).map((p) => (
+                <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 2px' }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 6, overflow: 'hidden', flexShrink: 0 }}>
+                    <Avatar id={p.avatarId} size={28} />
+                  </div>
+                  <span style={{
+                    flex: 1, fontFamily: 'var(--font-inter)', fontSize: 13, fontWeight: 500,
+                    color: 'rgba(255,255,255,0.85)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  }}>
+                    {p.name}
+                  </span>
+                  <span style={{ fontFamily: 'var(--font-bebas)', fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>
+                    {p.score}
+                  </span>
+                  <button
+                    onClick={() => handleKick(p.id)}
+                    disabled={kickingId === p.id}
+                    title={`Remove ${p.name}`}
+                    aria-label={`Remove ${p.name}`}
+                    style={{
+                      height: 28, paddingLeft: 12, paddingRight: 12, borderRadius: 7,
+                      background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.4)',
+                      color: '#ef4444', fontFamily: 'var(--font-inter)', fontSize: 11, fontWeight: 600,
+                      letterSpacing: '0.04em', cursor: kickingId === p.id ? 'not-allowed' : 'pointer',
+                      opacity: kickingId === p.id ? 0.5 : 1, flexShrink: 0,
+                      transition: 'background .15s, opacity .15s',
+                    }}
+                  >
+                    {kickingId === p.id ? '…' : 'Kick'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Main bar */}
       <div style={barStyle}>
-        {/* LEFT ZONE */}
-        <div style={{ minWidth: 220, display: 'flex', flexDirection: 'column', gap: 3, justifyContent: 'center' }}>
+        {/* LEFT ZONE — shrinks/truncates on narrow screens so the advance button and right-hand
+            icons always stay on-screen. */}
+        <div style={{ minWidth: 0, flex: isNarrow ? '1 1 0' : undefined, ...(isNarrow ? {} : { minWidth: 220 }), display: 'flex', flexDirection: 'column', gap: 3, justifyContent: 'center', overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {/* HOST badge */}
             <span style={{
@@ -388,7 +494,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
         </div>
 
         {/* CENTER ZONE */}
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ flex: isNarrow ? '0 1 auto' : 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {isJudging ? (
             /* Pulsing AI judging indicator */
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -418,22 +524,24 @@ export default function HostOverlay({ room, code, hostId }: Props) {
               onMouseEnter={() => setAdvanceHover(true)}
               onMouseLeave={() => setAdvanceHover(false)}
               style={{
-                height: 44,
-                minWidth: 200,
-                paddingLeft: 28,
-                paddingRight: 28,
+                height: isNarrow ? 38 : 44,
+                minWidth: isNarrow ? 0 : 200,
+                paddingLeft: isNarrow ? 14 : 28,
+                paddingRight: isNarrow ? 14 : 28,
                 borderRadius: 22,
                 background: advanceHover && !isDisabled ? '#e8872a' : '#FF9933',
                 border: 'none',
                 color: '#07101f',
                 fontFamily: 'var(--font-bebas)',
-                fontSize: 22,
+                fontSize: isNarrow ? 15 : 22,
                 letterSpacing: '0.08em',
                 cursor: isDisabled ? 'not-allowed' : 'pointer',
                 opacity: isDisabled ? 0.4 : 1,
                 transition: 'background 0.15s, opacity 0.15s',
                 outline: 'none',
                 whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
               }}
             >
               {loading ? 'Working…' : getAdvanceLabel(room)}
@@ -441,8 +549,8 @@ export default function HostOverlay({ room, code, hostId }: Props) {
           )}
         </div>
 
-        {/* RIGHT ZONE */}
-        <div style={{ minWidth: 140, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+        {/* RIGHT ZONE — never shrinks, so the host's controls stay reachable. */}
+        <div style={{ minWidth: isNarrow ? 0 : 140, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: isNarrow ? 4 : 6 }}>
           {/* End Game — available in any non-finished phase */}
           {room.phase !== 'game-over' && (
             <button
@@ -463,10 +571,24 @@ export default function HostOverlay({ room, code, hostId }: Props) {
             </button>
           )}
 
+          {/* Players manager — kick players; any non-finished phase */}
+          {room.phase !== 'game-over' && (
+            <button
+              onClick={() => { setShowPlayers((p) => !p); setShowSettings(false); }}
+              onMouseEnter={() => setPlayersHover(true)}
+              onMouseLeave={() => setPlayersHover(false)}
+              title="Manage players"
+              style={iconBtnStyle(playersHover || showPlayers)}
+              aria-label="Manage players"
+            >
+              👥
+            </button>
+          )}
+
           {/* Settings gear — lobby only */}
           {room.phase === 'lobby' && (
             <button
-              onClick={() => setShowSettings((p) => !p)}
+              onClick={() => { setShowSettings((p) => !p); setShowPlayers(false); }}
               onMouseEnter={() => setSettingsHover(true)}
               onMouseLeave={() => setSettingsHover(false)}
               title="Settings"

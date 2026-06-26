@@ -28,11 +28,17 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: '/favicon.svg',
-    apple: '/favicon.svg',
+    apple: '/apple-touch-icon.png',
   },
 };
 
-export const viewport: Viewport = { themeColor: '#1a3a6e' };
+export const viewport: Viewport = {
+  themeColor: '#1a3a6e',
+  // Be explicit so every route (including dynamic /room, /projector, /join) scales to the
+  // device width on phones rather than rendering at a desktop width and zooming out.
+  width: 'device-width',
+  initialScale: 1,
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

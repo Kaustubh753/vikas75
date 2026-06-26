@@ -1,7 +1,5 @@
 import type {
   GameRoom,
-  GamePhase,
-  GameMode,
   Player,
   AvatarId,
   SchemeCard,
@@ -47,7 +45,6 @@ export function createRoom(
   code: string,
   totalRounds = DEFAULT_TOTAL_ROUNDS,
   timerDuration = DEFAULT_TIMER_DURATION,
-  gameMode: GameMode = 'crowd',
 ): GameRoom {
   return {
     code,
@@ -57,7 +54,6 @@ export function createRoom(
     round: 0,
     totalRounds,
     timerDuration,
-    gameMode,
     players: {},  // host is not a player
     currentChallenge: null,
     submissions: {},
@@ -72,13 +68,12 @@ export function createRoom(
 
 export function updateSettings(
   room: GameRoom,
-  settings: { totalRounds?: number; timerDuration?: number; gameMode?: GameMode },
+  settings: { totalRounds?: number; timerDuration?: number },
 ): GameRoom {
   return {
     ...room,
     totalRounds: settings.totalRounds ?? room.totalRounds,
     timerDuration: settings.timerDuration ?? room.timerDuration,
-    gameMode: settings.gameMode ?? room.gameMode,
   };
 }
 
@@ -92,12 +87,23 @@ export function addPlayer(room: GameRoom, playerId: string, playerName: string, 
         name: playerName,
         avatarId,
         score: 0,
+        roundsWon: 0,
         hand: dealHand(),
         joinedRound: room.round,
         lastSeen: Date.now(),
       },
     },
   };
+}
+
+/** Remove a player (and any in-flight submission of theirs) from the room — used by the
+ *  host "kick" action. The caller is responsible for also dropping the player's auth token. */
+export function removePlayer(room: GameRoom, playerId: string): GameRoom {
+  const players = { ...room.players };
+  delete players[playerId];
+  const submissions = { ...room.submissions };
+  delete submissions[playerId];
+  return { ...room, players, submissions };
 }
 
 export function startRound(room: GameRoom): GameRoom {
@@ -142,7 +148,7 @@ export function addSubmission(room: GameRoom, submission: Submission): GameRoom 
         ...room.players,
         [submission.playerId]: {
           ...player,
-          hand: player.hand.filter((c) => c.id !== submission.schemeCard.id),
+          hand: player.hand.filter((c) => c.id !== submission.schemeCard?.id),
         },
       }
     : room.players;
@@ -160,7 +166,8 @@ export function addSubmission(room: GameRoom, submission: Submission): GameRoom 
 export function applyVerdict(room: GameRoom, verdict: JudgeVerdict): GameRoom {
   const players = { ...room.players };
 
-  // Award points to all ranked players (1st=3, 2nd=2, 3rd=1)
+  // Award points to all ranked players (1st=3, 2nd=2, 3rd=1). A no-winner verdict has
+  // empty rankings, so nobody scores and no round win is recorded.
   for (const ranking of verdict.rankings) {
     if (players[ranking.playerId]) {
       players[ranking.playerId] = {
@@ -168,6 +175,14 @@ export function applyVerdict(room: GameRoom, verdict: JudgeVerdict): GameRoom {
         score: players[ranking.playerId].score + ranking.gamePoints + (ranking.bonusPoint ? 1 : 0),
       };
     }
+  }
+
+  // Credit the round win to the winner — this is what decides the overall game winner.
+  if (!verdict.noWinner && verdict.winnerId && players[verdict.winnerId]) {
+    players[verdict.winnerId] = {
+      ...players[verdict.winnerId],
+      roundsWon: (players[verdict.winnerId].roundsWon ?? 0) + 1,
+    };
   }
 
   return {

@@ -55,6 +55,10 @@ export async function getRoom(code: string): Promise<GameRoom | null> {
 }
 
 export async function setRoom(room: GameRoom): Promise<void> {
+  // Bump the monotonic revision on every write. Writes are serialized per room by
+  // withRoomLock, so this never races; clients use it to discard a stale snapshot (e.g. a
+  // slow poll resolving after a newer Pusher event) instead of reverting the phase.
+  room.rev = (room.rev ?? 0) + 1;
   if (!isRedisConfigured()) {
     devStore.set(`${ROOM_PREFIX}${room.code}`, {
       value: room,

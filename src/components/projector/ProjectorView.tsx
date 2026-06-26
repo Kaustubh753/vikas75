@@ -15,10 +15,18 @@ import ProjectorJudging from '@/components/projector/ProjectorJudging';
 import ProjectorWinner from '@/components/projector/ProjectorWinner';
 import ProjectorBetweenRounds from '@/components/projector/ProjectorBetweenRounds';
 import ProjectorGameOver from '@/components/projector/ProjectorGameOver';
+import MobileHostContent from '@/components/projector/MobileHostContent';
 import SkeletonCard from '@/components/ui/SkeletonCard';
 import type { GameRoom } from '@/types/game';
 
 interface Props { code: string; hostId?: string }
+
+// Drop a room snapshot older than what we already have. A slow poll (GET) can resolve after a
+// newer Pusher event and would otherwise revert the phase on the big screen. Legacy rooms
+// without a rev always apply.
+function staleRoom(prev: GameRoom | null, next: GameRoom): boolean {
+  return !!prev && prev.rev != null && next.rev != null && next.rev < prev.rev;
+}
 
 const PHASE_BG: Record<string, string> = {
   lobby: '#0d1b35',
@@ -53,14 +61,27 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
   // then URL is cleaned so the credential doesn't live in browser history or server logs.
   const [hostId, setHostId] = useState('');
   const isHost = Boolean(hostId);
+  // A host on a phone gets a portrait-native control view instead of the 16:9 TV layout.
+  const [isMobileHost, setIsMobileHost] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const update = () => setIsMobileHost(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
 
   useEffect(() => {
     const storageKey = `vikas75_hostId_${code}`;
     if (hostIdProp) {
-      // First visit with ?h= param — persist to sessionStorage and strip from URL
-      try { sessionStorage.setItem(storageKey, hostIdProp); } catch { /* ignore */ }
+      // First visit with ?h= param — persist to sessionStorage, then strip from URL.
       setHostId(hostIdProp);
-      router.replace(`/projector/${code}`);
+      let persisted = false;
+      try { sessionStorage.setItem(storageKey, hostIdProp); persisted = true; } catch { /* storage blocked */ }
+      // Only strip the credential from the URL once it's safely persisted. If sessionStorage
+      // is unavailable (iOS private mode, locked-down device), keeping ?h= in the URL is what
+      // lets a reload restore host control instead of silently demoting the host to spectator.
+      if (persisted) router.replace(`/projector/${code}`);
     } else {
       // Subsequent visits (after URL cleaned, or direct nav) — read from sessionStorage
       try {
@@ -86,29 +107,36 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
         if (r.status === 404) { setRoomMissing(true); return null; }
         return r.ok ? r.json() : null;
       })
-      .then((d) => { if (d?.room) { setRoom(d.room); setRoomMissing(false); } })
+      .then((d) => { if (d?.room) { setRoom(prev => staleRoom(prev, d.room) ? prev : d.room); setRoomMissing(false); } })
       .catch(() => {});
   }, [code]);
 
   useEffect(() => {
-    // 30-second heartbeat — Pusher is the real-time channel; this is a fallback for
-    // dropped Pusher connections only. 5s was unnecessarily aggressive.
+    // Pusher is the real-time channel; this poll is the fallback when it's unavailable (no
+    // PUSHER env vars, blocked egress, dropped connection). Poll fast while a round is in
+    // motion so phase changes — round ends after everyone submits, and the judge's verdict —
+    // reach the big screen within a few seconds instead of stalling for 30s (which looks like
+    // "the round won't end" or "stuck on AI deliberating"). Idle phases poll slowly.
+    const active = room?.phase === 'submission' || room?.phase === 'reveal'
+      || room?.phase === 'judging' || room?.phase === 'winner';
+    // Jitter per client so fallback polls don't all land on the same beat under load.
+    const base = active ? 3_000 : 30_000;
     const poll = setInterval(() => {
       fetch(`/api/game?code=${code}`)
         .then(async (r) => {
           if (r.status === 404) { setRoomMissing(true); return null; }
           return r.ok ? r.json() : null;
         })
-        .then((d) => { if (d?.room) { setRoom(d.room); setRoomMissing(false); } })
+        .then((d) => { if (d?.room) { setRoom(prev => staleRoom(prev, d.room) ? prev : d.room); setRoomMissing(false); } })
         .catch(() => {});
-    }, 30_000);
+    }, base + Math.random() * (active ? 1_500 : 8_000));
     return () => clearInterval(poll);
-  }, [code]);
+  }, [code, room?.phase]);
 
   useEffect(() => {
     const pusher = getPusherClient();
     const channel = pusher.subscribe(getRoomChannel(code));
-    const onRoomUpdated = (updated: GameRoom) => setRoom(updated);
+    const onRoomUpdated = (updated: GameRoom) => setRoom(prev => staleRoom(prev, updated) ? prev : updated);
     const onMusicToggle = (payload: { muted: boolean }) => getLobbyMusic().forceMute(payload.muted);
     channel.bind('game:room-updated', onRoomUpdated);
     channel.bind('music:toggle', onMusicToggle);
@@ -131,20 +159,27 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
       getLobbyMusic().stop();
     }
 
-    // Full-screen interstitial (#6)
+    // Full-screen interstitial (#6). Always clear the previous one first; if the new phase
+    // has none, leave it cleared — otherwise a fast transition (e.g. host advances before the
+    // 1.5s timer fires) would cancel the pending clear and leave the text stuck on screen.
     const interstitial = PHASE_TRANSITIONS[room.phase];
+    if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
     if (interstitial) {
       setTransitionText(interstitial);
-      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
       transitionTimerRef.current = setTimeout(() => setTransitionText(null), 1500);
+    } else {
+      setTransitionText(null);
     }
 
-    // Brief text overlay (#8)
+    // Brief text overlay (#8). Same rule — clear on every phase change so e.g. "TIME'S UP"
+    // never lingers over the reveal/winner results.
     const ov = getOverlay(room.phase, room.round);
+    if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
     if (ov) {
       setOverlay(ov);
-      if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
       overlayTimerRef.current = setTimeout(() => setOverlay(null), 1200);
+    } else {
+      setOverlay(null);
     }
 
     return () => {
@@ -182,6 +217,23 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
     }, delay);
     return () => clearTimeout(t);
   }, [room?.timerEndsAt, room?.phase, timerExpire]);
+
+  // Watchdog: a verdict normally lands within the judge's 8s timeout. If we're still in the
+  // judging phase well past that, the server-side judge likely never ran (e.g. a serverless
+  // after() callback that was dropped) — re-kick it. The action is idempotent and awaited
+  // server-side, so it resolves the round even if the original scheduling mechanism failed.
+  useEffect(() => {
+    if (room?.phase !== 'judging') return;
+    const kick = () => {
+      fetch('/api/game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'kick-judge', code }),
+      }).catch(() => {});
+    };
+    const iv = setInterval(kick, 12_000);
+    return () => clearInterval(iv);
+  }, [room?.phase, code]);
 
   function renderPhase() {
     if (!room) return null;
@@ -226,31 +278,45 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
 
   return (
     <motion.div
-      className="w-screen h-screen overflow-hidden relative"
+      className="w-screen overflow-hidden relative"
+      // 100dvh (not 100vh) so on iOS Safari the content/host bar isn't hidden behind the toolbar.
+      style={{ height: '100dvh' }}
       animate={{ backgroundColor: PHASE_BG[room.phase] ?? '#0d1b35' }}
       transition={{ duration: 0.8, ease: 'easeInOut' }}
     >
-      {/* Portrait orientation guard */}
-      <div className="portrait-lock">
-        <span style={{ fontSize: 64 }}>🔄</span>
-        <p className="font-[family-name:var(--font-bebas)] text-white text-3xl tracking-wide text-center px-8">
-          Please rotate your screen to landscape
-        </p>
-      </div>
+      {/* Portrait orientation guard — only for a pure projector/TV display. A host who opened
+          this on their phone (?h=) must not be hard-blocked: their control bar works in
+          portrait, so they can still run the game from a phone. */}
+      {!isHost && (
+        <div className="portrait-lock">
+          <span style={{ fontSize: 64 }}>🔄</span>
+          <p className="font-[family-name:var(--font-bebas)] text-white text-3xl tracking-wide text-center px-8">
+            Please rotate your screen to landscape
+          </p>
+        </div>
+      )}
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={room.phase}
-          className="w-full h-full"
-          style={{ paddingBottom: isHost ? 72 : 0, boxSizing: 'border-box' }}
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -16 }}
-          transition={{ duration: 0.3, ease: 'easeInOut' }}
-        >
-          {renderPhase()}
-        </motion.div>
-      </AnimatePresence>
+      {isHost && isMobileHost ? (
+        // Host running the game from a phone — portrait-native game state; controls come from
+        // <HostOverlay> (the fixed bar below). The TV phase layouts are 16:9-first and cramped here.
+        <div className="w-full overflow-y-auto" style={{ height: '100dvh' }}>
+          <MobileHostContent room={room} />
+        </div>
+      ) : (
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={room.phase}
+            className="w-full h-full"
+            style={{ paddingBottom: isHost ? 72 : 0, boxSizing: 'border-box' }}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+          >
+            {renderPhase()}
+          </motion.div>
+        </AnimatePresence>
+      )}
 
       {/* Full-screen interstitial — "GET READY", "LET'S SEE WHAT YOU PLAYED", etc. */}
       <AnimatePresence>
@@ -307,7 +373,9 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
       </AnimatePresence>
 
       <EmoteOverlay code={code} />
-      <MuteButton />
+      {/* Mobile host already has a music toggle in the control bar — hide the floating one
+          so it doesn't collide with the room-code header. */}
+      {!(isHost && isMobileHost) && <MuteButton />}
       {isHost && hostId && <HostOverlay room={room} code={code} hostId={hostId} />}
     </motion.div>
   );

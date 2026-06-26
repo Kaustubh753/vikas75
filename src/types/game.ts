@@ -23,6 +23,7 @@ export interface Player {
   name: string;
   avatarId: AvatarId;
   score: number;
+  roundsWon: number; // count of rounds this player won (1st place) — decides the overall winner
   hand: SchemeCard[];
   joinedRound: number;
   lastSeen?: number; // epoch ms — set on join, updated via heartbeat every 20 s
@@ -58,6 +59,7 @@ export interface JudgeVerdict {
   reasoning: string;       // overall narrative from the judge
   bonusPoint: boolean;
   rankings: PlayerRanking[]; // all players sorted by judgeScore desc
+  noWinner?: boolean;      // true = explicit "no winner this round" (judge failed / no submissions); rankings empty, no points awarded
 }
 
 export type GamePhase =
@@ -69,8 +71,6 @@ export type GamePhase =
   | 'winner'
   | 'between-rounds'
   | 'game-over';
-
-export type GameMode = 'crowd' | 'friends';
 
 // Chat
 export interface ChatMessage {
@@ -97,11 +97,14 @@ export interface GameRoom {
   code: string;
   hostId: string;
   hostName: string;
+  /** Per-player secret tokens (playerId → token), issued at join. Server-side only —
+   *  stripped from every client-facing payload. Used to authenticate state-changing
+   *  actions and own-hand reads so a player can't impersonate or read another's hand. */
+  tokens?: Record<string, string>;
   phase: GamePhase;
   round: number;
   totalRounds: number;
   timerDuration: number;   // seconds per submission phase
-  gameMode: GameMode;
   players: Record<string, Player>;
   currentChallenge: ChallengeCard | null;
   submissions: Record<string, Submission>;
@@ -112,6 +115,8 @@ export interface GameRoom {
   messages: ChatMessage[]; // last 20 chat messages
   usedChallengeIds: string[]; // tracks which challenge cards have been drawn this game
   shutdownAt?: number;    // epoch ms — set when ≤1 player active; room deleted after this passes
+  rev?: number;           // monotonic write counter, bumped on every setRoom; clients drop
+                          // any snapshot older than what they already have (stale-poll guard)
 }
 
 // Pusher event map — event names must match server triggers in api/game/route.ts exactly

@@ -9,7 +9,7 @@ import PlayerWaiting from '@/components/player/PlayerWaiting';
 interface Props {
   hand: SchemeCard[];
   challenge: ChallengeCard;
-  onSubmit: (card: SchemeCard, explanation: string) => Promise<void>;
+  onSubmit: (card: SchemeCard, explanation: string, auto?: boolean) => Promise<void>;
   submitted?: boolean;
   submittedCard?: SchemeCard;
   submittedExplanation?: string;
@@ -72,9 +72,13 @@ export default function PlayerSubmit({
   const [step, setStep] = useState<'select' | 'justify'>(submitted ? 'justify' : 'select');
   const [selected, setSelected] = useState<SchemeCard | null>(submittedCard ?? null);
   const [explanation, setExplanation] = useState(submittedExplanation ?? '');
+  // Draft is scoped to this round's challenge so an unsubmitted draft from a previous round
+  // can never bleed into the next round's answer box.
+  const draftKey = `${DRAFT_KEY}_${challenge.id}`;
   const [loading, setLoading] = useState(false);
   const [throwing, setThrowing] = useState(false);
   const didRestoreDraft = useRef(false);
+  const autoFiredRef = useRef(false);
   const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
@@ -88,17 +92,38 @@ export default function PlayerSubmit({
   useEffect(() => {
     if (didRestoreDraft.current || submittedRef.current || submittedExplanationRef.current) return;
     didRestoreDraft.current = true;
-    const draft = sessionStorage.getItem(DRAFT_KEY);
+    const draft = sessionStorage.getItem(draftKey);
     if (draft) setExplanation(draft);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [draftKey]);
 
   useEffect(() => {
-    if (!submitted) sessionStorage.setItem(DRAFT_KEY, explanation);
-  }, [explanation, submitted]);
+    if (!submitted) sessionStorage.setItem(draftKey, explanation);
+  }, [explanation, submitted, draftKey]);
 
   useEffect(() => {
-    if (submitted) sessionStorage.removeItem(DRAFT_KEY);
-  }, [submitted]);
+    if (submitted) sessionStorage.removeItem(draftKey);
+  }, [submitted, draftKey]);
+
+  // Auto-submit on timeout: shortly before the timer hits zero, flush whatever the player
+  // has — their selected card (or a random one from their hand if none picked) plus whatever
+  // justification they've typed (possibly empty). The small lead lets the submission land
+  // before the round advances to reveal. The server applies the same safety net for players
+  // whose phones are closed, so everyone ends the round with a card in play.
+  useEffect(() => {
+    if (!timerEndsAt || submitted || autoFiredRef.current) return;
+    const LEAD_MS = 1500;
+    const fire = () => {
+      if (autoFiredRef.current || submitted) return;
+      const card = selected ?? (hand.length ? hand[Math.floor(Math.random() * hand.length)] : null);
+      if (!card) return; // hand not loaded yet — server safety net will cover this player
+      autoFiredRef.current = true;
+      void onSubmit(card, explanation.trim(), true);
+    };
+    const delay = timerEndsAt - Date.now() - LEAD_MS;
+    if (delay <= 0) { fire(); return; }
+    const t = setTimeout(fire, delay);
+    return () => clearTimeout(t);
+  }, [timerEndsAt, submitted, selected, explanation, hand, onSubmit]);
 
   const wordCount = countWords(explanation);
   const wordsLeft = MAX_WORDS - wordCount;
@@ -236,6 +261,13 @@ export default function PlayerSubmit({
                 <motion.div
                   key={card.id}
                   onClick={() => setSelected(card)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(card); }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Select scheme ${card.name}`}
+                  aria-pressed={isSelected}
                   className={`relative cursor-pointer flex-shrink-0 rounded-xl overflow-hidden ${
                     isSelected ? 'border-2 border-[#FF9933]' : 'border border-white/10'
                   }`}

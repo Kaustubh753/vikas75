@@ -40,6 +40,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Room not found' }, { status: 403 });
     }
 
+    // Pusher not configured — deny so the client gives up the subscription and falls back
+    // to polling, rather than throwing an opaque 500.
+    if (!pusherServer) {
+      return NextResponse.json({ error: 'Real-time unavailable' }, { status: 503 });
+    }
+
     // Room exists — sign and return the auth token
     const auth = pusherServer.authorizeChannel(socketId, channelName);
     return NextResponse.json(auth);

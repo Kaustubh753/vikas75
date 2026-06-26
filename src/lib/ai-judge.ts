@@ -1,13 +1,20 @@
 import type { ChallengeCard, Submission, JudgeVerdict, PlayerRanking } from '@/types/game';
 
-const SYSTEM_PROMPT = `You are the AI Judge for Vikas 75, a game show about Indian government schemes.
-Your job is to rank ALL answers from best to worst and give each a score from 1 to 10.
+// The single hardcoded model string for the judge call.
+const JUDGE_MODEL = 'claude-sonnet-4-6';
 
-Scoring priority:
+const SYSTEM_PROMPT = `You are the AI Judge for Vikas 75, a game show about Indian government schemes.
+Your job is to rank ALL answers from best to worst, give each a score from 1 to 10, then crown
+exactly ONE winner: the single highest-scored answer. Never declare a tie for first place.
+
+Reward creativity, wit, and surprising or funny connections OVER dry technical correctness.
+A clever, unexpected, or hilarious justification must beat a boring-but-accurate one every time.
+
+Scoring priority (highest to lowest):
 1. Innovative + funny connection (jugaad thinking rewarded)
 2. Unexpected but valid
 3. Technically correct but interesting
-4. Boring but accurate (gets a 4–5)
+4. Boring but accurate (caps out at 4–5)
 
 Personality: sharp, witty game show host energy. Enthusiastic, occasionally sarcastic, always entertaining.
 Accept Hinglish fully. Reward creativity in any language.
@@ -63,12 +70,12 @@ async function claudeJudge(challenge: ChallengeCard, submissions: Submission[]):
   const userMessage = `Challenge Card:\n"${challenge.en}"\n(Hindi: ${challenge.hi})\n\nSubmissions:\n${submissionsText}\n\nRank all players. Respond with JSON only.`;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15_000); // 15s — Claude Sonnet p95 latency is ~5s; 8s was too aggressive
+  const timeoutId = setTimeout(() => controller.abort(), 8_000); // 8s hard cap — on timeout we fall back to local judging
   let response: Awaited<ReturnType<typeof client.messages.create>>;
   try {
     response = await client.messages.create(
       {
-        model: 'claude-sonnet-4-6',
+        model: JUDGE_MODEL,
         max_tokens: 800,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userMessage }],
@@ -79,7 +86,8 @@ async function claudeJudge(challenge: ChallengeCard, submissions: Submission[]):
     clearTimeout(timeoutId);
   }
 
-  const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+  const text = response.content[0]?.type === 'text' ? response.content[0].text.trim() : '';
+  console.log(`[ai-judge] Live verdict via ${JUDGE_MODEL} (${text.length} chars)`);
   const json = text.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim();
   const parsed = JSON.parse(json) as {
     rankings: Array<{ playerId: string; judgeScore: number; judgeComment: string; bonusPoint: boolean }>;
@@ -96,18 +104,27 @@ function buildVerdict(
 ): JudgeVerdict {
   // Validate Claude ranked every submitted player, no unknown IDs, and scores are valid numbers
   const submissionIds = new Set(submissions.map((s) => s.playerId));
-  for (const r of rankingsRaw) {
+  // Dedupe by playerId (keep first occurrence) — a malformed response that lists the same
+  // player twice must never score them twice.
+  const seen = new Set<string>();
+  const deduped = rankingsRaw.filter((r) => {
+    if (seen.has(r.playerId)) return false;
+    seen.add(r.playerId);
+    return true;
+  });
+  for (const r of deduped) {
     if (!submissionIds.has(r.playerId)) throw new Error(`Unknown player ${r.playerId} in rankings`);
     if (typeof r.judgeScore !== 'number' || isNaN(r.judgeScore) || r.judgeScore < 1 || r.judgeScore > 10) {
       throw new Error(`Invalid judgeScore ${r.judgeScore} for player ${r.playerId} — must be 1–10`);
     }
   }
-  if (rankingsRaw.length < submissions.length) {
-    throw new Error(`Judge omitted ${submissions.length - rankingsRaw.length} player(s) from rankings`);
+  if (deduped.length < submissions.length) {
+    throw new Error(`Judge omitted ${submissions.length - deduped.length} player(s) from rankings`);
   }
 
-  // Sort by judgeScore desc
-  const sorted = [...rankingsRaw].sort((a, b) => b.judgeScore - a.judgeScore);
+  // Sort by judgeScore desc; tiebreak by playerId so a score tie yields a deterministic
+  // winner rather than an arbitrary, order-dependent one.
+  const sorted = [...deduped].sort((a, b) => b.judgeScore - a.judgeScore || a.playerId.localeCompare(b.playerId));
 
   const rankings: PlayerRanking[] = sorted.map((r, i) => {
     const sub = submissions.find((s) => s.playerId === r.playerId)!;
@@ -173,17 +190,42 @@ function fallbackJudge(submissions: Submission[]): JudgeVerdict {
   };
 }
 
+/**
+ * An explicit "no winner this round" verdict — used when the judge can't decide
+ * (Claude timed out/errored) or there were no submissions. Rankings are empty and no
+ * points are awarded; the UI shows a dedicated no-winner screen rather than inventing a
+ * ranking. (Distinct from the no-API-key path, which deliberately uses fallbackJudge.)
+ */
+export function noWinnerVerdict(reason = "The judge couldn't pick a winner this round."): JudgeVerdict {
+  return {
+    winnerId: '',
+    winnerName: '',
+    schemeCard: { id: '', name: '', hi: '', desc: '', bullets: [] },
+    explanation: '',
+    reasoning: reason,
+    bonusPoint: false,
+    rankings: [],
+    noWinner: true,
+  };
+}
+
 export async function judgeRound(
   challenge: ChallengeCard,
   submissions: Submission[],
 ): Promise<JudgeVerdict> {
-  if (!submissions.length) throw new Error('No submissions to judge');
+  // Genuinely nobody played — there is no winner to crown.
+  if (!submissions.length) return noWinnerVerdict('No one submitted an answer this round.');
+
   if (process.env.ANTHROPIC_API_KEY) {
     try {
       return await claudeJudge(challenge, submissions);
     } catch (err) {
-      console.error('[ai-judge] Claude failed, falling back to random judge:', err instanceof Error ? err.message : err);
+      // The live API call failed or exceeded the 8s timeout — fall back to local judging
+      // so the round still resolves with a winner rather than stalling the game.
+      console.error('[ai-judge] Claude call failed/timed out; using local fallback judge:', err instanceof Error ? err.message : err);
+      return fallbackJudge(submissions);
     }
   }
+  // No API key configured — use the local judge.
   return fallbackJudge(submissions);
 }
