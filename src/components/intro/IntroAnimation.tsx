@@ -310,6 +310,7 @@ export default function IntroAnimation({ onDone }: { onDone: () => void }) {
   const last = useRef<number | null>(null);
   const tRef = useRef(0);
   const doneRef = useRef(false);
+  const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Fade the overlay out for a smooth handoff to the landing instead of an instant cut,
   // then unmount via onDone once the fade completes.
@@ -318,8 +319,11 @@ export default function IntroAnimation({ onDone }: { onDone: () => void }) {
     doneRef.current = true;
     if (raf.current) cancelAnimationFrame(raf.current);
     setExiting(true);
-    setTimeout(onDone, 380);
+    exitTimer.current = setTimeout(onDone, 380);
   }, [onDone]);
+
+  // Clear the fade timer on unmount so it can't fire onDone after the component is gone.
+  useEffect(() => () => { if (exitTimer.current) clearTimeout(exitTimer.current); }, []);
 
   // Respect reduced-motion: skip straight to the app with no animation or fade.
   useEffect(() => {

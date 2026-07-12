@@ -369,7 +369,7 @@ export default function PlayerSubmit({
 
       <div>
         <div className="flex justify-between items-center mb-2">
-          <label className="text-white/60 text-xs uppercase tracking-widest font-[family-name:var(--font-inter)]">
+          <label htmlFor="justification" className="text-white/60 text-xs uppercase tracking-widest font-[family-name:var(--font-inter)]">
             Your Justification
           </label>
           <span
@@ -381,6 +381,8 @@ export default function PlayerSubmit({
           </span>
         </div>
         <textarea
+          id="justification"
+          autoFocus
           value={explanation}
           onChange={(e) => {
             const words = e.target.value.trim().split(/\s+/).filter(Boolean);

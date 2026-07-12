@@ -23,10 +23,13 @@ export default function ProjectorGameOver({ room }: Props) {
 
   // A genuine tie for first: more than one player shares the leader's exact round-win count
   // AND total points (the id tiebreak above can't separate them, so don't crown one alone).
+  // Requires the leader to have actually scored — an all-zero washout (every round a no-winner)
+  // isn't a "tie" to celebrate, so it falls through to the normal podium.
   const champions = first
     ? players.filter(p => (p.roundsWon ?? 0) === (first.roundsWon ?? 0) && p.score === first.score)
     : [];
-  const isTie = champions.length > 1;
+  const hasLead = !!first && ((first.roundsWon ?? 0) > 0 || first.score > 0);
+  const isTie = hasLead && champions.length > 1;
   const rest = players.filter(p => !champions.includes(p));
 
   useEffect(() => {

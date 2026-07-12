@@ -49,8 +49,12 @@ export async function getRoom(code: string): Promise<GameRoom | null> {
   }
   try {
     return await (getRedis().get(`${ROOM_PREFIX}${code}`) as Promise<GameRoom | null>);
-  } catch {
-    return null;
+  } catch (err) {
+    // Fail loud: a Redis read error is NOT the same as a missing room. Swallowing it as null
+    // makes a live game look permanently "closed" (404) on a transient blip. Callers map this
+    // to a retryable 503 (POST top-level catch / GET catch), while a genuinely absent key
+    // still returns null → 404.
+    throw new Error(`Redis unavailable: ${err instanceof Error ? err.message : 'read failed'}`);
   }
 }
 
@@ -87,31 +91,9 @@ export async function deleteRoom(code: string): Promise<void> {
 
 // Returns true if the request is within the limit, false if exceeded.
 // Uses Redis INCR in production; in-memory fallback in dev.
-export async function checkRoomCreationLimit(ip: string): Promise<boolean> {
-  const key = `ratelimit:create-room:${ip}`;
-  const max = 10;
-  const windowSec = 3600; // 1 hour
-
-  if (!isRedisConfigured()) {
-    const now = Date.now();
-    const entry = devRateStore.get(key);
-    if (!entry || entry.expiresAt < now) {
-      devRateStore.set(key, { count: 1, expiresAt: now + windowSec * 1000 });
-      return true;
-    }
-    if (entry.count >= max) return false;
-    entry.count++;
-    return true;
-  }
-
-  try {
-    const redis = getRedis();
-    const count: number = await redis.incr(key);
-    if (count === 1) await redis.expire(key, windowSec);
-    return count <= max;
-  } catch {
-    return true; // fail open — don't block room creation on Redis errors
-  }
+export function checkRoomCreationLimit(ip: string): Promise<boolean> {
+  // 10 rooms per IP per hour. Thin wrapper over checkRateLimit (same dev-store + Redis logic).
+  return checkRateLimit(`ratelimit:create-room:${ip}`, 10, 3600);
 }
 
 // General-purpose Redis rate limiter. Returns true if within limit, false if exceeded.

@@ -17,17 +17,11 @@ import Avatar from '@/lib/avatars';
 import EmotePanel from '@/components/player/EmotePanel';
 import ChatPanel from '@/components/player/ChatPanel';
 import { getLobbyMusic } from '@/lib/music-manager';
+import { staleRoom } from '@/lib/room-state';
 import type { GameRoom, SchemeCard, EmoteId, AvatarId, ChatMessage } from '@/types/game';
 
 interface Props {
   code: string;
-}
-
-// Drop a room snapshot that's older than what we already have. A slow poll (GET) can resolve
-// after a newer Pusher event and would otherwise revert the phase (e.g. winner → judging).
-// Legacy rooms without a rev always apply, preserving prior behaviour.
-function staleRoom(prev: GameRoom | null, next: GameRoom): boolean {
-  return !!prev && prev.rev != null && next.rev != null && next.rev < prev.rev;
 }
 
 const PHASE_BG: Record<string, string> = {
@@ -300,7 +294,7 @@ export default function PlayerView({ code }: Props) {
 
   const handleChat = useCallback(async (text: string) => {
     try {
-      await fetch('/api/game', {
+      const res = await fetch('/api/game', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -310,7 +304,9 @@ export default function PlayerView({ code }: Props) {
           message: { playerId, playerName, avatarId, text },
         }),
       });
-    } catch { /* fire-and-forget — chat is non-critical */ }
+      // Unlike ephemeral emotes, a dropped chat message is user-visible — surface it.
+      if (!res.ok) toast.error('Message not sent — try again');
+    } catch { toast.error('Message not sent — try again'); }
   }, [code, playerId, playerName, avatarId]);
 
   // ── Presence: heartbeat every 20 s + sendBeacon on close ─────────────
@@ -390,6 +386,18 @@ export default function PlayerView({ code }: Props) {
     const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
+  }, [room?.phase]);
+
+  // On game over, clear saved answer drafts (scoped per challenge id) so none bleed into a
+  // next game. Runs as an effect, not during render, so it stays a pure render.
+  useEffect(() => {
+    if (room?.phase !== 'game-over') return;
+    try {
+      for (let i = sessionStorage.length - 1; i >= 0; i--) {
+        const k = sessionStorage.key(i);
+        if (k && k.startsWith('vikas75_draft_explanation')) sessionStorage.removeItem(k);
+      }
+    } catch { /* ignore */ }
   }, [room?.phase]);
 
   useEffect(() => {
@@ -506,13 +514,6 @@ export default function PlayerView({ code }: Props) {
         );
       }
       case 'game-over':
-        // Clear saved drafts (now scoped per challenge id) so none bleed into the next game
-        try {
-          for (let i = sessionStorage.length - 1; i >= 0; i--) {
-            const k = sessionStorage.key(i);
-            if (k && k.startsWith('vikas75_draft_explanation')) sessionStorage.removeItem(k);
-          }
-        } catch { /* ignore */ }
         return (
           <div className="flex flex-col items-center justify-center gap-4 min-h-[50vh] px-4">
             <p className="text-4xl">🎉</p>
@@ -571,7 +572,7 @@ export default function PlayerView({ code }: Props) {
                 getMusicManager().setMuted(!next);     // SFX follows the same preference
                 setMusicOn(next);
               }}
-              className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95"
+              className="w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-95"
               style={{
                 background: musicOn ? 'rgba(255,153,51,0.18)' : 'rgba(255,255,255,0.08)',
                 border: `1px solid ${musicOn ? 'rgba(255,153,51,0.5)' : 'rgba(255,255,255,0.15)'}`,
@@ -599,9 +600,9 @@ export default function PlayerView({ code }: Props) {
               onClick={() => clearSessionAndGoHome()}
               className="flex items-center gap-1 transition-all active:scale-95"
               style={{
-                height: 32,
-                paddingLeft: 10,
-                paddingRight: 10,
+                height: 40,
+                paddingLeft: 12,
+                paddingRight: 12,
                 borderRadius: 8,
                 background: 'rgba(255,255,255,0.06)',
                 border: '1px solid rgba(255,255,255,0.12)',
