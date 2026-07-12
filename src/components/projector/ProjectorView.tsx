@@ -17,16 +17,10 @@ import ProjectorBetweenRounds from '@/components/projector/ProjectorBetweenRound
 import ProjectorGameOver from '@/components/projector/ProjectorGameOver';
 import MobileHostContent from '@/components/projector/MobileHostContent';
 import SkeletonCard from '@/components/ui/SkeletonCard';
+import { staleRoom } from '@/lib/room-state';
 import type { GameRoom } from '@/types/game';
 
 interface Props { code: string; hostId?: string }
-
-// Drop a room snapshot older than what we already have. A slow poll (GET) can resolve after a
-// newer Pusher event and would otherwise revert the phase on the big screen. Legacy rooms
-// without a rev always apply.
-function staleRoom(prev: GameRoom | null, next: GameRoom): boolean {
-  return !!prev && prev.rev != null && next.rev != null && next.rev < prev.rev;
-}
 
 const PHASE_BG: Record<string, string> = {
   lobby: '#0d1b35',

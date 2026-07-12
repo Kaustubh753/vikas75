@@ -133,6 +133,7 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
               transition: 'border-color .12s ease',
             }}
             placeholder="Your name"
+            aria-label="Your name"
             value={name}
             onChange={e => setName(e.target.value)}
             maxLength={20} autoComplete="off"
@@ -156,6 +157,15 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
                   value={code[i] ?? ''}
                   maxLength={1} inputMode="text"
                   aria-label={`Room code character ${i + 1}`}
+                  onPaste={e => {
+                    // Pasting a shared 4-char code (WhatsApp/SMS) should fill all boxes, not one.
+                    e.preventDefault();
+                    const chars = e.clipboardData.getData('text').toUpperCase()
+                      .replace(/[^ABCDEFGHJKLMNPQRSTUVWXYZ23456789]/g, '').slice(0, 4);
+                    if (!chars) return;
+                    setCode(chars);
+                    slotsRef.current[Math.min(chars.length, 3)]?.focus();
+                  }}
                   onChange={e => {
                     // Exclude I and O — generateRoomCode never produces them (too similar to 1/0)
                     const ch = e.target.value.slice(-1).toUpperCase().replace(/[^ABCDEFGHJKLMNPQRSTUVWXYZ23456789]/g, '');

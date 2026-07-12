@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { listActiveRooms, getRoom, checkRateLimit } from '@/lib/redis';
+import { getIp } from '@/lib/request-ip';
 import type { GameRoom } from '@/types/game';
 
 /** Strip room-level credentials (hostId, the playerId→token secret map) AND every player's
@@ -52,7 +53,7 @@ function checkAuth(req: NextRequest): boolean {
 
 export async function GET(req: NextRequest) {
   // Rate limit: 10 attempts per IP per 15 minutes — brute-force protection
-  const ip = req.headers.get('x-real-ip') ?? req.headers.get('x-forwarded-for')?.split(',').at(-1)?.trim() ?? 'unknown';
+  const ip = getIp(req);
   if (!(await checkRateLimit(`ratelimit:admin:${ip}`, 10, 900))) {
     return NextResponse.json(
       { error: 'Too many requests' },

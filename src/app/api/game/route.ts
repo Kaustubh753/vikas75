@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { after } from 'next/server';
 import { getRoom, setRoom, deleteRoom, checkRoomCreationLimit, checkRateLimit, acquireLock, releaseLock } from '@/lib/redis';
+import { getIp } from '@/lib/request-ip';
 import { broadcastRoom, triggerEvent, getRoomChannel } from '@/lib/pusher';
 import {
   createRoom,
@@ -76,32 +77,6 @@ function resolveAvatar(room: GameRoom, requested: unknown, excludePlayerId?: str
   return VALID_AVATAR_IDS[order % VALID_AVATAR_IDS.length];
 }
 
-// Simple in-memory rate limiter — best-effort (not shared across serverless instances)
-const rateLimits = new Map<string, { count: number; resetAt: number }>();
-
-function rateLimit(key: string, max: number, windowMs: number): boolean {
-  const now = Date.now();
-  const entry = rateLimits.get(key);
-  if (!entry || entry.resetAt < now) {
-    rateLimits.set(key, { count: 1, resetAt: now + windowMs });
-    return true;
-  }
-  if (entry.count >= max) return false;
-  entry.count++;
-  return true;
-}
-
-function getIp(req: NextRequest): string {
-  // x-real-ip is set by Vercel's edge and cannot be client-spoofed.
-  // Fall back to the last (CDN-appended) value in x-forwarded-for rather than the first
-  // (which is client-controlled and trivially spoofable).
-  return (
-    req.headers.get('x-real-ip') ??
-    req.headers.get('x-forwarded-for')?.split(',').at(-1)?.trim() ??
-    'unknown'
-  );
-}
-
 function sanitizeName(name: unknown): string {
   if (typeof name !== 'string') return '';
   return name.replace(/[<>]/g, '').trim().slice(0, 30);
@@ -117,7 +92,7 @@ export async function POST(req: NextRequest) {
         const { hostId, hostName, totalRounds, timerDuration } = body;
         const safeName = sanitizeName(hostName);
         if (!safeName) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
-        if (!hostId || typeof hostId !== 'string') return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+        if (!hostId || typeof hostId !== 'string' || hostId.length > 64) return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
         // Clamp settings (mirrors update-settings) so a hand-crafted request can't seed a room
         // with NaN/negative/huge values — a bad timerDuration otherwise breaks the timer.
         const safeRounds = typeof totalRounds === 'number' && isFinite(totalRounds)
@@ -145,12 +120,15 @@ export async function POST(req: NextRequest) {
       }
 
       case 'join': {
-        const { code, playerId, playerName, avatarId } = body as {
-          code: string; playerId: string; playerName: string; avatarId: AvatarId;
+        const { code, playerId, playerName, avatarId, token: joinToken } = body as {
+          code: string; playerId: string; playerName: string; avatarId: AvatarId; token?: string;
         };
         if (!code || typeof code !== 'string') return NextResponse.json({ error: 'Room code is required' }, { status: 400 });
         const ip = getIp(req);
-        if (!(await checkRateLimit(`ratelimit:join:${ip}`, 15, 60))) {
+        // Keyed on IP but generous: a whole venue shares one egress IP, so ~20 phones scanning
+        // the lobby QR at once (plus flaky-WiFi retries) must not trip the limiter and lock out
+        // late joiners. Room *creation* is separately capped at 10/hr/IP for anti-abuse.
+        if (!(await checkRateLimit(`ratelimit:join:${ip}`, 60, 60))) {
           return NextResponse.json({ error: 'Too many requests — slow down' }, { status: 429 });
         }
         const safeName = filterText(sanitizeName(playerName));
@@ -159,9 +137,16 @@ export async function POST(req: NextRequest) {
         const res = await withRoomLock(code, async () => {
           const room = await getRoom(code?.toUpperCase());
           if (!room) return NextResponse.json({ error: 'Room not found — check your code' }, { status: 404 });
-          // Idempotent rejoin — always allowed for existing players. Ensure a token exists
-          // for this seat and return it so the client can (re)store its credential.
+          // Idempotent rejoin for an existing seat. `playerId` is NOT a secret — it's in every
+          // broadcast/GET room payload — so returning this seat's token + private hand to anyone
+          // who posts the id would be full impersonation. Require the caller to prove the seat's
+          // token (tokenOk also passes for a legacy seat that never had a token issued). A caller
+          // who can't authenticate is rejected here; genuine reconnection with a lost id goes
+          // through the stale-seat reclaim path below (fresh id + same name).
           if (room.players[playerId]) {
+            if (!tokenOk(room, playerId, joinToken)) {
+              return NextResponse.json({ error: 'Not authorized for this seat' }, { status: 403 });
+            }
             // Mark present immediately (don't wait up to 20s for the first heartbeat) and
             // cancel any pending auto-shutdown — a returning player means the room is alive.
             const wasStale = !room.players[playerId].lastSeen
@@ -264,7 +249,7 @@ export async function POST(req: NextRequest) {
           if (updated.phase === 'judging') {
             after(() => triggerJudge(code!.toUpperCase()).catch(() => {}));
           }
-          return NextResponse.json({ room: stripSecrets(updated) });
+          return NextResponse.json({ room: scrubRoomFor(updated, '') });
         });
         return res ?? NextResponse.json({ error: 'Room busy — please try again' }, { status: 409 });
       }
@@ -284,7 +269,7 @@ export async function POST(req: NextRequest) {
           const updated = updateSettings(room, { totalRounds: safeRounds, timerDuration: safeTimer });
           await setRoom(updated);
           await broadcastRoom(updated);
-          return NextResponse.json({ room: stripSecrets(updated) });
+          return NextResponse.json({ room: scrubRoomFor(updated, '') });
         });
         return res ?? NextResponse.json({ error: 'Room busy — please try again' }, { status: 409 });
       }
@@ -526,11 +511,11 @@ export async function POST(req: NextRequest) {
           const egRoom = await getRoom(egCode.toUpperCase());
           if (!egRoom) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
           if (egRoom.hostId !== egHostId) return NextResponse.json({ error: 'Not the host' }, { status: 403 });
-          if (egRoom.phase === 'game-over') return NextResponse.json({ room: stripSecrets(egRoom) });
+          if (egRoom.phase === 'game-over') return NextResponse.json({ room: scrubRoomFor(egRoom, '') });
           const ended = { ...egRoom, phase: 'game-over' as const, shutdownAt: undefined };
           await setRoom(ended);
           await broadcastRoom(ended);
-          return NextResponse.json({ room: stripSecrets(ended) });
+          return NextResponse.json({ room: scrubRoomFor(ended, '') });
         });
         return res ?? NextResponse.json({ error: 'Room busy — please try again' }, { status: 409 });
       }
@@ -545,7 +530,7 @@ export async function POST(req: NextRequest) {
         if (!musicHostId || musicRoom.hostId !== musicHostId) {
           return NextResponse.json({ error: 'Not the host' }, { status: 403 });
         }
-        if (!rateLimit(`music-toggle:${musicHostId}`, 10, 60_000)) {
+        if (!(await checkRateLimit(`ratelimit:music:${musicHostId}`, 10, 60))) {
           return NextResponse.json({ ok: true });
         }
         await triggerEvent(getRoomChannel(code.toUpperCase()), 'music:toggle', { muted: Boolean(muted) });
@@ -592,9 +577,14 @@ export async function GET(req: NextRequest) {
     const room = await getRoom(code.toUpperCase());
     if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
 
-    // Auto-shutdown: if all players have been gone for 5 minutes, delete the room
+    // Auto-shutdown: if all players have been gone for 5 minutes, delete the room. Do it under
+    // the room lock and re-check, so a concurrent locked mutation (a late heartbeat/advance)
+    // can't setRoom right after the delete and resurrect a zombie room.
     if (room.shutdownAt && Date.now() > room.shutdownAt) {
-      await deleteRoom(code.toUpperCase());
+      await withRoomLock(code.toUpperCase(), async () => {
+        const fresh = await getRoom(code.toUpperCase());
+        if (fresh?.shutdownAt && Date.now() > fresh.shutdownAt) await deleteRoom(code.toUpperCase());
+      });
       return NextResponse.json({ error: 'Room closed — all players disconnected' }, { status: 404 });
     }
 
@@ -641,7 +631,16 @@ async function triggerJudge(code: string) {
   if (!acquired) return; // Another instance already handling this round
 
   if (!room.currentChallenge) {
-    console.error('[triggerJudge] currentChallenge is null in judging phase — skipping');
+    // Corrupt/legacy room with no challenge in judging — resolve to no-winner so the round
+    // still advances to the winner screen instead of wedging in judging forever.
+    console.error('[triggerJudge] currentChallenge is null in judging phase — resolving no-winner');
+    await withRoomLock(code, async () => {
+      const fresh = await getRoom(code);
+      if (!fresh || fresh.phase !== 'judging') return;
+      const updated = applyVerdict(fresh, noWinnerVerdict("The judge couldn't pick a winner this round."));
+      await setRoom(updated);
+      await broadcastRoom(updated);
+    });
     return;
   }
   const submissions = Object.values(room.submissions);
@@ -711,7 +710,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Room not found' }, { status: 404 });
   }
   await deleteRoom(code);
-  // Notify any connected clients the room has closed (best-effort)
-  await triggerEvent(getRoomChannel(code), 'game:room-closed', {});
+  // Clients discover deletion via the GET 404 path ("Room Closed" screen); there is no
+  // 'game:room-closed' Pusher listener, so no broadcast here.
   return NextResponse.json({ ok: true });
 }

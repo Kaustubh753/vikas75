@@ -1,6 +1,5 @@
 import type {
   GameRoom,
-  Player,
   AvatarId,
   SchemeCard,
   ChallengeCard,
@@ -220,10 +219,6 @@ export function advancePhase(room: GameRoom): GameRoom {
 export function addMessage(room: GameRoom, message: ChatMessage): GameRoom {
   const messages = [...room.messages, message].slice(-MAX_CHAT_MESSAGES);
   return { ...room, messages };
-}
-
-export function getLeaderboard(room: GameRoom): Player[] {
-  return Object.values(room.players).sort((a, b) => b.score - a.score);
 }
 
 export function allPlayersSubmitted(room: GameRoom): boolean {

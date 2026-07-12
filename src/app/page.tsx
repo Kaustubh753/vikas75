@@ -409,9 +409,22 @@ function LandingPage() {
   const pendingRedirect = useRef<string | null>(null);
   const dismissIntro = useCallback(() => {
     setShowIntro(false);
-    const dest = pendingRedirect.current;
-    if (dest) { pendingRedirect.current = null; router.replace(dest); }
-  }, [router]);
+    let dest = pendingRedirect.current;
+    // The intro can finish before the redirect effect runs (reduced-motion fires onDone during
+    // mount, and a child's effects run before its parent's). Re-derive the returning-player
+    // destination here so those players still get routed back to their room.
+    if (!dest && !initialCode) {
+      try {
+        const pid = localStorage.getItem('vikas75_playerId');
+        const pname = localStorage.getItem('vikas75_playerName');
+        const avid = localStorage.getItem('vikas75_avatarId');
+        const rc = localStorage.getItem('vikas75_roomCode');
+        if (pid && pname && avid && rc) dest = `/room/${rc}`;
+      } catch { /* ignore */ }
+    }
+    pendingRedirect.current = null;
+    if (dest) router.replace(dest);
+  }, [router, initialCode]);
   // Starts false (desktop) so SSR and first client render agree, then corrects on mount.
   const [isMobile, setIsMobile] = useState(false);
 

@@ -96,7 +96,6 @@ User text is cleaned before storage: `sanitizeName()` (length/trim) and `filterT
   - `applyVerdict(room, verdict)` — awards each ranked player by placement (**1st=3, 2nd=2, 3rd=1**, others 0) plus **+1 per player whose `bonusPoint` is true**; the winner's `roundsWon` is incremented (that count, not total score, decides the overall game winner); sets `phase: 'winner'`. A `noWinner` verdict has empty rankings → nobody scores. Not internally idempotent, but every caller re-checks `phase === 'judging'` under the lock first, so it never double-applies.
   - `advancePhase(room)` — state machine dispatcher; `judging` phase does nothing (AI handles it)
   - `allPlayersSubmitted(room)` — true when every player who joined *before* this round has submitted (excludes mid-round late joiners)
-  - `getLeaderboard(room)` — sorted player array
 
 - `src/lib/redis.ts` — Transparent Redis / in-memory fallback.
   - Uses module-level `Map` when `UPSTASH_REDIS_REST_URL` is absent (local dev)

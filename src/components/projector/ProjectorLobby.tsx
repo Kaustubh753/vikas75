@@ -348,7 +348,7 @@ export default function ProjectorLobby({ room }: Props) {
               }} />
               <span style={{
                 position: 'relative', zIndex: 1,
-                background: '#0a1320', padding: '6px 0',
+                background: '#07101f', padding: '6px 0',
                 fontFamily: 'var(--font-inter),sans-serif',
                 fontSize: 'clamp(8px,0.76vw,11px)', fontWeight: 600,
                 letterSpacing: '0.14em', textTransform: 'uppercase',
