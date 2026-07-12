@@ -13,17 +13,18 @@ export default function ConnectionBanner() {
       prevStateRef.current = newState;
       setState(newState);
 
-      if (newState === 'disconnected' || newState === 'unavailable' || newState === 'failed') {
-        toast.error('Connection lost, reconnecting...');
-      } else if (newState === 'connected' && (prev === 'disconnected' || prev === 'unavailable' || prev === 'failed')) {
+      // The banner below is the persistent "disconnected" indicator, so only toast the
+      // recovery (a nice confirmation once the banner disappears) — no redundant lost toast.
+      if (newState === 'connected' && (prev === 'disconnected' || prev === 'unavailable' || prev === 'failed')) {
         toast.success('Reconnected!');
       }
     });
   }, []);
 
   if (state === 'connected') return null;
+  // In-flow (not fixed) so it pushes the page header down instead of overlapping it.
   return (
-    <div className="fixed top-0 left-0 right-0 z-[200] bg-yellow-500 text-[#1a3a6e] text-xs font-bold text-center py-2">
+    <div className="w-full bg-yellow-500 text-[#1a3a6e] text-xs font-bold text-center py-2">
       {state === 'connecting' ? '↻ Reconnecting…' : '⚠ Connection lost'}
     </div>
   );
