@@ -602,15 +602,16 @@ function LandingPage() {
   }
 
   return (
-    /* Outer container — fills viewport, no scrollbars */
-    <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', isolation: 'isolate' }}>
+    /* Outer container — fills the viewport; scrolls vertically only if the content can't fit
+       (e.g. a short laptop viewport), instead of hard-clipping the grid. */
+    <div style={{ position: 'fixed', inset: 0, overflowY: 'auto', overflowX: 'hidden', isolation: 'isolate' }}>
       {showIntro && <IntroAnimation onDone={dismissIntro} />}
       {backdrop}
 
       {/* 3-column grid */}
       <div style={{
         position: 'relative', zIndex: 3,
-        width: '100%', height: '100%',
+        width: '100%', minHeight: '100%',
         padding: 'clamp(20px, 3.5vh, 48px) clamp(24px, 3.5vw, 56px) clamp(14px, 2.2vh, 30px)',
         display: 'grid',
         gridTemplateColumns: 'minmax(200px, 20vw) 1fr minmax(220px, 22vw)',
