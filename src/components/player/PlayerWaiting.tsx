@@ -26,7 +26,7 @@ export default function PlayerWaiting({ phase, hint }: Props) {
         {message}
       </p>
       {hint && (
-        <p className="text-[#FF9933]/80 text-xs font-[family-name:var(--font-inter)]">
+        <p className="text-[#ee7d23]/80 text-xs font-[family-name:var(--font-inter)]">
           {hint}
         </p>
       )}
@@ -35,7 +35,7 @@ export default function PlayerWaiting({ phase, hint }: Props) {
         {[0, 1, 2].map((i) => (
           <span
             key={i}
-            className="w-2 h-2 bg-[#FF9933]/50 rounded-full animate-bounce"
+            className="w-2 h-2 bg-[#ee7d23]/50 rounded-full animate-bounce"
             style={{ animationDelay: `${i * 0.15}s` }}
           />
         ))}

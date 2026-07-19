@@ -10,7 +10,7 @@ export default function Confetti() {
       left: `${Math.random() * 100}%`,
       delay: `${Math.random() * 2}s`,
       duration: `${2 + Math.random() * 2}s`,
-      color: ['#FF9933', '#FFFFFF', '#138808', '#FFD700', '#1a3a6e'][
+      color: ['#ee7d23', '#FFFFFF', '#1fa24a', '#FFD700', '#173458'][
         Math.floor(Math.random() * 5)
       ],
       width: `${6 + Math.random() * 8}px`,

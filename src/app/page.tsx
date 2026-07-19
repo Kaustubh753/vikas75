@@ -281,8 +281,8 @@ function HowToPlay() {
       onMouseEnter={e => {
         const b = e.currentTarget as HTMLButtonElement;
         b.style.background = 'rgba(255,153,51,0.18)';
-        b.style.borderColor = '#FF9933';
-        b.style.color = '#FF9933';
+        b.style.borderColor = '#ee7d23';
+        b.style.color = '#ee7d23';
       }}
       onMouseLeave={e => {
         const b = e.currentTarget as HTMLButtonElement;
@@ -320,7 +320,7 @@ function HowToPlay() {
         <div style={{ fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500, fontSize: 'clamp(8px, 0.76vw, 11px)', color: 'rgba(250,248,240,.7)', letterSpacing: '0.22em', textTransform: 'uppercase' }}>
           How to play
         </div>
-        <div style={{ fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500, fontSize: 'clamp(8px, 0.76vw, 11px)', color: '#FF9933', letterSpacing: '0.14em' }}>
+        <div style={{ fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500, fontSize: 'clamp(8px, 0.76vw, 11px)', color: '#ee7d23', letterSpacing: '0.14em' }}>
           {String(step + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}
         </div>
       </div>
@@ -347,7 +347,7 @@ function HowToPlay() {
             }}>
               <div style={{
                 fontFamily: 'var(--font-yatra),var(--font-inter),sans-serif',
-                fontSize: 'clamp(26px, 3vw, 44px)', lineHeight: 1, color: '#FF9933', letterSpacing: '-0.01em',
+                fontSize: 'clamp(26px, 3vw, 44px)', lineHeight: 1, color: '#ee7d23', letterSpacing: '-0.01em',
               }}>
                 {s.num}
               </div>
@@ -381,7 +381,7 @@ function HowToPlay() {
               width: i === step ? 20 : 8,
               height: 8,
               borderRadius: i === step ? 4 : '50%',
-              background: i === step ? '#FF9933' : 'rgba(250,248,240,.22)',
+              background: i === step ? '#ee7d23' : 'rgba(250,248,240,.22)',
               border: 'none', padding: 0, cursor: 'pointer',
               transition: 'background .2s ease, width .28s cubic-bezier(.4,0,.2,1)',
             }}
@@ -466,7 +466,7 @@ function LandingPage() {
       logoEasterEggShown.current = true;
       toast("Claude wrote the code. I wrote the prompt. Tomato tomato.\n— Kaustubh", {
         duration: 8000, position: 'bottom-center',
-        style: { background: '#1a3a6e', color: '#ffffff' },
+        style: { background: '#173458', color: '#ffffff' },
       });
     }
   }
@@ -508,7 +508,7 @@ function LandingPage() {
   // Shared background layers (dark base, saffron glow, film grain) used by both layouts.
   const backdrop = (
     <>
-      <div style={{ position: 'absolute', inset: 0, background: '#07101f', zIndex: 0 }} />
+      <div style={{ position: 'absolute', inset: 0, background: '#08070f', zIndex: 0 }} />
       <div style={{
         position: 'absolute', left: '50%', top: '-25%',
         width: '83vw', height: '100vh',
@@ -528,7 +528,7 @@ function LandingPage() {
   //    ~440px of side columns alone and would clip on phones). ───────────────────
   if (isMobile) {
     return (
-      <div style={{ position: 'relative', minHeight: '100dvh', width: '100%', background: '#07101f', overflowX: 'hidden', isolation: 'isolate' }}>
+      <div style={{ position: 'relative', minHeight: '100dvh', width: '100%', background: '#08070f', overflowX: 'hidden', isolation: 'isolate' }}>
         {showIntro && <IntroAnimation onDone={dismissIntro} />}
         {backdrop}
         <div style={{
@@ -546,7 +546,7 @@ function LandingPage() {
                 Vikas 75
               </h1>
             </button>
-            <div style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 'clamp(15px,4.5vw,20px)', color: '#FF9933', lineHeight: 1.35 }}>
+            <div style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 'clamp(15px,4.5vw,20px)', color: '#ee7d23', lineHeight: 1.35 }}>
               The best answer isn&apos;t always right
             </div>
           </div>
@@ -554,13 +554,13 @@ function LandingPage() {
           {/* CTAs */}
           <div style={{ width: '100%', maxWidth: 340, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <button
-              style={{ ...btnBase, height: 52, fontSize: 13, width: '100%', background: '#FF9933', color: '#1a1208', borderColor: '#FF9933' }}
+              style={{ ...btnBase, height: 52, fontSize: 13, width: '100%', background: '#ee7d23', color: '#1a1208', borderColor: '#ee7d23' }}
               onClick={handleHostGame}
             >
               {hosting ? 'Creating…' : 'Host a Game'}
             </button>
             <button
-              style={{ ...btnBase, height: 52, fontSize: 13, width: '100%', background: 'transparent', color: '#FF9933', borderColor: '#FF9933' }}
+              style={{ ...btnBase, height: 52, fontSize: 13, width: '100%', background: 'transparent', color: '#ee7d23', borderColor: '#ee7d23' }}
               onClick={() => router.push('/join')}
             >
               Join a Game
@@ -627,7 +627,7 @@ function LandingPage() {
           <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 16, width: 'fit-content' }}>
           {/* Logo unit with saffron left bar */}
           <div style={{ display: 'flex', flexDirection: 'column', position: 'relative', paddingLeft: 16, alignItems: 'stretch' }}>
-            <div style={{ position: 'absolute', left: 0, top: 6, bottom: 6, width: 2, background: '#FF9933' }} />
+            <div style={{ position: 'absolute', left: 0, top: 6, bottom: 6, width: 2, background: '#ee7d23' }} />
             <div style={{
               fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500,
               fontSize: 'clamp(8px, 0.68vw, 10px)',
@@ -654,7 +654,7 @@ function LandingPage() {
               fontWeight: 400,
               fontSize: 'clamp(12px, 1.3vw, 19px)',
               lineHeight: 1.35,
-              color: '#FF9933', letterSpacing: '-0.005em',
+              color: '#ee7d23', letterSpacing: '-0.005em',
               marginTop: 12, whiteSpace: 'nowrap',
             }}>
               The best answer isn&apos;t always right
@@ -665,15 +665,15 @@ function LandingPage() {
           {/* CTA buttons — width: 100% stretches to match logo above */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button
-              style={{ ...btnBase, width: '100%', background: '#FF9933', color: '#1a1208', borderColor: '#FF9933' }}
-              onMouseEnter={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = '#e6862b'; b.style.transform = 'translateY(-1px)'; b.style.boxShadow = '0 6px 24px rgba(255,153,51,.32)'; }}
-              onMouseLeave={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = '#FF9933'; b.style.transform = ''; b.style.boxShadow = ''; }}
+              style={{ ...btnBase, width: '100%', background: '#ee7d23', color: '#1a1208', borderColor: '#ee7d23' }}
+              onMouseEnter={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = '#cf6a18'; b.style.transform = 'translateY(-1px)'; b.style.boxShadow = '0 6px 24px rgba(255,153,51,.32)'; }}
+              onMouseLeave={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = '#ee7d23'; b.style.transform = ''; b.style.boxShadow = ''; }}
               onClick={handleHostGame}
             >
               {hosting ? 'Creating…' : 'Host a Game'}
             </button>
             <button
-              style={{ ...btnBase, width: '100%', background: 'transparent', color: '#FF9933', borderColor: '#FF9933' }}
+              style={{ ...btnBase, width: '100%', background: 'transparent', color: '#ee7d23', borderColor: '#ee7d23' }}
               onMouseEnter={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = 'rgba(255,153,51,.08)'; b.style.transform = 'translateY(-1px)'; }}
               onMouseLeave={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = 'transparent'; b.style.transform = ''; }}
               onClick={() => router.push('/join')}
@@ -705,7 +705,7 @@ function LandingPage() {
             {SOCIAL_LINKS.map(({ label, href, Icon }) => (
               <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label}
                 style={{ color: 'rgba(250,248,240,.6)', transition: 'color .15s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(14px, 1.25vw, 18px)' }}
-                onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = '#FF9933'}
+                onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = '#ee7d23'}
                 onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(250,248,240,.6)'}
               >
                 <Icon />
@@ -722,7 +722,7 @@ function LandingPage() {
               transition: 'color .15s',
               whiteSpace: 'nowrap',
             }}
-              onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = '#FF9933'}
+              onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = '#ee7d23'}
               onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(250,248,240,0.35)'}
             >
               Curious what&apos;s in the deck? →
@@ -741,7 +741,7 @@ function LandingPage() {
                 padding: 0, lineHeight: 1,
                 transition: 'color .15s ease',
               }}
-              onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = musicOn ? '#FF9933' : 'rgba(250,248,240,0.6)'}
+              onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = musicOn ? '#ee7d23' : 'rgba(250,248,240,0.6)'}
               onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = musicOn ? 'rgba(255,153,51,0.7)' : 'rgba(250,248,240,0.3)'}
             >
               {musicOn ? '🔊' : '🔇'}
@@ -761,7 +761,7 @@ function LandingPage() {
 // ─────────────────────────────────────────────────────────────
 export default function HomePage() {
   return (
-    <Suspense fallback={<div style={{ background: '#07101f', position: 'fixed', inset: 0 }} />}>
+    <Suspense fallback={<div style={{ background: '#08070f', position: 'fixed', inset: 0 }} />}>
       <LandingPage />
     </Suspense>
   );

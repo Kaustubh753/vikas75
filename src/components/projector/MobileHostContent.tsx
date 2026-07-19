@@ -46,7 +46,7 @@ export default function MobileHostContent({ room }: { room: GameRoom }) {
 
   const ChallengeBlock = () =>
     challenge ? (
-      <div style={{ ...card, background: '#1a3a6e', borderColor: 'rgba(255,153,51,0.25)' }}>
+      <div style={{ ...card, background: '#173458', borderColor: 'rgba(255,153,51,0.25)' }}>
         <p style={{ ...label, marginBottom: 8 }}>Problem Statement</p>
         <p style={{ fontFamily: 'var(--font-bebas)', fontSize: 22, lineHeight: 1.2, letterSpacing: '0.02em' }}>{challenge.en}</p>
         <p style={{ fontFamily: 'var(--font-devanagari)', fontSize: 14, color: 'rgba(173,200,255,0.85)', marginTop: 8, lineHeight: 1.5 }}>{challenge.hi}</p>
@@ -66,7 +66,7 @@ export default function MobileHostContent({ room }: { room: GameRoom }) {
             <span style={{ flex: 1, fontSize: 15, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
             {showStatus && (
               submitted
-                ? <span style={{ color: '#22c55e', fontSize: 14, fontWeight: 600 }}>✓ In</span>
+                ? <span style={{ color: '#1fa24a', fontSize: 14, fontWeight: 600 }}>✓ In</span>
                 : <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13 }}>Thinking…</span>
             )}
           </div>
@@ -79,10 +79,10 @@ export default function MobileHostContent({ room }: { room: GameRoom }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {leaderboard.map((p, i) => (
         <div key={p.id} style={{ ...card, display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px' }}>
-          <span style={{ fontFamily: 'var(--font-bebas)', fontSize: 20, width: 22, color: i === 0 ? '#FF9933' : 'rgba(255,255,255,0.5)' }}>{i + 1}</span>
+          <span style={{ fontFamily: 'var(--font-bebas)', fontSize: 20, width: 22, color: i === 0 ? '#ee7d23' : 'rgba(255,255,255,0.5)' }}>{i + 1}</span>
           <div style={{ width: 30, height: 30, borderRadius: 7, overflow: 'hidden', flexShrink: 0 }}><Avatar id={p.avatarId} size={30} /></div>
           <span style={{ flex: 1, fontSize: 15, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
-          <span style={{ fontFamily: 'var(--font-bebas)', fontSize: 20, color: i === 0 ? '#FF9933' : '#fff' }}>{p.score}</span>
+          <span style={{ fontFamily: 'var(--font-bebas)', fontSize: 20, color: i === 0 ? '#ee7d23' : '#fff' }}>{p.score}</span>
         </div>
       ))}
     </div>
@@ -98,7 +98,7 @@ export default function MobileHostContent({ room }: { room: GameRoom }) {
               <PlayerRows />
             </div>
             <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center', lineHeight: 1.5 }}>
-              Share the room code so players can join. Tap <b style={{ color: '#FF9933' }}>Start Game</b>{' '}below when everyone&apos;s in.
+              Share the room code so players can join. Tap <b style={{ color: '#ee7d23' }}>Start Game</b>{' '}below when everyone&apos;s in.
             </p>
           </>
         );
@@ -106,7 +106,7 @@ export default function MobileHostContent({ room }: { room: GameRoom }) {
         return (
           <>
             <ChallengeBlock />
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center' }}>Tap <b style={{ color: '#FF9933' }}>Open Submissions</b>{' '}below to start the timer.</p>
+            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center' }}>Tap <b style={{ color: '#ee7d23' }}>Open Submissions</b>{' '}below to start the timer.</p>
           </>
         );
       case 'submission':
@@ -115,7 +115,7 @@ export default function MobileHostContent({ room }: { room: GameRoom }) {
             <ChallengeBlock />
             <div style={{ ...card, display: 'flex', alignItems: 'center', justifyContent: 'space-around', textAlign: 'center' }}>
               <div>
-                <p style={{ fontFamily: 'var(--font-bebas)', fontSize: 34, color: '#FF9933', lineHeight: 1 }}>{submittedCount}/{players.length}</p>
+                <p style={{ fontFamily: 'var(--font-bebas)', fontSize: 34, color: '#ee7d23', lineHeight: 1 }}>{submittedCount}/{players.length}</p>
                 <p style={label}>Submitted</p>
               </div>
               {room.timerEndsAt && (
@@ -135,7 +135,7 @@ export default function MobileHostContent({ room }: { room: GameRoom }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {Object.values(room.submissions).map((s) => (
                 <div key={s.playerId}>
-                  <p style={{ fontSize: 14, fontWeight: 600 }}>{s.playerName} — <span style={{ color: '#FF9933' }}>{s.schemeCard.name}</span></p>
+                  <p style={{ fontSize: 14, fontWeight: 600 }}>{s.playerName} — <span style={{ color: '#ee7d23' }}>{s.schemeCard.name}</span></p>
                   {s.explanation && <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontStyle: 'italic', marginTop: 2 }}>&ldquo;{s.explanation}&rdquo;</p>}
                 </div>
               ))}
@@ -172,7 +172,7 @@ export default function MobileHostContent({ room }: { room: GameRoom }) {
       case 'game-over':
         return (
           <>
-            <p style={{ textAlign: 'center', fontFamily: 'var(--font-bebas)', fontSize: 30, color: '#FF9933', letterSpacing: '0.04em' }}>Khel Khatam!</p>
+            <p style={{ textAlign: 'center', fontFamily: 'var(--font-bebas)', fontSize: 30, color: '#ee7d23', letterSpacing: '0.04em' }}>Khel Khatam!</p>
             <div>
               <p style={{ ...label, marginBottom: 8 }}>Final Standings</p>
               <LeaderboardRows />
@@ -191,13 +191,13 @@ export default function MobileHostContent({ room }: { room: GameRoom }) {
           <p style={label}>{PHASE_LABEL[room.phase] ?? room.phase}</p>
           {room.phase !== 'lobby' && room.round > 0 && (
             <p style={{ fontFamily: 'var(--font-bebas)', fontSize: 20, marginTop: 2 }}>
-              Round <span style={{ color: '#FF9933' }}>{room.round}</span>/{room.totalRounds}
+              Round <span style={{ color: '#ee7d23' }}>{room.round}</span>/{room.totalRounds}
             </p>
           )}
         </div>
         <div style={{ textAlign: 'right' }}>
           <p style={label}>Room</p>
-          <p style={{ fontFamily: 'var(--font-bebas)', fontSize: 24, letterSpacing: '0.15em', color: '#FF9933', lineHeight: 1 }}>{room.code}</p>
+          <p style={{ fontFamily: 'var(--font-bebas)', fontSize: 24, letterSpacing: '0.15em', color: '#ee7d23', lineHeight: 1 }}>{room.code}</p>
         </div>
       </div>
       {content()}

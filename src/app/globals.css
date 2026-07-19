@@ -10,7 +10,7 @@ body {
   /* Respect mobile safe areas */
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
-  background: #0d1b35;
+  background: #08070f;
 }
 
 /* Never let a stray wide element create a horizontal scroll / zoomed-out feel on phones.
@@ -23,7 +23,7 @@ body {
 
 /* Visible focus ring for keyboard accessibility */
 :focus-visible {
-  outline: 2px solid #FF9933;
+  outline: 2px solid #ee7d23;
   outline-offset: 2px;
   border-radius: 8px;
 }
@@ -32,7 +32,7 @@ a:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 [role="button"]:focus-visible {
-  outline: 2px solid #FF9933;
+  outline: 2px solid #ee7d23;
   outline-offset: 2px;
 }
 
@@ -129,7 +129,7 @@ input, textarea, select { font-size: max(16px, 1em); }
   position: fixed;
   inset: 0;
   z-index: 200;
-  background: #0d1b35;
+  background: #08070f;
   flex-direction: column;
   align-items: center;
   justify-content: center;
