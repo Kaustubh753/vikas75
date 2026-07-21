@@ -33,7 +33,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#1a3a6e',
+  themeColor: '#173458',
   // Be explicit so every route (including dynamic /room, /projector, /join) scales to the
   // device width on phones rather than rendering at a desktop width and zooming out.
   width: 'device-width',
@@ -50,9 +50,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           height: 5, display: 'flex', zIndex: 99999,
           pointerEvents: 'none',
         }}>
-          <div style={{ flex: 1, background: '#FF9933' }} />
+          <div style={{ flex: 1, background: '#ee7d23' }} />
           <div style={{ flex: 1, background: '#ffffff' }} />
-          <div style={{ flex: 1, background: '#138808' }} />
+          <div style={{ flex: 1, background: '#1fa24a' }} />
         </div>
         <ToasterProvider />
         {children}

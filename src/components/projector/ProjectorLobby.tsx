@@ -104,7 +104,7 @@ function FilledSeat({ player, w, h }: { player: Player; w: number; h: number }) 
         fontFamily: 'var(--font-inter),sans-serif',
         fontSize: Math.round(w * 0.062), fontWeight: 600,
         letterSpacing: '0.16em', textTransform: 'uppercase' as const,
-        color: '#138808', background: 'rgba(19,136,8,0.12)',
+        color: '#1fa24a', background: 'rgba(19,136,8,0.12)',
         border: '1px solid rgba(19,136,8,0.3)', borderRadius: 999,
         padding: `${Math.round(w * 0.022)}px ${Math.round(w * 0.056)}px`,
       }}>ready</div>
@@ -187,7 +187,7 @@ export default function ProjectorLobby({ room }: Props) {
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', isolation: 'isolate' }}>
 
       {/* ── Background ────────────────────────────────────────────── */}
-      <div style={{ position: 'absolute', inset: 0, background: '#07101f', zIndex: 0 }} />
+      <div style={{ position: 'absolute', inset: 0, background: '#08070f', zIndex: 0 }} />
 
       {/* Warm saffron glow from top-centre */}
       <div style={{
@@ -225,7 +225,7 @@ export default function ProjectorLobby({ room }: Props) {
             {/* Left saffron rule */}
             <div style={{
               position: 'absolute', left: 0, top: 4, bottom: 4,
-              width: 2, background: '#FF9933',
+              width: 2, background: '#ee7d23',
             }} />
             <div style={{
               fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500,
@@ -246,7 +246,7 @@ export default function ProjectorLobby({ room }: Props) {
                 fontFamily: 'var(--font-inter),sans-serif',
                 fontSize: 'clamp(8px,0.7vw,10px)', fontWeight: 600,
                 letterSpacing: '0.22em', textTransform: 'uppercase',
-                color: '#FF9933',
+                color: '#ee7d23',
                 border: '1px solid rgba(255,153,51,0.35)',
                 borderRadius: 999, padding: '5px 12px',
               }}>Lobby</span>
@@ -254,7 +254,7 @@ export default function ProjectorLobby({ room }: Props) {
             <div style={{
               fontFamily: 'var(--font-inter),sans-serif', fontWeight: 400,
               fontSize: 'clamp(11px,1.1vw,16px)',
-              lineHeight: 1.35, color: '#FF9933', letterSpacing: '-0.005em',
+              lineHeight: 1.35, color: '#ee7d23', letterSpacing: '-0.005em',
               marginTop: 8, whiteSpace: 'nowrap',
             }}>
               The best answer isn&apos;t always right
@@ -265,7 +265,7 @@ export default function ProjectorLobby({ room }: Props) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 4 }}>
             <div style={{
               width: 8, height: 8, borderRadius: '50%',
-              background: '#138808',
+              background: '#1fa24a',
               animation: 'vkPulseDot 2.4s ease-in-out infinite',
             }} />
             <span style={{
@@ -301,20 +301,20 @@ export default function ProjectorLobby({ room }: Props) {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
               {joinUrl ? (
                 <div style={{
-                  position: 'relative', borderRadius: 12, padding: 10, background: '#faf8f0',
+                  position: 'relative', borderRadius: 12, padding: 10, background: '#fdf8e8',
                   boxShadow: '0 12px 26px rgba(0,0,0,0.4),inset 0 0 0 1px rgba(0,0,0,0.06)',
                 }}>
-                  <QRCodeSVG value={joinUrl} size={qrSize} level="M" bgColor="#faf8f0" />
+                  <QRCodeSVG value={joinUrl} size={qrSize} level="M" bgColor="#fdf8e8" />
                   {/* V·75 badge over QR centre */}
                   <div style={{
                     position: 'absolute', left: '50%', top: '50%',
                     transform: 'translate(-50%,-50%)',
                     width: Math.round(qrSize * 0.26), height: Math.round(qrSize * 0.26),
                     borderRadius: Math.round(qrSize * 0.065),
-                    background: '#FF9933',
+                    background: '#ee7d23',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontFamily: 'var(--font-yatra),var(--font-inter)', fontSize: Math.round(qrSize * 0.115), color: '#15110a',
-                    boxShadow: `0 0 0 3px #faf8f0, 0 4px 10px rgba(0,0,0,0.35)`,
+                    boxShadow: `0 0 0 3px #fdf8e8, 0 4px 10px rgba(0,0,0,0.35)`,
                   }}>V·75</div>
                 </div>
               ) : (
@@ -348,7 +348,7 @@ export default function ProjectorLobby({ room }: Props) {
               }} />
               <span style={{
                 position: 'relative', zIndex: 1,
-                background: '#07101f', padding: '6px 0',
+                background: '#08070f', padding: '6px 0',
                 fontFamily: 'var(--font-inter),sans-serif',
                 fontSize: 'clamp(8px,0.76vw,11px)', fontWeight: 600,
                 letterSpacing: '0.14em', textTransform: 'uppercase',
@@ -370,7 +370,7 @@ export default function ProjectorLobby({ room }: Props) {
                 {letters.map((ch, i) => (
                   <div key={i} style={{
                     width: tileW, height: tileH,
-                    background: '#faf8f0', color: '#15110a',
+                    background: '#fdf8e8', color: '#15110a',
                     borderRadius: 'clamp(8px,0.7vw,14px)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontFamily: 'var(--font-yatra),var(--font-inter)',
@@ -427,7 +427,7 @@ export default function ProjectorLobby({ room }: Props) {
                 }}>
                   <span style={{
                     fontFamily: 'var(--font-yatra),var(--font-inter)',
-                    fontSize: Math.round(seatW * 0.3), color: '#FF9933', lineHeight: 1,
+                    fontSize: Math.round(seatW * 0.3), color: '#ee7d23', lineHeight: 1,
                   }}>+{extraCount}</span>
                   <span style={{
                     fontFamily: 'var(--font-inter),sans-serif',
@@ -445,7 +445,7 @@ export default function ProjectorLobby({ room }: Props) {
               letterSpacing: '0.2em', textTransform: 'uppercase',
               color: 'rgba(250,248,240,0.45)',
             }}>
-              <span style={{ color: '#FF9933' }}>{players.length}</span>
+              <span style={{ color: '#ee7d23' }}>{players.length}</span>
               {' '}{players.length === 1 ? 'player' : 'players'} joined · waiting for host to start
             </div>
           </div>
@@ -473,7 +473,7 @@ export default function ProjectorLobby({ room }: Props) {
                   <span style={{
                     fontFamily: 'var(--font-inter),sans-serif',
                     fontSize: 'clamp(10px,0.9vw,12px)', fontWeight: 700,
-                    letterSpacing: '0.04em', color: '#FF9933',
+                    letterSpacing: '0.04em', color: '#ee7d23',
                   }}>{b.name}</span>
                   <span style={{
                     fontFamily: 'var(--font-inter),sans-serif',
@@ -499,13 +499,13 @@ export default function ProjectorLobby({ room }: Props) {
           }}>
             <div style={{
               width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
-              border: '2px solid rgba(255,153,51,0.25)', borderTopColor: '#FF9933',
+              border: '2px solid rgba(255,153,51,0.25)', borderTopColor: '#ee7d23',
               animation: 'vkSpin 0.9s linear infinite',
             }} />
             <span style={{
               fontFamily: 'var(--font-inter),sans-serif',
               fontSize: 'clamp(12px,1vw,14px)', fontWeight: 500,
-              letterSpacing: '0.04em', color: '#FF9933',
+              letterSpacing: '0.04em', color: '#ee7d23',
             }}>Waiting for the host to deal…</span>
           </div>
         </div>
@@ -534,7 +534,7 @@ export default function ProjectorLobby({ room }: Props) {
             fontFamily: 'var(--font-inter),sans-serif',
             fontSize: 'clamp(8px,0.76vw,10px)', fontWeight: 700,
             letterSpacing: '0.22em', textTransform: 'uppercase',
-            color: '#FF9933',
+            color: '#ee7d23',
             paddingRight: 16, borderRight: '1px solid rgba(250,248,240,0.14)',
           }}>Did you know</span>
           <div style={{ flex: 1, overflow: 'hidden' }}>

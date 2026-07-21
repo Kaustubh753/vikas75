@@ -34,7 +34,7 @@ function RevealCard({ sub, isRevealed }: { sub: Submission; isRevealed: boolean 
           WebkitBackfaceVisibility: 'hidden',
           transform: 'rotateY(180deg)',
         }}>
-          <div className="rounded-2xl shadow-xl overflow-hidden h-full flex flex-col bg-[#0d1b35]">
+          <div className="rounded-2xl shadow-xl overflow-hidden h-full flex flex-col bg-[#08070f]">
             {/* Physical card image — upper portion */}
             <div className="relative flex-1 overflow-hidden min-h-0">
               <Image
@@ -62,7 +62,7 @@ function RevealCard({ sub, isRevealed }: { sub: Submission; isRevealed: boolean 
             </div>
 
             {/* Player info + explanation */}
-            <div className="px-3 py-3 bg-[#0d1b35] flex-shrink-0">
+            <div className="px-3 py-3 bg-[#08070f] flex-shrink-0">
               <div className="flex items-center gap-2 mb-2">
                 <div className="rounded-md overflow-hidden flex-shrink-0">
                   <Avatar id={sub.avatarId} size={26} />
@@ -112,7 +112,7 @@ export default function ProjectorReveal({ room }: Props) {
   }, [revealed, submissions.length]);
 
   return (
-    <div className="w-full h-full bg-[#0d1b35] flex flex-col overflow-hidden">
+    <div className="w-full h-full bg-[#08070f] flex flex-col overflow-hidden">
       <div className="px-10 py-6 border-b border-white/10">
         <h2 className="font-[family-name:var(--font-bebas)] text-white text-4xl tracking-widest text-center">
           Let&apos;s see what everyone played…

@@ -30,7 +30,7 @@ export default function PlayerLobby({ room, playerId }: Props) {
         <p className="text-white/40 text-xs uppercase tracking-widest font-[family-name:var(--font-inter)]">
           Room Code
         </p>
-        <p className="font-[family-name:var(--font-bebas)] text-[#FF9933] text-5xl tracking-[0.2em]">
+        <p className="font-[family-name:var(--font-bebas)] text-[#ee7d23] text-5xl tracking-[0.2em]">
           {room.code}
         </p>
       </div>
@@ -55,7 +55,7 @@ export default function PlayerLobby({ room, playerId }: Props) {
           {[0, 1, 2].map((i) => (
             <span
               key={i}
-              className="w-2 h-2 bg-[#FF9933]/60 rounded-full animate-bounce"
+              className="w-2 h-2 bg-[#ee7d23]/60 rounded-full animate-bounce"
               style={{ animationDelay: `${i * 0.15}s` }}
             />
           ))}
@@ -73,7 +73,7 @@ export default function PlayerLobby({ room, playerId }: Props) {
             return (
             <motion.div
               key={p.id}
-              className={`flex items-center gap-3 rounded-xl px-2 py-1.5 -mx-2 ${isMe ? 'bg-[#FF9933]/8' : ''}`}
+              className={`flex items-center gap-3 rounded-xl px-2 py-1.5 -mx-2 ${isMe ? 'bg-[#ee7d23]/8' : ''}`}
               style={isMe ? { background: 'rgba(255,153,51,0.08)', border: '1px solid rgba(255,153,51,0.18)' } : {}}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -86,10 +86,10 @@ export default function PlayerLobby({ room, playerId }: Props) {
                 {p.name}
               </span>
               {isMe && (
-                <span className="text-[#FF9933]/70 text-[10px] uppercase tracking-widest font-[family-name:var(--font-inter)]">you</span>
+                <span className="text-[#ee7d23]/70 text-[10px] uppercase tracking-widest font-[family-name:var(--font-inter)]">you</span>
               )}
               {p.id === room.hostId && (
-                <span className="text-[#FF9933] text-xs font-bold font-[family-name:var(--font-inter)]">
+                <span className="text-[#ee7d23] text-xs font-bold font-[family-name:var(--font-inter)]">
                   HOST
                 </span>
               )}
@@ -102,7 +102,7 @@ export default function PlayerLobby({ room, playerId }: Props) {
       {/* Share button */}
       <button
         onClick={handleShare}
-        className="flex items-center gap-2 text-[#FF9933] text-sm font-[family-name:var(--font-inter)] font-semibold border border-[#FF9933]/40 rounded-xl px-5 py-2.5 hover:bg-[#FF9933]/10 hover:border-[#FF9933]/70 active:scale-95 transition-all"
+        className="flex items-center gap-2 text-[#ee7d23] text-sm font-[family-name:var(--font-inter)] font-semibold border border-[#ee7d23]/40 rounded-xl px-5 py-2.5 hover:bg-[#ee7d23]/10 hover:border-[#ee7d23]/70 active:scale-95 transition-all"
         style={{ letterSpacing: '0.06em' }}
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>

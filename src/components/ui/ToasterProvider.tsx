@@ -14,7 +14,7 @@ export default function ToasterProvider() {
           fontFamily: 'var(--font-inter)',
           fontSize: '14px',
         },
-        success: { iconTheme: { primary: '#FF9933', secondary: '#fff' } },
+        success: { iconTheme: { primary: '#ee7d23', secondary: '#fff' } },
         error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
       }}
     />

@@ -73,7 +73,7 @@ export default function AvatarPicker({ value, onChange, disabled }: Props) {
           const isHovered = hoveredId === id;
 
           const border = isSelected
-            ? '2px solid #FF9933'
+            ? '2px solid #ee7d23'
             : isHovered
             ? '1.5px solid rgba(255,153,51,0.5)'
             : '1.5px solid rgba(255,255,255,0.1)';
@@ -99,8 +99,8 @@ export default function AvatarPicker({ value, onChange, disabled }: Props) {
                 minWidth: 72,
                 minHeight: 72,
                 background: isRandom
-                  ? 'linear-gradient(135deg, rgba(255,153,51,0.55) 0%, #1a3a6e 70%)'
-                  : '#1a3a6e',
+                  ? 'linear-gradient(135deg, rgba(255,153,51,0.55) 0%, #173458 70%)'
+                  : '#173458',
                 borderRadius: 10,
                 border,
                 boxShadow,
@@ -136,7 +136,7 @@ export default function AvatarPicker({ value, onChange, disabled }: Props) {
                     width: 16,
                     height: 16,
                     borderRadius: '50%',
-                    background: '#FF9933',
+                    background: '#ee7d23',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',

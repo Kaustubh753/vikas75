@@ -101,7 +101,7 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
   return (
     <div style={{
       minHeight: '100dvh', width: '100%',
-      background: '#07101f',
+      background: '#08070f',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       padding: 'clamp(20px, 6vw, 48px) 20px', boxSizing: 'border-box',
     }}>
@@ -115,7 +115,7 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
             fontSize: 'clamp(36px, 11vw, 56px)', lineHeight: 0.95, color: '#fff', margin: 0,
           }}>Vikas 75</h1>
           <p style={{
-            fontFamily: 'var(--font-inter),sans-serif', fontSize: 14, color: '#FF9933',
+            fontFamily: 'var(--font-inter),sans-serif', fontSize: 14, color: '#ee7d23',
             marginTop: 8, letterSpacing: '0.02em',
           }}>Join the game</p>
         </div>
@@ -137,7 +137,7 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
             value={name}
             onChange={e => setName(e.target.value)}
             maxLength={20} autoComplete="off"
-            onFocus={e => (e.target.style.borderColor = '#FF9933')}
+            onFocus={e => (e.target.style.borderColor = '#ee7d23')}
             onBlur={e => (e.target.style.borderColor = 'rgba(250,248,240,.14)')}
           />
 
@@ -153,7 +153,7 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
                 <input
                   key={i}
                   ref={el => { slotsRef.current[i] = el; }}
-                  style={{ ...baseSlot, borderColor: code[i] ? '#FF9933' : 'rgba(250,248,240,.14)' }}
+                  style={{ ...baseSlot, borderColor: code[i] ? '#ee7d23' : 'rgba(250,248,240,.14)' }}
                   value={code[i] ?? ''}
                   maxLength={1} inputMode="text"
                   aria-label={`Room code character ${i + 1}`}
@@ -177,8 +177,8 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
                   onKeyDown={e => {
                     if (e.key === 'Backspace' && !code[i] && i > 0) slotsRef.current[i - 1]?.focus();
                   }}
-                  onFocus={e => (e.target.style.borderColor = '#FF9933')}
-                  onBlur={e => (e.target.style.borderColor = code[i] ? '#FF9933' : 'rgba(250,248,240,.14)')}
+                  onFocus={e => (e.target.style.borderColor = '#ee7d23')}
+                  onBlur={e => (e.target.style.borderColor = code[i] ? '#ee7d23' : 'rgba(250,248,240,.14)')}
                 />
               ))}
             </div>
@@ -187,15 +187,15 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
           <AvatarPicker value={avatarId} onChange={setAvatarId} disabled={loading} />
 
           {error && <div style={{ color: '#f87171', fontSize: 13, fontFamily: 'var(--font-inter),sans-serif' }}>{error}</div>}
-          {waiting && <div style={{ color: '#FF9933', fontSize: 13, fontFamily: 'var(--font-inter),sans-serif' }}>A round is in progress — you&apos;ll join automatically when it ends…</div>}
+          {waiting && <div style={{ color: '#ee7d23', fontSize: 13, fontFamily: 'var(--font-inter),sans-serif' }}>A round is in progress — you&apos;ll join automatically when it ends…</div>}
 
           <button
             type="submit"
             disabled={loading || !name.trim() || code.length !== 4}
             style={{
               height: 52, padding: '0 18px',
-              background: '#FF9933', color: '#1a1208',
-              border: '1.5px solid #FF9933', borderRadius: 6,
+              background: '#ee7d23', color: '#1a1208',
+              border: '1.5px solid #ee7d23', borderRadius: 6,
               fontFamily: 'var(--font-inter),sans-serif', fontWeight: 600,
               fontSize: 13, letterSpacing: '0.18em', textTransform: 'uppercase',
               cursor: 'pointer', opacity: (loading || !name.trim() || code.length !== 4) ? 0.45 : 1,
