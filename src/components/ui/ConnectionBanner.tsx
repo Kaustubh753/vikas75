@@ -24,7 +24,7 @@ export default function ConnectionBanner() {
   if (state === 'connected') return null;
   // In-flow (not fixed) so it pushes the page header down instead of overlapping it.
   return (
-    <div className="w-full bg-yellow-500 text-[#173458] text-xs font-bold text-center py-2">
+    <div className="w-full bg-yellow-500 text-[#1a3a6e] text-xs font-bold text-center py-2">
       {state === 'connecting' ? '↻ Reconnecting…' : '⚠ Connection lost'}
     </div>
   );

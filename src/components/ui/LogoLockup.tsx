@@ -20,7 +20,7 @@ export default function LogoLockup({ size = 'md', className = '' }: Props) {
       style={{ display: 'inline-flex', flexDirection: 'column', position: 'relative', paddingLeft: s.padLeft, alignItems: 'stretch' }}
     >
       {/* Saffron left bar */}
-      <div style={{ position: 'absolute', left: 0, top: s.barInset, bottom: s.barInset, width: 2, background: '#ee7d23', borderRadius: 1 }} />
+      <div style={{ position: 'absolute', left: 0, top: s.barInset, bottom: s.barInset, width: 2, background: '#FF9933', borderRadius: 1 }} />
 
       {/* Attribution */}
       <p style={{
@@ -57,7 +57,7 @@ export default function LogoLockup({ size = 'md', className = '' }: Props) {
         fontWeight: 400,
         fontSize: s.tagline,
         lineHeight: 1.35,
-        color: '#ee7d23',
+        color: '#FF9933',
         letterSpacing: '-0.005em',
         marginTop: s.spacing,
         whiteSpace: 'nowrap',

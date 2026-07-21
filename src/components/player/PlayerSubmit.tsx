@@ -33,7 +33,7 @@ function TimerBar({ total, endsAt }: { total: number; endsAt: number }) {
     <div className="relative h-6 bg-white/10 overflow-hidden">
       <motion.div
         className="absolute left-0 top-0 h-full w-full"
-        style={{ backgroundColor: urgent ? '#ef4444' : '#ee7d23', transformOrigin: '0 50%' }}
+        style={{ backgroundColor: urgent ? '#ef4444' : '#FF9933', transformOrigin: '0 50%' }}
         animate={{
           scaleX: frac,
           boxShadow: urgent ? '0 0 8px 3px rgba(239,68,68,0.7)' : 'none',
@@ -166,7 +166,7 @@ export default function PlayerSubmit({
 
         {/* Card image only — no duplicate name/text */}
         <div
-          className="rounded-2xl overflow-hidden border-2 border-[#ee7d23]/60 shadow-xl"
+          className="rounded-2xl overflow-hidden border-2 border-[#FF9933]/60 shadow-xl"
           style={{ width: CARD_W, height: CARD_H, position: 'relative', flexShrink: 0 }}
         >
           <Image
@@ -183,7 +183,7 @@ export default function PlayerSubmit({
 
         {/* Explanation is not in the image — keep it */}
         <div className="w-full max-w-xs bg-white/5 border border-white/10 rounded-xl px-4 py-3">
-          <p className="text-[#ee7d23] text-xs uppercase tracking-widest mb-1 font-[family-name:var(--font-inter)]">Your answer</p>
+          <p className="text-[#FF9933] text-xs uppercase tracking-widest mb-1 font-[family-name:var(--font-inter)]">Your answer</p>
           <p className="text-white/80 text-sm italic font-[family-name:var(--font-inter)] leading-relaxed">
             &ldquo;{submittedExplanation}&rdquo;
           </p>
@@ -230,7 +230,7 @@ export default function PlayerSubmit({
               />
             </div>
             <div className="py-3 pr-3 flex flex-col justify-center">
-              <p className="text-[#ee7d23] uppercase mb-1 font-[family-name:var(--font-inter)]"
+              <p className="text-[#FF9933] uppercase mb-1 font-[family-name:var(--font-inter)]"
                  style={{ fontSize: 10, letterSpacing: '0.08em', fontWeight: 600 }}>
                 Challenge
               </p>
@@ -269,7 +269,7 @@ export default function PlayerSubmit({
                   aria-label={`Select scheme ${card.name}`}
                   aria-pressed={isSelected}
                   className={`relative cursor-pointer flex-shrink-0 rounded-xl overflow-hidden ${
-                    isSelected ? 'border-2 border-[#ee7d23]' : 'border border-white/10'
+                    isSelected ? 'border-2 border-[#FF9933]' : 'border border-white/10'
                   }`}
                   style={{
                     width: CARD_W,
@@ -295,7 +295,7 @@ export default function PlayerSubmit({
                     blurDataURL={BLUR_CREAM}
                   />
                   {isSelected && (
-                    <div className="absolute top-2 right-2 w-6 h-6 bg-[#ee7d23] rounded-full flex items-center justify-center shadow-lg z-10"
+                    <div className="absolute top-2 right-2 w-6 h-6 bg-[#FF9933] rounded-full flex items-center justify-center shadow-lg z-10"
                          style={{ fontSize: 13, color: '#fff', fontWeight: 700 }}>
                       ✓
                     </div>
@@ -313,11 +313,11 @@ export default function PlayerSubmit({
             className="w-full disabled:opacity-40 disabled:cursor-not-allowed text-white font-[family-name:var(--font-bebas)] tracking-widest rounded-xl"
             style={{
               height: 56,
-              backgroundColor: '#ee7d23',
-              boxShadow: selected ? '0 4px 0 #b25a12' : 'none',
+              backgroundColor: '#FF9933',
+              boxShadow: selected ? '0 4px 0 #cc7a00' : 'none',
               fontSize: 22,
             }}
-            whileTap={selected ? { y: 4, boxShadow: '0 0 0 #b25a12' } : {}}
+            whileTap={selected ? { y: 4, boxShadow: '0 0 0 #cc7a00' } : {}}
           >
             {selected ? `Play ${selected.name} →` : 'Select a Card First'}
           </motion.button>
@@ -343,7 +343,7 @@ export default function PlayerSubmit({
       {selected && (
         <div className="flex flex-col items-center gap-1.5">
           <div
-            className="rounded-2xl overflow-hidden border-2 border-[#ee7d23] shadow-xl"
+            className="rounded-2xl overflow-hidden border-2 border-[#FF9933] shadow-xl"
             style={{ width: CARD_W, height: CARD_H, position: 'relative', flexShrink: 0 }}
           >
             <Image
@@ -392,7 +392,7 @@ export default function PlayerSubmit({
           }}
           placeholder="Why does your scheme solve this challenge? (25 words max)"
           rows={4}
-          className="w-full rounded-xl border-2 border-white/20 bg-white/5 text-white px-4 py-3 text-sm focus:outline-none focus:border-[#ee7d23] focus:ring-2 focus:ring-[#ee7d23]/40 placeholder-white/30 resize-none transition-all font-[family-name:var(--font-inter)]"
+          className="w-full rounded-xl border-2 border-white/20 bg-white/5 text-white px-4 py-3 text-sm focus:outline-none focus:border-[#FF9933] focus:ring-2 focus:ring-[#FF9933]/40 placeholder-white/30 resize-none transition-all font-[family-name:var(--font-inter)]"
         />
         <p className="text-white/50 text-xs mt-1 font-[family-name:var(--font-inter)]">
           Tip: End with exactly one sentence (. ! or ?) to earn a bonus point!
@@ -405,12 +405,12 @@ export default function PlayerSubmit({
         className="w-full disabled:opacity-40 disabled:cursor-not-allowed text-white font-[family-name:var(--font-inter)] uppercase tracking-widest rounded-xl"
         style={{
           height: 48,
-          backgroundColor: '#ee7d23',
-          boxShadow: '0 4px 0 #b25a12',
+          backgroundColor: '#FF9933',
+          boxShadow: '0 4px 0 #cc7a00',
           fontSize: 16,
           fontWeight: 600,
         }}
-        whileTap={{ y: 4, boxShadow: '0 0 0 #b25a12' }}
+        whileTap={{ y: 4, boxShadow: '0 0 0 #cc7a00' }}
       >
         {loading || throwing ? 'Throwing…' : 'Throw Your Card ↑'}
       </motion.button>
@@ -418,7 +418,7 @@ export default function PlayerSubmit({
       <button
         onClick={() => setStep('select')}
         disabled={loading || throwing}
-        className="w-full text-[#ee7d23]/60 text-sm text-center font-[family-name:var(--font-inter)] border border-[#ee7d23]/20 rounded-xl py-3 hover:text-[#ee7d23] hover:border-[#ee7d23]/50 hover:bg-[#ee7d23]/5 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+        className="w-full text-[#FF9933]/60 text-sm text-center font-[family-name:var(--font-inter)] border border-[#FF9933]/20 rounded-xl py-3 hover:text-[#FF9933] hover:border-[#FF9933]/50 hover:bg-[#FF9933]/5 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         style={{ letterSpacing: '0.04em' }}
       >
         ← Change card

@@ -34,7 +34,7 @@ export default function EmotePanel({ onEmote }: Props) {
   return (
     <div className="fixed bottom-20 right-4 z-40 flex flex-col items-end gap-2" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       {open && (
-        <div className="bg-[#08070f]/95 border border-white/20 rounded-2xl p-3 grid grid-cols-2 gap-2 shadow-xl animate-bounce-in">
+        <div className="bg-[#0d1b35]/95 border border-white/20 rounded-2xl p-3 grid grid-cols-2 gap-2 shadow-xl animate-bounce-in">
           {EMOTE_IDS.map((id) => {
             const e = EMOTES[id];
             return (
@@ -63,7 +63,7 @@ export default function EmotePanel({ onEmote }: Props) {
 
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-12 h-12 rounded-full bg-[#ee7d23] hover:bg-[#cf6a18] flex items-center justify-center text-2xl shadow-lg transition-all active:scale-95"
+        className="w-12 h-12 rounded-full bg-[#FF9933] hover:bg-[#e8872a] flex items-center justify-center text-2xl shadow-lg transition-all active:scale-95"
         aria-label="Emotes"
       >
         {open ? '✕' : '😄'}

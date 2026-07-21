@@ -33,7 +33,7 @@ export default function ChatPanel({ messages, onSend, playerId }: Props) {
     <div className="fixed bottom-20 left-4 z-40" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       {open && (
         <div
-          className="absolute bottom-14 left-0 bg-[#08070f]/95 border border-white/20 rounded-2xl shadow-xl flex flex-col animate-bounce-in overflow-hidden"
+          className="absolute bottom-14 left-0 bg-[#0d1b35]/95 border border-white/20 rounded-2xl shadow-xl flex flex-col animate-bounce-in overflow-hidden"
           style={{ width: 'clamp(200px, calc(100vw - 80px), 260px)' }}
         >
           <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
@@ -67,7 +67,7 @@ export default function ChatPanel({ messages, onSend, playerId }: Props) {
                   <div
                     className={`text-xs rounded-xl px-3 py-2 font-[family-name:var(--font-inter)] ${
                       msg.playerId === playerId
-                        ? 'bg-[#ee7d23]/20 text-white'
+                        ? 'bg-[#FF9933]/20 text-white'
                         : 'bg-white/10 text-white/80'
                     }`}
                   >
@@ -86,12 +86,12 @@ export default function ChatPanel({ messages, onSend, playerId }: Props) {
               onChange={(e) => setText(e.target.value.slice(0, MAX_CHARS))}
               placeholder="Say something…"
               aria-label="Chat message"
-              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-[#ee7d23] placeholder-white/30 font-[family-name:var(--font-inter)]"
+              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-[#FF9933] placeholder-white/30 font-[family-name:var(--font-inter)]"
             />
             <button
               type="submit"
               disabled={!text.trim()}
-              className="w-9 h-9 bg-[#ee7d23] hover:bg-[#cf6a18] disabled:opacity-40 rounded-lg flex items-center justify-center text-white flex-shrink-0 transition-all"
+              className="w-9 h-9 bg-[#FF9933] hover:bg-[#e8872a] disabled:opacity-40 rounded-lg flex items-center justify-center text-white flex-shrink-0 transition-all"
             >
               ↑
             </button>
