@@ -18,7 +18,7 @@ function TimerRing({ total, remaining }: { total: number; remaining: number }) {
         <circle cx="50" cy="50" r={r} fill="none" stroke="white" strokeOpacity="0.15" strokeWidth="6" />
         <circle
           cx="50" cy="50" r={r} fill="none"
-          stroke={urgent ? '#ef4444' : '#ee7d23'}
+          stroke={urgent ? '#ef4444' : '#FF9933'}
           strokeWidth="6"
           strokeDasharray={circ}
           strokeDashoffset={circ * (1 - frac)}
@@ -70,7 +70,7 @@ export default function ProjectorSubmission({ room }: Props) {
       {/* Header */}
       <div className="px-10 pt-6 pb-4 flex items-center justify-between border-b border-white/10 gap-6">
         {challenge && (
-          <div className="bg-[#173458] rounded-2xl flex-1 min-w-0" style={{ padding: 'clamp(12px, 1.2vw, 20px) clamp(16px, 1.5vw, 28px)' }}>
+          <div className="bg-[#1a3a6e] rounded-2xl flex-1 min-w-0" style={{ padding: 'clamp(12px, 1.2vw, 20px) clamp(16px, 1.5vw, 28px)' }}>
             <p className="text-white/50 uppercase tracking-widest font-[family-name:var(--font-inter)]"
                style={{ fontSize: 'clamp(9px, 0.65vw, 11px)', marginBottom: 4 }}>
               Problem Statement
@@ -83,7 +83,7 @@ export default function ProjectorSubmission({ room }: Props) {
         )}
         <div className="flex items-center gap-6 flex-shrink-0">
           <div className="text-center">
-            <p className="font-[family-name:var(--font-bebas)] text-[#ee7d23]" style={{ fontSize: 'clamp(28px, 3.5vw, 56px)', lineHeight: 1 }}>
+            <p className="font-[family-name:var(--font-bebas)] text-[#FF9933]" style={{ fontSize: 'clamp(28px, 3.5vw, 56px)', lineHeight: 1 }}>
               <CountUp value={submittedCount} />/{n}
             </p>
             <p className="text-white/40 uppercase tracking-widest font-[family-name:var(--font-inter)]"
@@ -109,7 +109,7 @@ export default function ProjectorSubmission({ room }: Props) {
                 key={p.id}
                 className={`rounded-2xl border-2 flex flex-col items-center gap-3 transition-all duration-500 ${
                   submitted
-                    ? 'border-[#1fa24a] bg-[#1fa24a]/10'
+                    ? 'border-[#138808] bg-[#138808]/10'
                     : online
                     ? 'border-white/10 bg-white/5'
                     : 'border-white/5 bg-white/[0.02]'
@@ -123,7 +123,7 @@ export default function ProjectorSubmission({ room }: Props) {
                     style={{
                       width: Math.max(10, avatarSize * 0.18),
                       height: Math.max(10, avatarSize * 0.18),
-                      background: online ? '#1fa24a' : 'rgba(255,255,255,0.2)',
+                      background: online ? '#22c55e' : 'rgba(255,255,255,0.2)',
                     }}
                   />
                 </div>
@@ -132,7 +132,7 @@ export default function ProjectorSubmission({ room }: Props) {
                   {p.name}
                 </p>
                 {submitted ? (
-                  <span className="text-[#1fa24a]" style={{ fontSize: 'clamp(18px, 2vw, 28px)' }}>✓</span>
+                  <span className="text-[#138808]" style={{ fontSize: 'clamp(18px, 2vw, 28px)' }}>✓</span>
                 ) : online ? (
                   <span className="text-white/25 uppercase tracking-wider font-[family-name:var(--font-inter)]"
                         style={{ fontSize: 'clamp(9px, 0.7vw, 11px)' }}>Thinking…</span>

@@ -53,7 +53,7 @@ export default function AdminPage() {
               value={user}
               onChange={(e) => setUser(e.target.value)}
               autoComplete="username"
-              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white font-[family-name:var(--font-inter)] focus:outline-none focus:border-[#ee7d23]/60"
+              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white font-[family-name:var(--font-inter)] focus:outline-none focus:border-[#FF9933]/60"
             />
           </div>
           <div>
@@ -66,7 +66,7 @@ export default function AdminPage() {
               value={pass}
               onChange={(e) => setPass(e.target.value)}
               autoComplete="current-password"
-              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white font-[family-name:var(--font-inter)] focus:outline-none focus:border-[#ee7d23]/60"
+              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white font-[family-name:var(--font-inter)] focus:outline-none focus:border-[#FF9933]/60"
             />
           </div>
 
@@ -77,7 +77,7 @@ export default function AdminPage() {
           <button
             type="submit"
             disabled={loading || !user || !pass}
-            className="w-full h-12 bg-[#ee7d23] hover:bg-[#cf6a18] disabled:opacity-40 text-white font-[family-name:var(--font-bebas)] text-xl tracking-widest rounded-xl transition-all active:scale-95"
+            className="w-full h-12 bg-[#FF9933] hover:bg-[#e8872a] disabled:opacity-40 text-white font-[family-name:var(--font-bebas)] text-xl tracking-widest rounded-xl transition-all active:scale-95"
           >
             {loading ? 'Logging in…' : 'Login →'}
           </button>

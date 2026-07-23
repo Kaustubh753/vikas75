@@ -43,15 +43,15 @@ export default function ProjectorGameOver({ room }: Props) {
 
       {/* Tricolour top bar */}
       <div className="absolute top-0 left-0 right-0 h-1.5 flex">
-        <div className="flex-1 bg-[#ee7d23]" />
+        <div className="flex-1 bg-[#FF9933]" />
         <div className="flex-1 bg-white/20" />
-        <div className="flex-1 bg-[#1fa24a]" />
+        <div className="flex-1 bg-[#138808]" />
       </div>
 
       <LogoLockup size="md" className="mt-4" />
 
       <div className="text-center animate-bounce-in">
-        <p className="font-[family-name:var(--font-bebas)] text-[#ee7d23] text-3xl tracking-[0.4em] mb-1">
+        <p className="font-[family-name:var(--font-bebas)] text-[#FF9933] text-3xl tracking-[0.4em] mb-1">
           GAME OVER
         </p>
         <h1 className="font-[family-name:var(--font-bebas)] text-white leading-none tracking-widest"

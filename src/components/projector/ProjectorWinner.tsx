@@ -59,7 +59,7 @@ export default function ProjectorWinner({ room }: Props) {
            style={{ fontSize: 'clamp(14px,1.4vw,20px)', maxWidth: '40ch' }}>
           {verdict.reasoning}
         </p>
-        <p className="font-[family-name:var(--font-bebas)] text-[#ee7d23] tracking-[0.4em] uppercase"
+        <p className="font-[family-name:var(--font-bebas)] text-[#FF9933] tracking-[0.4em] uppercase"
            style={{ fontSize: 'clamp(16px,1.8vw,24px)' }}>
           Round {room.round}
         </p>
@@ -76,7 +76,7 @@ export default function ProjectorWinner({ room }: Props) {
         <div className="flex flex-col items-center gap-6 animate-fade-in">
           <div className="flex gap-2 mb-2">
             {[0,1,2].map(i => (
-              <div key={i} className="w-4 h-4 rounded-full bg-[#ee7d23] animate-bounce" style={{ animationDelay: `${i*0.2}s` }} />
+              <div key={i} className="w-4 h-4 rounded-full bg-[#FF9933] animate-bounce" style={{ animationDelay: `${i*0.2}s` }} />
             ))}
           </div>
           <h2 className="font-[family-name:var(--font-bebas)] text-white/60 text-3xl tracking-[0.5em] uppercase">
@@ -91,7 +91,7 @@ export default function ProjectorWinner({ room }: Props) {
       {/* Stage 1: winner reveal */}
       {stage === 1 && (
         <motion.div className="flex flex-col items-center gap-6" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 200, damping: 10 }}>
-          <p className="font-[family-name:var(--font-bebas)] text-[#ee7d23] text-2xl tracking-[0.5em]">
+          <p className="font-[family-name:var(--font-bebas)] text-[#FF9933] text-2xl tracking-[0.5em]">
             ROUND {room.round} WINNER
           </p>
           <div
@@ -104,7 +104,7 @@ export default function ProjectorWinner({ room }: Props) {
               style={{ fontSize: '80px' }}>
             {verdict.winnerName}
           </h1>
-          <div className="bg-[#173458] rounded-2xl px-8 py-4 max-w-2xl text-center">
+          <div className="bg-[#1a3a6e] rounded-2xl px-8 py-4 max-w-2xl text-center">
             <p className="font-[family-name:var(--font-bebas)] text-white text-2xl tracking-wide mb-2">
               {verdict.schemeCard.name}
             </p>
@@ -146,7 +146,7 @@ export default function ProjectorWinner({ room }: Props) {
                   <p className="text-white/50 text-xs font-[family-name:var(--font-inter)]">{r.schemeCard.name}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-[family-name:var(--font-bebas)] text-[#ee7d23] text-xl">{r.judgeScore}/10</p>
+                  <p className="font-[family-name:var(--font-bebas)] text-[#FF9933] text-xl">{r.judgeScore}/10</p>
                   <p className="text-white/40 text-xs font-[family-name:var(--font-inter)] italic truncate max-w-[200px]">{r.judgeComment}</p>
                 </div>
                 {r.bonusPoint && (

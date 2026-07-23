@@ -57,7 +57,7 @@ export default function ProjectorBetweenRounds({ room }: Props) {
             </p>
           </div>
           <blockquote
-            className="text-white/85 italic font-[family-name:var(--font-inter)] leading-relaxed border-l-4 border-[#ee7d23] pl-5 text-left"
+            className="text-white/85 italic font-[family-name:var(--font-inter)] leading-relaxed border-l-4 border-[#FF9933] pl-5 text-left"
             style={{ fontSize: 'clamp(14px, 1.4vw, 22px)', maxWidth: 'clamp(400px, 50vw, 800px)' }}
           >
             &ldquo;{room.lastVerdict.explanation}&rdquo;

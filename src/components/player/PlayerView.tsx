@@ -38,8 +38,8 @@ const PHASE_BG: Record<string, string> = {
 type OverlayInfo = { text: string; color: string; initial: { y?: number; x?: number; scale?: number } };
 
 function getOverlay(phase: string, round: number): OverlayInfo | null {
-  if (phase === 'challenge-reveal') return { text: `ROUND ${round}`, color: '#ee7d23', initial: { y: -60, scale: 1.2 } };
-  if (phase === 'submission') return { text: 'ALL IN', color: '#ee7d23', initial: { y: 60, scale: 1 } };
+  if (phase === 'challenge-reveal') return { text: `ROUND ${round}`, color: '#FF9933', initial: { y: -60, scale: 1.2 } };
+  if (phase === 'submission') return { text: 'ALL IN', color: '#FF9933', initial: { y: 60, scale: 1 } };
   if (phase === 'reveal') return { text: "TIME'S UP", color: '#ef4444', initial: { x: 80, scale: 1 } };
   return null;
 }
@@ -490,7 +490,7 @@ export default function PlayerView({ code }: Props) {
         const iWon = verdict.winnerId === playerId;
         return (
           <div className="flex flex-col items-center justify-center gap-4 min-h-[60vh] px-6 text-center animate-fade-in">
-            <p className="font-[family-name:var(--font-bebas)] text-[#ee7d23] text-lg tracking-[0.4em] uppercase">
+            <p className="font-[family-name:var(--font-bebas)] text-[#FF9933] text-lg tracking-[0.4em] uppercase">
               Round {room.round} Winner
             </p>
             <div className="rounded-2xl overflow-hidden border-2 border-[#FFD700]/60 shadow-[0_0_40px_#FFD70040]">
@@ -507,7 +507,7 @@ export default function PlayerView({ code }: Props) {
                 &ldquo;{verdict.explanation}&rdquo;
               </p>
             </div>
-            <p className={`font-[family-name:var(--font-inter)] text-sm font-semibold ${iWon ? 'text-[#1fa24a]' : 'text-white/50'}`}>
+            <p className={`font-[family-name:var(--font-inter)] text-sm font-semibold ${iWon ? 'text-[#138808]' : 'text-white/50'}`}>
               {iWon ? '🎉 You won this round!' : 'Better luck next round!'}
             </p>
           </div>
@@ -525,7 +525,7 @@ export default function PlayerView({ code }: Props) {
             </p>
             <button
               onClick={() => clearSessionAndGoHome()}
-              className="mt-4 px-8 h-14 bg-[#ee7d23] hover:bg-[#cf6a18] text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95"
+              className="mt-4 px-8 h-14 bg-[#FF9933] hover:bg-[#e8872a] text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95"
             >
               Play Again →
             </button>

@@ -43,8 +43,8 @@ const PHASE_TRANSITIONS: Partial<Record<string, string>> = {
 type OverlayInfo = { text: string; color: string; initial: { y?: number; x?: number; scale?: number } };
 
 function getOverlay(phase: string, round: number): OverlayInfo | null {
-  if (phase === 'challenge-reveal') return { text: `ROUND ${round}`, color: '#ee7d23', initial: { y: -80, scale: 1.3 } };
-  if (phase === 'submission') return { text: 'ALL IN', color: '#ee7d23', initial: { y: 80, scale: 1 } };
+  if (phase === 'challenge-reveal') return { text: `ROUND ${round}`, color: '#FF9933', initial: { y: -80, scale: 1.3 } };
+  if (phase === 'submission') return { text: 'ALL IN', color: '#FF9933', initial: { y: 80, scale: 1 } };
   if (phase === 'reveal') return { text: "TIME'S UP", color: '#ef4444', initial: { x: 120, scale: 1 } };
   return null;
 }

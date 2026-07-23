@@ -56,7 +56,7 @@ export default function HowToPlayPage() {
 
       <button
         onClick={() => router.push('/')}
-        className="h-14 px-10 bg-[#ee7d23] hover:bg-[#cf6a18] text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95"
+        className="h-14 px-10 bg-[#FF9933] hover:bg-[#e8872a] text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95"
       >
         Let&apos;s Play →
       </button>

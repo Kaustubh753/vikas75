@@ -81,9 +81,9 @@ export default function CodeInput({ value, onChange, disabled }: Props) {
           disabled={disabled}
           aria-label={`Room code letter ${i + 1} of 4`}
           className={`w-14 h-16 text-center text-2xl font-bold rounded-xl border-2 transition-all caret-transparent select-none
-            focus:outline-none focus:ring-2 focus:ring-[#ee7d23]/60 disabled:opacity-40
+            focus:outline-none focus:ring-2 focus:ring-[#FF9933]/60 disabled:opacity-40
             font-[family-name:var(--font-bebas)] tracking-widest
-            ${char ? 'border-[#ee7d23] bg-[#ee7d23]/10 text-[#ee7d23]' : 'border-white/20 bg-white/5 text-white'}`}
+            ${char ? 'border-[#FF9933] bg-[#FF9933]/10 text-[#FF9933]' : 'border-white/20 bg-white/5 text-white'}`}
         />
       ))}
     </div>

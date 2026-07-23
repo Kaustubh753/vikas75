@@ -272,7 +272,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
     borderRadius: 8,
     background: hovered ? 'rgba(255,153,51,0.18)' : 'rgba(255,255,255,0.06)',
     border: `1px solid ${hovered ? 'rgba(255,153,51,0.5)' : 'rgba(255,255,255,0.10)'}`,
-    color: hovered ? '#ee7d23' : 'rgba(255,255,255,0.6)',
+    color: hovered ? '#FF9933' : 'rgba(255,255,255,0.6)',
     fontSize: isNarrow ? 15 : 18,
     cursor: 'pointer',
     display: 'flex',
@@ -303,7 +303,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
               <span style={{
                 fontFamily: 'var(--font-bebas)',
                 fontSize: 18,
-                color: '#ee7d23',
+                color: '#FF9933',
                 lineHeight: 1,
               }}>
                 {rounds}
@@ -322,7 +322,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
               onPointerUp={handleSettingsSave}
               onKeyUp={handleSettingsSave}
               aria-label="Number of rounds"
-              style={{ width: '100%', accentColor: '#ee7d23', cursor: 'pointer' }}
+              style={{ width: '100%', accentColor: '#FF9933', cursor: 'pointer' }}
             />
           </div>
 
@@ -342,7 +342,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
               <span style={{
                 fontFamily: 'var(--font-bebas)',
                 fontSize: 18,
-                color: '#ee7d23',
+                color: '#FF9933',
                 lineHeight: 1,
               }}>
                 {timer}s
@@ -362,7 +362,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
               onPointerUp={handleSettingsSave}
               onKeyUp={handleSettingsSave}
               aria-label="Timer duration in seconds"
-              style={{ width: '100%', accentColor: '#ee7d23', cursor: 'pointer' }}
+              style={{ width: '100%', accentColor: '#FF9933', cursor: 'pointer' }}
             />
           </div>
         </div>
@@ -436,7 +436,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
               fontFamily: 'var(--font-inter)',
               fontSize: 10,
               fontWeight: 700,
-              color: '#ee7d23',
+              color: '#FF9933',
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
               flexShrink: 0,
@@ -466,7 +466,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
                 letterSpacing: '0.04em',
               }}>
                 Round{' '}
-                <span style={{ color: '#ee7d23' }}>{room.round}</span>
+                <span style={{ color: '#FF9933' }}>{room.round}</span>
                 /{room.totalRounds}
               </span>
             )}
@@ -502,7 +502,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
                 width: 8,
                 height: 8,
                 borderRadius: '50%',
-                background: '#ee7d23',
+                background: '#FF9933',
                 display: 'inline-block',
                 animation: 'hostOverlayPulse 1.2s ease-in-out infinite',
               }} />
@@ -529,7 +529,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
                 paddingLeft: isNarrow ? 14 : 28,
                 paddingRight: isNarrow ? 14 : 28,
                 borderRadius: 22,
-                background: advanceHover && !isDisabled ? '#cf6a18' : '#ee7d23',
+                background: advanceHover && !isDisabled ? '#e8872a' : '#FF9933',
                 border: 'none',
                 color: '#08070f',
                 fontFamily: 'var(--font-bebas)',
@@ -642,7 +642,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
           borderRadius: 18,
           background: expandHover ? 'rgba(255,153,51,0.22)' : 'rgba(7,16,31,0.92)',
           border: '1px solid rgba(255,153,51,0.45)',
-          color: '#ee7d23',
+          color: '#FF9933',
           fontFamily: 'var(--font-bebas)',
           fontSize: 14,
           letterSpacing: '0.1em',

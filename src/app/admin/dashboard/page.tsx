@@ -98,7 +98,7 @@ export default function AdminDashboard() {
           </h1>
           <button
             onClick={fetchRooms}
-            className="text-[#ee7d23] text-sm font-[family-name:var(--font-inter)] hover:underline"
+            className="text-[#FF9933] text-sm font-[family-name:var(--font-inter)] hover:underline"
           >
             Refresh
           </button>
@@ -122,7 +122,7 @@ export default function AdminDashboard() {
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <div className="flex items-center gap-3 mb-1">
-                        <span className="font-[family-name:var(--font-bebas)] text-[#ee7d23] text-3xl tracking-widest">
+                        <span className="font-[family-name:var(--font-bebas)] text-[#FF9933] text-3xl tracking-widest">
                           {room.code}
                         </span>
                         <span className="bg-white/10 text-white/60 text-xs px-2 py-0.5 rounded-full font-[family-name:var(--font-inter)]">
@@ -138,7 +138,7 @@ export default function AdminDashboard() {
                         href={`/projector/${room.code}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-[#ee7d23] hover:underline font-[family-name:var(--font-inter)]"
+                        className="text-xs text-[#FF9933] hover:underline font-[family-name:var(--font-inter)]"
                       >
                         Projector →
                       </a>
@@ -168,7 +168,7 @@ export default function AdminDashboard() {
                             <span className="text-white/70 text-xs font-[family-name:var(--font-inter)]">
                               {p.name}
                             </span>
-                            <span className="text-[#ee7d23] text-xs font-bold font-[family-name:var(--font-inter)]">
+                            <span className="text-[#FF9933] text-xs font-bold font-[family-name:var(--font-inter)]">
                               {p.score}
                             </span>
                           </div>

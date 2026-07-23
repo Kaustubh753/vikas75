@@ -15,7 +15,7 @@ function TimerBar({ total, remaining }: { total: number; remaining: number }) {
     <div className="absolute top-0 left-0 right-0 z-30 h-8 bg-white/10 overflow-hidden">
       <motion.div
         className="absolute left-0 top-0 h-full w-full"
-        style={{ backgroundColor: urgent ? '#ef4444' : '#ee7d23', transformOrigin: '0 50%' }}
+        style={{ backgroundColor: urgent ? '#ef4444' : '#FF9933', transformOrigin: '0 50%' }}
         animate={{
           scaleX: frac,
           boxShadow: urgent ? '0 0 16px 6px rgba(239,68,68,0.7)' : 'none',
@@ -35,7 +35,7 @@ function TimerBar({ total, remaining }: { total: number; remaining: number }) {
 function AwaitingSubmissionBanner() {
   return (
     <div className="absolute top-0 left-0 right-0 z-30 h-8 bg-white/10 flex items-center justify-center gap-2">
-      <span className="w-2 h-2 rounded-full bg-[#ee7d23] animate-pulse" />
+      <span className="w-2 h-2 rounded-full bg-[#FF9933] animate-pulse" />
       <span className="font-[family-name:var(--font-inter)] text-white/60 font-medium"
             style={{ fontSize: 13, letterSpacing: '0.06em' }}>
         SUBMISSIONS OPEN WHEN HOST ADVANCES

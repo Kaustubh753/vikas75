@@ -21,8 +21,8 @@ interface Props {
 const C = {
   bg:      '#08070f',
   panel:   'rgba(5,11,28,0.92)',
-  saffron: '#ee7d23',
-  white:   '#fdf8e8',
+  saffron: '#FF9933',
+  white:   '#faf8f0',
   w70:     'rgba(250,248,240,0.70)',
   w40:     'rgba(250,248,240,0.40)',
   w14:     'rgba(250,248,240,0.14)',
