@@ -78,7 +78,7 @@ export default function ProjectorChallengeReveal({ room }: Props) {
   };
 
   return (
-    <div className="w-full h-full bg-[#1a0d2e] flex items-center justify-center relative overflow-hidden">
+    <div className="w-full h-full bg-[#110b26] flex items-center justify-center relative overflow-hidden">
       {room.timerEndsAt
         ? <TimerBar total={room.timerDuration} remaining={remaining} />
         : <AwaitingSubmissionBanner />

@@ -19,7 +19,7 @@ interface Props {
 
 // ── Palette ───────────────────────────────────────────────────
 const C = {
-  bg:      '#07101f',
+  bg:      '#08070f',
   panel:   'rgba(5,11,28,0.92)',
   saffron: '#FF9933',
   white:   '#faf8f0',

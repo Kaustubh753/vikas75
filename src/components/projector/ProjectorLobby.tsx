@@ -187,7 +187,7 @@ export default function ProjectorLobby({ room }: Props) {
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', isolation: 'isolate' }}>
 
       {/* ── Background ────────────────────────────────────────────── */}
-      <div style={{ position: 'absolute', inset: 0, background: '#07101f', zIndex: 0 }} />
+      <div style={{ position: 'absolute', inset: 0, background: '#08070f', zIndex: 0 }} />
 
       {/* Warm saffron glow from top-centre */}
       <div style={{
@@ -348,7 +348,7 @@ export default function ProjectorLobby({ room }: Props) {
               }} />
               <span style={{
                 position: 'relative', zIndex: 1,
-                background: '#07101f', padding: '6px 0',
+                background: '#08070f', padding: '6px 0',
                 fontFamily: 'var(--font-inter),sans-serif',
                 fontSize: 'clamp(8px,0.76vw,11px)', fontWeight: 600,
                 letterSpacing: '0.14em', textTransform: 'uppercase',

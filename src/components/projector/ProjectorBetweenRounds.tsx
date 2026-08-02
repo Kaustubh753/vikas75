@@ -24,7 +24,7 @@ export default function ProjectorBetweenRounds({ room }: Props) {
   const avatarSz = n <= 6 ? 40 : n <= 10 ? 32 : 26;
 
   return (
-    <div className="w-full h-full bg-[#0d1b35] flex flex-col items-center justify-center gap-8 relative overflow-hidden"
+    <div className="w-full h-full bg-[#08070f] flex flex-col items-center justify-center gap-8 relative overflow-hidden"
          style={{ padding: 'clamp(24px, 3vw, 56px)' }}>
 
       <p className="text-white/40 uppercase font-[family-name:var(--font-inter)]"

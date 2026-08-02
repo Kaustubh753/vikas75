@@ -13,7 +13,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
     <html lang="en">
       <body style={{ margin: 0 }}>
         <div style={{
-          minHeight: '100vh', background: '#0d1b35', color: '#faf8f0',
+          minHeight: '100vh', background: '#08070f', color: '#faf8f0',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           gap: 20, padding: '32px 24px', textAlign: 'center',
           fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
@@ -29,7 +29,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
             Something went badly wrong loading the app. Please reload.
           </p>
           <button onClick={reset} style={{
-            background: '#FF9933', color: '#0d1b35',
+            background: '#FF9933', color: '#08070f',
             fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer',
             padding: '12px 24px', borderRadius: 10,
           }}>

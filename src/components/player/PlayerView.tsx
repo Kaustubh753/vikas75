@@ -25,14 +25,14 @@ interface Props {
 }
 
 const PHASE_BG: Record<string, string> = {
-  lobby: '#0d1b35',
-  'challenge-reveal': '#1a0d2e',
-  submission: '#0d1b35',
-  reveal: '#1a2a0d',
-  judging: '#0d1b35',
-  winner: '#2a1a00',
-  'between-rounds': '#0d1b35',
-  'game-over': '#1a0d00',
+  lobby: '#08070f',
+  'challenge-reveal': '#110b26',
+  submission: '#08070f',
+  reveal: '#0a1608',
+  judging: '#08070f',
+  winner: '#171002',
+  'between-rounds': '#08070f',
+  'game-over': '#110902',
 };
 
 type OverlayInfo = { text: string; color: string; initial: { y?: number; x?: number; scale?: number } };
@@ -416,7 +416,7 @@ export default function PlayerView({ code }: Props) {
 
   if (!hydrated || !room) {
     return (
-      <div className="min-h-screen bg-[#0d1b35] flex flex-col gap-4 p-4">
+      <div className="min-h-screen bg-[#08070f] flex flex-col gap-4 p-4">
         <SkeletonCard className="h-24" />
         <SkeletonCard className="h-40" />
         <SkeletonCard className="h-32" />
@@ -553,7 +553,7 @@ export default function PlayerView({ code }: Props) {
   return (
     <motion.main
       className="min-h-screen flex flex-col relative"
-      animate={{ backgroundColor: PHASE_BG[phase] ?? '#0d1b35' }}
+      animate={{ backgroundColor: PHASE_BG[phase] ?? '#08070f' }}
       transition={{ duration: 0.8, ease: 'easeInOut' }}
     >
       <ConnectionBanner />

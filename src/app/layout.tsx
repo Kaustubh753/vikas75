@@ -33,7 +33,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#1a3a6e',
+  themeColor: '#08070f',
   // Be explicit so every route (including dynamic /room, /projector, /join) scales to the
   // device width on phones rather than rendering at a desktop width and zooming out.
   width: 'device-width',

@@ -4,7 +4,7 @@ import LogoLockup from '@/components/ui/LogoLockup';
 export default function NotFound() {
   return (
     <main style={{
-      minHeight: '100vh', background: '#0d1b35', color: '#faf8f0',
+      minHeight: '100vh', background: '#08070f', color: '#faf8f0',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       gap: 28, padding: '32px 24px', textAlign: 'center',
       fontFamily: 'var(--font-inter),sans-serif',
@@ -26,7 +26,7 @@ export default function NotFound() {
       <Link href="/" style={{
         marginTop: 4,
         display: 'inline-flex', alignItems: 'center', gap: 8,
-        background: '#FF9933', color: '#0d1b35',
+        background: '#FF9933', color: '#08070f',
         fontWeight: 700, fontSize: 15, textDecoration: 'none',
         padding: '12px 24px', borderRadius: 10,
       }}>

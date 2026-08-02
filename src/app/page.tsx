@@ -508,7 +508,7 @@ function LandingPage() {
   // Shared background layers (dark base, saffron glow, film grain) used by both layouts.
   const backdrop = (
     <>
-      <div style={{ position: 'absolute', inset: 0, background: '#07101f', zIndex: 0 }} />
+      <div style={{ position: 'absolute', inset: 0, background: '#08070f', zIndex: 0 }} />
       <div style={{
         position: 'absolute', left: '50%', top: '-25%',
         width: '83vw', height: '100vh',
@@ -528,7 +528,7 @@ function LandingPage() {
   //    ~440px of side columns alone and would clip on phones). ───────────────────
   if (isMobile) {
     return (
-      <div style={{ position: 'relative', minHeight: '100dvh', width: '100%', background: '#07101f', overflowX: 'hidden', isolation: 'isolate' }}>
+      <div style={{ position: 'relative', minHeight: '100dvh', width: '100%', background: '#08070f', overflowX: 'hidden', isolation: 'isolate' }}>
         {showIntro && <IntroAnimation onDone={dismissIntro} />}
         {backdrop}
         <div style={{
@@ -761,7 +761,7 @@ function LandingPage() {
 // ─────────────────────────────────────────────────────────────
 export default function HomePage() {
   return (
-    <Suspense fallback={<div style={{ background: '#07101f', position: 'fixed', inset: 0 }} />}>
+    <Suspense fallback={<div style={{ background: '#08070f', position: 'fixed', inset: 0 }} />}>
       <LandingPage />
     </Suspense>
   );

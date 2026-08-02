@@ -20,9 +20,9 @@ export function getSchemeCardImage(id: string): string {
   return `/cards/card-${String(n + 30).padStart(3, '0')}.webp`;
 }
 
-/** 1×1 navy (#0d1b35) SVG — blur placeholder for challenge cards */
+/** 1×1 navy (#08070f) SVG — blur placeholder for challenge cards */
 export const BLUR_NAVY =
-  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiPjxyZWN0IGZpbGw9IiMwZDFiMzUiIHdpZHRoPSIxIiBoZWlnaHQ9IjEiLz48L3N2Zz4=';
+  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiPjxyZWN0IGZpbGw9IiMwODA3MGYiIHdpZHRoPSIxIiBoZWlnaHQ9IjEiLz48L3N2Zz4=';
 
 /** 1×1 cream (#faf8f0) SVG — blur placeholder for scheme cards */
 export const BLUR_CREAM =

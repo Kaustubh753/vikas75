@@ -12,7 +12,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
 
   return (
     <main style={{
-      minHeight: '100vh', background: '#0d1b35', color: '#faf8f0',
+      minHeight: '100vh', background: '#08070f', color: '#faf8f0',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       gap: 24, padding: '32px 24px', textAlign: 'center',
       fontFamily: 'var(--font-inter),sans-serif',
@@ -33,7 +33,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
 
       <div style={{ display: 'flex', gap: 12, marginTop: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
         <button onClick={reset} style={{
-          background: '#FF9933', color: '#0d1b35',
+          background: '#FF9933', color: '#08070f',
           fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer',
           padding: '12px 24px', borderRadius: 10,
         }}>

@@ -66,7 +66,7 @@ export default function ProjectorSubmission({ room }: Props) {
   const avatarSize = n <= 4 ? 80 : n <= 8 ? 64 : n <= 12 ? 52 : 40;
 
   return (
-    <div className="w-full h-full bg-[#0d1b35] flex flex-col overflow-hidden">
+    <div className="w-full h-full bg-[#08070f] flex flex-col overflow-hidden">
       {/* Header */}
       <div className="px-10 pt-6 pb-4 flex items-center justify-between border-b border-white/10 gap-6">
         {challenge && (
@@ -119,7 +119,7 @@ export default function ProjectorSubmission({ room }: Props) {
                 <div className={`relative rounded-xl overflow-hidden transition-all duration-500 ${submitted ? 'opacity-60 scale-95' : !online ? 'opacity-40' : ''}`}>
                   <Avatar id={p.avatarId} size={avatarSize} />
                   <span
-                    className="absolute bottom-0.5 right-0.5 rounded-full border-2 border-[#0d1b35]"
+                    className="absolute bottom-0.5 right-0.5 rounded-full border-2 border-[#08070f]"
                     style={{
                       width: Math.max(10, avatarSize * 0.18),
                       height: Math.max(10, avatarSize * 0.18),

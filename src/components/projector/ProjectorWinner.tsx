@@ -49,7 +49,7 @@ export default function ProjectorWinner({ room }: Props) {
   // Explicit "no winner this round" — no fake ranking, no confetti.
   if (verdict.noWinner) {
     return (
-      <div className="w-full h-full bg-[#0d1b35] flex flex-col items-center justify-center overflow-hidden relative gap-6 px-8">
+      <div className="w-full h-full bg-[#08070f] flex flex-col items-center justify-center overflow-hidden relative gap-6 px-8">
         <p style={{ fontSize: 'clamp(48px,9vw,96px)' }}>🤷</p>
         <h1 className="font-[family-name:var(--font-bebas)] text-white tracking-widest text-center"
             style={{ fontSize: 'clamp(40px,7vw,80px)', lineHeight: 1 }}>
@@ -68,7 +68,7 @@ export default function ProjectorWinner({ room }: Props) {
   }
 
   return (
-    <div className="w-full h-full bg-[#0d1b35] flex flex-col items-center justify-center overflow-hidden relative">
+    <div className="w-full h-full bg-[#08070f] flex flex-col items-center justify-center overflow-hidden relative">
       {stage >= 1 && <Confetti />}
 
       {/* Stage 0: suspense */}

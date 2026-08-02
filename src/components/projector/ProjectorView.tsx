@@ -23,14 +23,14 @@ import type { GameRoom } from '@/types/game';
 interface Props { code: string; hostId?: string }
 
 const PHASE_BG: Record<string, string> = {
-  lobby: '#0d1b35',
-  'challenge-reveal': '#1a0d2e',
-  submission: '#0d1b35',
-  reveal: '#1a2a0d',
-  judging: '#0d1b35',
-  winner: '#2a1a00',
-  'between-rounds': '#0d1b35',
-  'game-over': '#1a0d00',
+  lobby: '#08070f',
+  'challenge-reveal': '#110b26',
+  submission: '#08070f',
+  reveal: '#0a1608',
+  judging: '#08070f',
+  winner: '#171002',
+  'between-rounds': '#08070f',
+  'game-over': '#110902',
 };
 
 // Full-screen interstitials before key phases
@@ -246,7 +246,7 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
 
   if (roomMissing) {
     return (
-      <div className="w-screen h-screen bg-[#0d1b35] flex flex-col items-center justify-center gap-6">
+      <div className="w-screen h-screen bg-[#08070f] flex flex-col items-center justify-center gap-6">
         <p className="text-6xl">🏁</p>
         <h1 className="font-[family-name:var(--font-bebas)] text-white text-5xl tracking-widest text-center">
           Room Closed
@@ -260,7 +260,7 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
 
   if (!room) {
     return (
-      <div className="w-screen h-screen bg-[#0d1b35] flex items-center justify-center p-12">
+      <div className="w-screen h-screen bg-[#08070f] flex items-center justify-center p-12">
         <div className="grid grid-cols-3 gap-4 w-full max-w-2xl">
           {Array.from({ length: 6 }).map((_, i) => (
             <SkeletonCard key={i} className="h-32" />
@@ -275,7 +275,7 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
       className="w-screen overflow-hidden relative"
       // 100dvh (not 100vh) so on iOS Safari the content/host bar isn't hidden behind the toolbar.
       style={{ height: '100dvh' }}
-      animate={{ backgroundColor: PHASE_BG[room.phase] ?? '#0d1b35' }}
+      animate={{ backgroundColor: PHASE_BG[room.phase] ?? '#08070f' }}
       transition={{ duration: 0.8, ease: 'easeInOut' }}
     >
       {/* Portrait orientation guard — only for a pure projector/TV display. A host who opened

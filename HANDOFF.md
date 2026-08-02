@@ -257,33 +257,69 @@ viewport width / player count. Banter chips animate in as new players join, trac
 The whole game was validated by driving the **live dev server** with `curl` — no browser
 needed. Pattern:
 
+> **Updated for per-player auth tokens.** Since the security pass added `GameRoom.tokens`
+> (cross-cutting concern #1 in `CLAUDE.md`), an un-authenticated harness now fails in two
+> places: own-hand GETs come back with an **empty `hand`**, and `submit` returns
+> **`{"error":"Not authorized"}`**. The token is issued once in the `join` response and must
+> be replayed — note the two *different* transports below, which is the easy thing to get wrong.
+
 ```bash
 npm run dev            # http://localhost:3000
 API=http://localhost:3000/api/game
 post(){ curl -s -X POST "$API" -H 'Content-Type: application/json' -d "$1"; }
 
-# create room (capture .room.code), join players, advance, submit, poll phase
-post '{"action":"create-room","hostId":"h1","hostName":"Host","totalRounds":3}'
-post '{"action":"join","code":"XXXX","playerId":"p1","playerName":"Asha","avatarId":"a1"}'
-# advance lobby→challenge-reveal→submission with {"action":"advance","code":"XXXX","hostId":"h1"}
-# fetch each hand to get a real card id:
-curl -s "$API?code=XXXX&me=p1"     # ?me=<pid> is REQUIRED or hands are stripped
-post '{"action":"submit","code":"XXXX","submission":{"playerId":"p1","schemeCard":{"id":"s059"},"explanation":"..."}}'
+# 1. create room — capture .room.code
+CODE=$(post '{"action":"create-room","hostId":"h1","hostName":"Host","totalRounds":3}' \
+       | python3 -c 'import sys,json;print(json.load(sys.stdin)["room"]["code"])')
+
+# 2. join — CAPTURE THE TOKEN. Returned exactly once, as top-level `token`.
+#    Join at least TWO players: starting the game requires 2+ or advance 400s.
+T1=$(post "{\"action\":\"join\",\"code\":\"$CODE\",\"playerId\":\"p1\",\"playerName\":\"Asha\",\"avatarId\":\"a1\"}" \
+     | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
+T2=$(post "{\"action\":\"join\",\"code\":\"$CODE\",\"playerId\":\"p2\",\"playerName\":\"Bharat\",\"avatarId\":\"a2\"}" \
+     | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
+
+# 3. advance lobby→challenge-reveal→submission (host actions need hostId in the BODY)
+post "{\"action\":\"advance\",\"code\":\"$CODE\",\"hostId\":\"h1\"}"
+post "{\"action\":\"advance\",\"code\":\"$CODE\",\"hostId\":\"h1\"}"
+
+# 4. read own hand — token goes in the x-player-token HEADER (GET has no body)
+CARD=$(curl -s "$API?code=$CODE&me=p1" -H "x-player-token: $T1" \
+       | python3 -c "import sys,json;print(json.load(sys.stdin)['room']['players']['p1']['hand'][0]['id'])")
+
+# 5. submit — token goes in the JSON BODY (NOT the header)
+post "{\"action\":\"submit\",\"code\":\"$CODE\",\"token\":\"$T1\",\
+\"submission\":{\"playerId\":\"p1\",\"schemeCard\":{\"id\":\"$CARD\"},\"explanation\":\"...\"}}"
 ```
 
 **Gotchas learned the hard way:**
-- `GET /api/game?code=XXXX&me=<pid>` — without `&me=`, player hands are stripped from the
-  response, so you can't pick a real card and submit (first attempts 403'd on empty cards).
-- **curl sends no heartbeats**, so test players go `lastSeen`-stale after 45 s. Submit within
-  the window, or Bug A's symptom reappears as a *test artifact* (not a real regression).
+- **Token transport differs by method — this is the #1 harness trap.** `GET ?me=<pid>` wants
+  the `x-player-token` *header*; every state-changing POST (`submit`, `chat`, `emote`,
+  `heartbeat`) wants `token` in the *body*. Using the header on `submit` yields
+  `{"error":"Not authorized"}` and the submission is silently dropped — the phase then never
+  auto-advances and it looks like a game-logic bug when it isn't.
+- `GET /api/game?code=XXXX&me=<pid>` — without `&me=`, hands are stripped for **all** players
+  (`scrubRoomFor`); with `&me=` but no valid token you get the player but an **empty hand**.
+  Either way you can't pick a real card id.
+- **Host actions are gated on `hostId`, not a token** — `advance`, `update-settings`,
+  `end-game`, `music-toggle`, `kick-player` all take the raw `hostId` in the body (403 otherwise).
+- **Starting the game needs 2+ players** — `advance` out of `lobby` returns
+  `{"error":"Need at least 2 players to start."}` with one seat filled. With a single test
+  player the room just sits in `lobby` and it reads like `advance` is broken.
+- **curl sends no heartbeats**, so test players go `lastSeen`-stale after 45 s and
+  `allPlayersSubmitted()` filters them all out — the `submission→reveal` auto-advance then
+  never fires. Submit promptly after joining, or just drive the phase with a host `advance`.
+  This is a *test artifact*, not a regression (see §1.6 Bug A).
 - `after()` callbacks fire ~immediately after the HTTP response; the `submission→reveal`
   advance has a deliberate **2 s delay** so the projector shows the final submission tick.
 - The fallback judge (no `ANTHROPIC_API_KEY`) returns instantly, so `judging→winner` is
   near-immediate in dev. The verdict lands in `room.lastVerdict`.
+- With dummy Pusher keys (or blocked egress) broadcasts no-op, so a **browser tab won't live
+  update** — reload it to observe a phase change you drove via curl.
 
 **Admin DELETE** was tested directly: no-auth → 401, bad code → 400, valid → 200 `{ok:true}`,
-GET-after-delete → 404, delete-again → 404. Build sanity: `npx tsc --noEmit` passes.
-(`eslint`/`next lint` currently errors on flat-config migration — `tsc` is the reliable gate.)
+GET-after-delete → 404, delete-again → 404. Build sanity: `npx tsc --noEmit` and
+`npm run build` pass; `npm run lint` (ESLint flat config) is green since the Next 16 migration.
 
 ---
 

@@ -101,7 +101,7 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
   return (
     <div style={{
       minHeight: '100dvh', width: '100%',
-      background: '#07101f',
+      background: '#08070f',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       padding: 'clamp(20px, 6vw, 48px) 20px', boxSizing: 'border-box',
     }}>

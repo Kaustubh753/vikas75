@@ -37,7 +37,7 @@ export default function ProjectorGameOver({ room }: Props) {
   }, []);
 
   return (
-    <div className="w-full h-full bg-[#080f1e] flex flex-col items-center justify-between overflow-hidden relative py-10"
+    <div className="w-full h-full bg-[#08070f] flex flex-col items-center justify-between overflow-hidden relative py-10"
       style={{ backgroundImage: 'radial-gradient(#ffffff05 1px, transparent 1px)', backgroundSize: '32px 32px' }}>
       <Confetti />
 

@@ -531,7 +531,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
                 borderRadius: 22,
                 background: advanceHover && !isDisabled ? '#e8872a' : '#FF9933',
                 border: 'none',
-                color: '#07101f',
+                color: '#08070f',
                 fontFamily: 'var(--font-bebas)',
                 fontSize: isNarrow ? 15 : 22,
                 letterSpacing: '0.08em',

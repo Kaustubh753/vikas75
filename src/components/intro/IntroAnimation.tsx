@@ -62,13 +62,13 @@ function letterRect(i: number) {
 const CARD_W = 232, CARD_H = 311;
 const PIVOT_X = 960, PIVOT_Y = 1620, RADIUS = 1130;
 const HAND = [
-  { src: '/intro/card-skill.png', ang: -39 },
-  { src: '/intro/card-swachh.png', ang: -26 },
-  { src: '/intro/card-adarshgram.png', ang: -13 },
-  { src: '/intro/card-bank.png', ang: 0 },
-  { src: '/intro/card-jandhan.png', ang: 13 },
-  { src: '/intro/card-indradhanush.png', ang: 26 },
-  { src: '/intro/card-makeinindia.png', ang: 39 },
+  { src: '/intro/card-skill.webp', ang: -39 },
+  { src: '/intro/card-swachh.webp', ang: -26 },
+  { src: '/intro/card-adarshgram.webp', ang: -13 },
+  { src: '/intro/card-bank.webp', ang: 0 },
+  { src: '/intro/card-jandhan.webp', ang: 13 },
+  { src: '/intro/card-indradhanush.webp', ang: 26 },
+  { src: '/intro/card-makeinindia.webp', ang: 39 },
 ];
 const slot = (a: number) => { const r = a * Math.PI / 180; return { x: PIVOT_X + RADIUS * Math.sin(r), y: PIVOT_Y - RADIUS * Math.cos(r), rot: a }; };
 
@@ -122,7 +122,7 @@ function PixelLetter({ i, time }: { i: number; time: number }) {
   useEffect(() => {
     const cv = ref.current; if (!cv) return;
     const ctx = cv.getContext('2d'); if (!ctx) return;
-    const img = _loadImg(`/intro/letter_${i}.png`);
+    const img = _loadImg(`/intro/letter_${i}.webp`);
     const draw = () => {
       ctx.clearRect(0, 0, cw, ch);
       if (!img.complete || !img.naturalWidth) return;
@@ -139,7 +139,7 @@ function PixelLetter({ i, time }: { i: number; time: number }) {
   return (
     <div style={{ position: 'absolute', left: L.left, top: L.top, width: L.w, height: L.h, opacity: baseOp, zIndex: 6, filter: 'drop-shadow(0 6px 14px rgba(23,52,88,0.16))' }}>
       <canvas ref={ref} width={cw} height={ch} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', imageRendering: 'pixelated', opacity: 1 - sharp }} />
-      <img src={`/intro/letter_${i}.png`} draggable={false} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', opacity: sharp }} />
+      <img src={`/intro/letter_${i}.webp`} draggable={false} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', opacity: sharp }} />
     </div>
   );
 }
@@ -199,13 +199,13 @@ function Logo({ time }: { time: number }) {
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
       <div style={{ position: 'absolute', left: BANDS.mid.left, top: BANDS.mid.top, width: BANDS.mid.w, height: BANDS.mid.h, opacity: midIn, filter: drop }}>
-        <img src="/intro/logo_mid_navy.png" alt="" style={{ width: '100%', height: '100%', display: 'block' }} />
+        <img src="/intro/logo_mid_navy.webp" alt="" style={{ width: '100%', height: '100%', display: 'block' }} />
       </div>
       <div style={{ position: 'absolute', left: BANDS.top.left, top: BANDS.top.top, width: BANDS.top.w, height: BANDS.top.h, opacity: topP, transform: `translateY(${(1 - topP) * -14}px)` }}>
-        <img src="/intro/logo_top_navy.png" alt="" style={{ width: '100%', height: '100%', display: 'block' }} />
+        <img src="/intro/logo_top_navy.webp" alt="" style={{ width: '100%', height: '100%', display: 'block' }} />
       </div>
       <div style={{ position: 'absolute', left: BANDS.bottom.left, top: BANDS.bottom.top, width: BANDS.bottom.w, height: BANDS.bottom.h, opacity: clamp(botP * 1.6, 0, 1), transform: `translateY(${botY}px)`, filter: drop }}>
-        <img src="/intro/logo_bottom_navy.png" alt="" style={{ width: '100%', height: '100%', display: 'block' }} />
+        <img src="/intro/logo_bottom_navy.webp" alt="" style={{ width: '100%', height: '100%', display: 'block' }} />
       </div>
     </div>
   );
@@ -300,8 +300,8 @@ const STAGE_W = 1920, STAGE_H = 1080;
 const HOLD_T = 9.85;
 const PRELOAD = [
   ...HAND.map(c => c.src),
-  ...[0, 1, 2, 3, 4, 5, 6].map(i => `/intro/letter_${i}.png`),
-  '/intro/logo_mid_navy.png', '/intro/logo_top_navy.png', '/intro/logo_bottom_navy.png',
+  ...[0, 1, 2, 3, 4, 5, 6].map(i => `/intro/letter_${i}.webp`),
+  '/intro/logo_mid_navy.webp', '/intro/logo_top_navy.webp', '/intro/logo_bottom_navy.webp',
 ];
 
 /**
@@ -315,7 +315,6 @@ export default function IntroAnimation({ onDone }: { onDone: () => void }) {
   const [exiting, setExiting] = useState(false);
   const [ready, setReady] = useState(false); // timeline parked on PLAY NOW, awaiting the click
   const raf = useRef(0);
-  const last = useRef<number | null>(null);
   const tRef = useRef(0);
   const doneRef = useRef(false);
   const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -341,7 +340,10 @@ export default function IntroAnimation({ onDone }: { onDone: () => void }) {
     }
   }, [onDone]);
 
-  // Preload every frame's assets so nothing pops in mid-animation.
+  // Warm the browser cache for every frame's artwork on mount. The cards are WebP now
+  // (~2.4× smaller than the old PNGs) and the deal doesn't start until t≈0.5s, so by the
+  // time a card is on stage it's decoded — no more popping in mid-animation. Fire-and-forget
+  // on purpose: the clock must never be held hostage to a slow/failed asset load.
   useEffect(() => { PRELOAD.forEach(s => { const im = new Image(); im.src = s; }); }, []);
 
   // Scale 1920×1080 to fit (contain) so the wordmark is never cropped.
@@ -356,13 +358,18 @@ export default function IntroAnimation({ onDone }: { onDone: () => void }) {
   // NOT dismiss itself: the intro waits for the player to hit PLAY NOW. Freezing the clock
   // (rather than looping forever) means no wasted frames while it waits.
   useEffect(() => {
+    // Derive the playhead from elapsed wall-clock time rather than accumulating per-frame
+    // deltas. Summing deltas makes the timeline hostage to frame pacing: an unclamped sum
+    // fast-forwards through a backgrounded tab's multi-second gap, while any attempt to clamp
+    // or drop those gaps makes the intro crawl (or stall outright) on a machine whose rAF is
+    // throttled. Reading the clock each frame keeps playback at true speed regardless of FPS
+    // and can never stall — a dropped frame just means the next one renders further along.
+    const start = performance.now();
     const step = (ts: number) => {
-      if (last.current == null) last.current = ts;
-      const dt = (ts - last.current) / 1000;
-      last.current = ts;
-      tRef.current = Math.min(tRef.current + dt, HOLD_T);
-      setTime(tRef.current);
-      if (tRef.current >= HOLD_T) { setReady(true); return; }
+      const t = Math.min((ts - start) / 1000, HOLD_T);
+      tRef.current = t;
+      setTime(t);
+      if (t >= HOLD_T) { setReady(true); return; }
       raf.current = requestAnimationFrame(step);
     };
     raf.current = requestAnimationFrame(step);

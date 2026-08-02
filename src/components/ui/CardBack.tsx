@@ -4,7 +4,7 @@ export default function CardBack({ className }: { className?: string }) {
   return (
     <div
       className={`w-full h-full rounded-2xl flex flex-col items-center justify-center relative overflow-hidden ${className ?? ''}`}
-      style={{ background: '#0d1b35', border: '3px solid #FF9933' }}
+      style={{ background: '#08070f', border: '3px solid #FF9933' }}
     >
       {/* Crosshatch pattern */}
       <div
