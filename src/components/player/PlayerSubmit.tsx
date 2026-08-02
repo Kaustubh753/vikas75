@@ -44,7 +44,7 @@ function TimerBar({ total, endsAt }: { total: number; endsAt: number }) {
         className={`absolute inset-0 flex items-center justify-center font-[family-name:var(--font-inter)] font-bold text-white leading-none ${urgent ? 'animate-pulse' : ''}`}
         style={{ fontSize: 12, zIndex: 1 }}
       >
-        {remaining}s
+        {remaining > 0 ? `${remaining}s` : "Time's up"}
       </span>
     </div>
   );

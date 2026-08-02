@@ -120,8 +120,10 @@ export default function MobileHostContent({ room }: { room: GameRoom }) {
               </div>
               {room.timerEndsAt && (
                 <div>
-                  <p style={{ fontFamily: 'var(--font-bebas)', fontSize: 34, color: remaining <= 10 ? '#ef4444' : '#fff', lineHeight: 1 }}>{remaining}</p>
-                  <p style={label}>Sec Left</p>
+                  <p style={{ fontFamily: 'var(--font-bebas)', fontSize: remaining > 0 ? 34 : 20, color: remaining <= 10 ? '#ef4444' : '#fff', lineHeight: 1 }}>
+                    {remaining > 0 ? remaining : "Time's up"}
+                  </p>
+                  <p style={label}>{remaining > 0 ? 'Sec Left' : 'Wrapping up'}</p>
                 </div>
               )}
             </div>

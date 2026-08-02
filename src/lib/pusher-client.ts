@@ -2,7 +2,16 @@ import PusherClient from 'pusher-js';
 
 let pusherClientInstance: PusherClient | null = null;
 
-export function getPusherClient(): PusherClient {
+// Mirrors the server-side guard in pusher.ts: constructing the SDK without an app key throws,
+// and because this runs inside a component effect that exception takes the whole screen down to
+// the error boundary ("Something broke") rather than degrading. Return null when unconfigured so
+// callers skip realtime and fall back to their existing GET poll.
+export function isPusherConfigured(): boolean {
+  return !!process.env.NEXT_PUBLIC_PUSHER_KEY && !!process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
+}
+
+export function getPusherClient(): PusherClient | null {
+  if (!isPusherConfigured()) return null;
   if (!pusherClientInstance) {
     pusherClientInstance = new PusherClient(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
       cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
@@ -32,6 +41,9 @@ export function onConnectionStateChange(
   callback: (state: PusherConnectionState) => void
 ): () => void {
   const pusher = getPusherClient();
+  // Unconfigured: report a steady "connected" so the banner stays hidden. There's no socket to
+  // lose, and the poll keeps the screen live — a permanent "connection lost" bar would be a lie.
+  if (!pusher) { callback('connected'); return () => {}; }
   const handler = ({ current }: { current: string; previous: string }) => {
     callback(current as PusherConnectionState);
   };

@@ -26,13 +26,25 @@ function TimerRing({ total, remaining }: { total: number; remaining: number }) {
           style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }}
         />
       </svg>
+      {/* At zero the round is over but the reveal hasn't landed yet (the client fires timer-expire,
+          the server advances, the new phase broadcasts). Showing a bare "0 sec" for that beat reads
+          as a stuck counter, so say TIME'S UP instead — the same wait, but clearly deliberate. */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className={`font-[family-name:var(--font-bebas)] leading-none ${urgent ? 'text-red-400' : 'text-white'}`}
-              style={{ fontSize: 'clamp(36px, 4.2vw, 64px)' }}>
-          {remaining}
-        </span>
-        <span className="text-white/40 uppercase tracking-widest font-[family-name:var(--font-inter)]"
-              style={{ fontSize: 'clamp(9px, 0.7vw, 12px)' }}>sec</span>
+        {remaining > 0 ? (
+          <>
+            <span className={`font-[family-name:var(--font-bebas)] leading-none ${urgent ? 'text-red-400' : 'text-white'}`}
+                  style={{ fontSize: 'clamp(36px, 4.2vw, 64px)' }}>
+              {remaining}
+            </span>
+            <span className="text-white/40 uppercase tracking-widest font-[family-name:var(--font-inter)]"
+                  style={{ fontSize: 'clamp(9px, 0.7vw, 12px)' }}>sec</span>
+          </>
+        ) : (
+          <span className="font-[family-name:var(--font-bebas)] leading-none text-red-400 text-center px-2"
+                style={{ fontSize: 'clamp(16px, 1.7vw, 26px)' }}>
+            Time&apos;s up
+          </span>
+        )}
       </div>
     </div>
   );
