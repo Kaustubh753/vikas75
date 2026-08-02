@@ -251,6 +251,30 @@ function Confetti({ time }: { time: number }) {
   return <>{CONFETTI.map((c, i) => { const lt = base - c.delay; if (lt <= 0) return null; const x = OX + c.ox + c.vx * lt * 0.72; const y = OY + c.vy * lt * 0.72 + 0.5 * g * lt * lt; const op = clamp(1 - (lt - 1.1) / 1.0, 0, 1); if (op <= 0) return null; return <div key={i} style={{ position: 'absolute', left: x, top: y, width: c.size, height: c.size, background: c.col, opacity: op, transform: `rotate(${c.spin * lt}deg)`, zIndex: 34, boxShadow: c.col === INK ? 'none' : '0 1px 2px rgba(23,52,88,0.18)' }} />; })}</>;
 }
 
+/* ── opening portrait stamp ──────────────────────────────────── */
+/* Sits over the deal for the first beat, then lifts away before the fan settles (cards reach
+   their slots ~1.7s) so it never fights the wordmark. Treated as a card — same radius, cream
+   bed, inset rule and shadow as the dealt hand — so a source with a white background still
+   reads as part of the deck rather than a pasted-on square. */
+const PORTRAIT_SRC = '/intro/portrait.webp';
+function Portrait({ time }: { time: number }) {
+  const inP = seg(time, 0.12, 0.60, E.outBack);
+  const out = seg(time, 1.30, 1.90, E.inOutSine);
+  if (inP <= 0 || out >= 1) return null;
+  const S = 300;
+  const sc = (0.90 + 0.10 * Math.min(inP, 1)) * (1 + 0.06 * out);
+  return (
+    <div style={{ position: 'absolute', left: 960, top: 430, width: S, height: S, marginLeft: -S / 2, marginTop: -S / 2,
+      transform: `scale(${sc})`, opacity: Math.min(inP, 1) * (1 - out), zIndex: 28,
+      borderRadius: 16, overflow: 'hidden', background: CREAM,
+      boxShadow: '0 18px 44px rgba(23,52,88,0.28), 0 0 0 1px rgba(23,52,88,0.10)',
+      WebkitMaskImage: '-webkit-radial-gradient(white, black)' }}>
+      <img src={PORTRAIT_SRC} draggable={false} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }} />
+      <div style={{ position: 'absolute', inset: 0, boxShadow: 'inset 0 0 0 6px rgba(255,255,255,0.55)', borderRadius: 16, pointerEvents: 'none' }} />
+    </div>
+  );
+}
+
 /* ── end-screen call to action ───────────────────────────────── */
 function Cta({ time }: { time: number }) {
   const p = seg(time, 7.95, 8.65, E.outBack);
@@ -282,6 +306,7 @@ function Scene() {
         <Background time={time} />
         <Letters time={time} />
         <Hand time={time} />
+        <Portrait time={time} />
         <Logo time={time} />
         <Tricolor time={time} />
         <Arrow time={time} />
@@ -299,6 +324,7 @@ const STAGE_W = 1920, STAGE_H = 1080;
 // to hit PLAY NOW instead of dismissing itself.
 const HOLD_T = 9.85;
 const PRELOAD = [
+  PORTRAIT_SRC,
   ...HAND.map(c => c.src),
   ...[0, 1, 2, 3, 4, 5, 6].map(i => `/intro/letter_${i}.webp`),
   '/intro/logo_mid_navy.webp', '/intro/logo_top_navy.webp', '/intro/logo_bottom_navy.webp',
