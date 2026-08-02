@@ -3,7 +3,8 @@
    them, and resolves to the brand mark. Cream paper · navy ink · tricolor.
    Ported from the Claude Design handoff (game-logo-intro-animation) into a production
    one-shot splash: a real rAF clock plays the 1920×1080 timeline once, scaled to fit the
-   viewport, then calls onDone(). Tap anywhere or "Skip" to dismiss; reduced-motion skips it. */
+   viewport, then parks on the "PLAY NOW" frame and waits — only PLAY NOW calls onDone().
+   There is no skip; reduced-motion bypasses the animation entirely. */
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
 
 /* ── tiny engine ─────────────────────────────────────────────── */
@@ -255,10 +256,12 @@ function Cta({ time }: { time: number }) {
   const p = seg(time, 7.95, 8.65, E.outBack);
   if (p <= 0) return null;
   const sc = 0.72 + 0.28 * Math.min(p, 1);
-  const breathe = p >= 1 ? 1 + 0.022 * Math.sin((time - 8.65) * 3.2) : 1;
+  // The pulse is CSS, not the rAF clock: the timeline parks on this frame waiting for the
+  // click, so a JS-driven breathe would freeze mid-beat. (globals.css collapses it under
+  // prefers-reduced-motion.)
   return (
-    <div style={{ position: 'absolute', left: 960, top: 540, transform: `translate(-50%,-50%) scale(${sc * breathe})`, opacity: Math.min(p, 1), zIndex: 40 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '20px 48px', background: INK, color: CREAM, fontFamily: PSFONT, fontSize: 21, letterSpacing: 2, borderRadius: 8, boxShadow: '0 14px 32px rgba(23,52,88,0.4)' }}>
+    <div style={{ position: 'absolute', left: 960, top: 540, transform: `translate(-50%,-50%) scale(${sc})`, opacity: Math.min(p, 1), zIndex: 40 }}>
+      <div className={p >= 1 ? 'intro-cta-pulse' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '20px 48px', background: INK, color: CREAM, fontFamily: PSFONT, fontSize: 21, letterSpacing: 2, borderRadius: 8, boxShadow: '0 14px 32px rgba(23,52,88,0.4)' }}>
         <span>PLAY NOW</span>
         <span style={{ width: 0, height: 0, borderLeft: '10px solid transparent', borderRight: '10px solid transparent', borderBottom: `17px solid ${SAFFRON}` }} />
       </div>
@@ -290,7 +293,11 @@ function Scene() {
   );
 }
 
-const STAGE_W = 1920, STAGE_H = 1080, DURATION = 10.4;
+const STAGE_W = 1920, STAGE_H = 1080;
+// The timeline holds here — the frame where "PLAY NOW" is fully settled, just before the
+// scene's end fade-out would begin. The intro parks on this frame and waits for the player
+// to hit PLAY NOW instead of dismissing itself.
+const HOLD_T = 9.85;
 const PRELOAD = [
   ...HAND.map(c => c.src),
   ...[0, 1, 2, 3, 4, 5, 6].map(i => `/intro/letter_${i}.webp`),
@@ -299,13 +306,14 @@ const PRELOAD = [
 
 /**
  * One-shot brand intro. Renders the 1920×1080 scene scaled to fit the viewport (letterboxed
- * on #08070f), runs the timeline once via rAF, and calls onDone() at the end, on tap/skip,
- * or immediately if the user prefers reduced motion.
+ * on #08070f), runs the timeline once via rAF, then holds on the PLAY NOW frame until the
+ * player activates it — that click is what calls onDone(). Reduced motion skips it entirely.
  */
 export default function IntroAnimation({ onDone }: { onDone: () => void }) {
   const [time, setTime] = useState(0);
   const [scale, setScale] = useState(1);
   const [exiting, setExiting] = useState(false);
+  const [ready, setReady] = useState(false); // timeline parked on PLAY NOW, awaiting the click
   const raf = useRef(0);
   const tRef = useRef(0);
   const doneRef = useRef(false);
@@ -346,7 +354,9 @@ export default function IntroAnimation({ onDone }: { onDone: () => void }) {
     return () => window.removeEventListener('resize', fit);
   }, []);
 
-  // rAF clock — plays the timeline exactly once.
+  // rAF clock — plays the timeline once, then parks on the PLAY NOW frame and stops. It does
+  // NOT dismiss itself: the intro waits for the player to hit PLAY NOW. Freezing the clock
+  // (rather than looping forever) means no wasted frames while it waits.
   useEffect(() => {
     // Derive the playhead from elapsed wall-clock time rather than accumulating per-frame
     // deltas. Summing deltas makes the timeline hostage to frame pacing: an unclamped sum
@@ -356,45 +366,41 @@ export default function IntroAnimation({ onDone }: { onDone: () => void }) {
     // and can never stall — a dropped frame just means the next one renders further along.
     const start = performance.now();
     const step = (ts: number) => {
-      const t = Math.min((ts - start) / 1000, DURATION);
+      const t = Math.min((ts - start) / 1000, HOLD_T);
       tRef.current = t;
       setTime(t);
-      if (t >= DURATION) { finish(); return; }
+      if (t >= HOLD_T) { setReady(true); return; }
       raf.current = requestAnimationFrame(step);
     };
     raf.current = requestAnimationFrame(step);
     return () => { if (raf.current) cancelAnimationFrame(raf.current); };
-  }, [finish]);
+  }, []);
 
-  // Let players who've seen it bail early.
+  // Once PLAY NOW is up, Enter/Space activates it (keyboard equivalent of the click).
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.code === 'Space' || e.code === 'Escape' || e.code === 'Enter') { e.preventDefault(); finish(); } };
+    if (!ready) return;
+    const onKey = (e: KeyboardEvent) => { if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); finish(); } };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [finish]);
+  }, [ready, finish]);
 
   return (
     <div
-      onClick={finish}
-      role="button"
+      // The intro plays through and waits — only PLAY NOW advances it. While the animation is
+      // still running the overlay is inert (no skip); once parked, clicking anywhere activates
+      // the PLAY NOW button, so the whole screen is a forgiving tap target for it.
+      onClick={ready ? finish : undefined}
+      role={ready ? 'button' : undefined}
       tabIndex={-1}
-      aria-label="Intro animation — tap to skip"
-      style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#08070f', overflow: 'hidden', cursor: 'pointer',
+      aria-label={ready ? 'Play now — enter the game' : undefined}
+      aria-hidden={!ready}
+      style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#08070f', overflow: 'hidden',
+        cursor: ready ? 'pointer' : 'default',
         opacity: exiting ? 0 : 1, transition: 'opacity 0.38s ease' }}
     >
       <div style={{ position: 'absolute', left: '50%', top: '50%', width: STAGE_W, height: STAGE_H, transform: `translate(-50%, -50%) scale(${scale})`, transformOrigin: 'center center' }}>
         <TimeCtx.Provider value={time}><Scene /></TimeCtx.Provider>
       </div>
-      <button
-        onClick={(e) => { e.stopPropagation(); finish(); }}
-        style={{ position: 'absolute', bottom: 'max(20px, env(safe-area-inset-bottom))', right: 20, zIndex: 10000,
-          padding: '8px 16px', borderRadius: 999, border: '1px solid rgba(246,239,216,0.3)',
-          background: 'rgba(8,7,15,0.5)', color: CREAM, fontFamily: 'var(--font-inter), sans-serif',
-          fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer',
-          backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
-      >
-        Skip ▸
-      </button>
     </div>
   );
 }

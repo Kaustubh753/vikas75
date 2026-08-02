@@ -56,6 +56,15 @@ button:disabled,
   }
 }
 
+/* Intro "PLAY NOW" call-to-action. The intro timeline parks on this frame waiting for the
+   click, so the invite-to-tap breathe is CSS (the rAF clock is frozen by then). The
+   reduced-motion block above settles it. */
+@keyframes intro-cta-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.028); }
+}
+.intro-cta-pulse { animation: intro-cta-pulse 1.9s ease-in-out infinite; }
+
 /* Animations */
 @keyframes bounce-in {
   0% { transform: scale(0) translateY(-20px); opacity: 0; }
