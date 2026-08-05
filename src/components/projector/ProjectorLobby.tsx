@@ -553,7 +553,7 @@ export default function ProjectorLobby({ room }: Props) {
             letterSpacing: '0.16em', textTransform: 'uppercase',
             color: 'rgba(250,248,240,0.45)',
             paddingLeft: 16, borderLeft: '1px solid rgba(250,248,240,0.14)',
-          }}>{room.totalRounds} rounds · funniest wins</span>
+          }}>{room.totalRounds} rounds · best answer wins</span>
         </div>
 
       </div>

@@ -17,10 +17,10 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_APP_URL ?? 'https://vikas75.vercel.app'
   ),
   title: 'Vikas 75',
-  description: "The best answer isn't always right.",
+  description: "Play for Progress.",
   openGraph: {
     title: 'Vikas 75',
-    description: "The best answer isn't always right.",
+    description: "Play for Progress.",
     images: [{ url: '/og-image.png', width: 1200, height: 630 }],
   },
   twitter: {

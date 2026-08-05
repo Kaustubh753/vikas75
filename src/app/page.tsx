@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { FaGlobe, FaInstagram, FaXTwitter, FaLinkedin, FaFacebook, FaYoutube } from 'react-icons/fa6';
 import { getLobbyMusic } from '@/lib/music-manager';
 import IntroAnimation from '@/components/intro/IntroAnimation';
+import LogoLockup from '@/components/ui/LogoLockup';
 import type { AvatarId } from '@/types/game';
 
 // ─────────────────────────────────────────────────────────────
@@ -26,9 +27,9 @@ const CARDS = [
 const HTP_STEPS = [
   { num: '01', title: 'Get a room.',         body: "Host a game, share the four-letter code with friends. They'll show up. They always do." },
   { num: '02', title: 'A challenge drops.',  body: "A real-sounding problem statement appears. It will sound serious. It won't be." },
-  { num: '03', title: 'Play your scheme.',   body: "You're dealt four absurd policy proposals. Pick the one you can sell with a straight face." },
-  { num: '04', title: 'Convince the judge.', body: 'Sixty seconds to defend it. Logic optional. Conviction mandatory.' },
-  { num: '05', title: 'Funniest wins.',      body: 'Not the most correct. The most creative. Five rounds, one winner, eternal bragging rights.' },
+  { num: '03', title: 'Play your scheme.',   body: "You're dealt real government schemes. Pick the one that actually answers the problem." },
+  { num: '04', title: 'Convince the judge.', body: 'Sixty seconds to make your case. Know the scheme, then sell it.' },
+  { num: '05', title: 'Best answer wins.',   body: 'The right scheme, argued well — creativity is what separates the good from the great. Five rounds, one winner, eternal bragging rights.' },
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -537,18 +538,10 @@ function LandingPage() {
           gap: 'clamp(22px,5vh,40px)', padding: '40px 24px', boxSizing: 'border-box',
         }}>
           {/* Logo */}
-          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-            <div style={{ fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(250,248,240,.7)' }}>
-              An initiative of the Office of Shri Sujeet Kumar
-            </div>
+          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <button onClick={handleLogoClick} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-              <h1 style={{ fontFamily: 'var(--font-yatra),var(--font-bebas),sans-serif', fontWeight: 400, fontSize: 'clamp(56px,18vw,84px)', lineHeight: 0.9, color: '#fff', margin: 0 }}>
-                Vikas 75
-              </h1>
+              <LogoLockup size="lg" />
             </button>
-            <div style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 'clamp(15px,4.5vw,20px)', color: '#FF9933', lineHeight: 1.35 }}>
-              The best answer isn&apos;t always right
-            </div>
           </div>
 
           {/* CTAs */}
@@ -625,42 +618,10 @@ function LandingPage() {
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', zIndex: 5, alignItems: 'flex-start' }}>
           {/* Shared width wrapper — logo and buttons size together */}
           <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 16, width: 'fit-content' }}>
-          {/* Logo unit with saffron left bar */}
-          <div style={{ display: 'flex', flexDirection: 'column', position: 'relative', paddingLeft: 16, alignItems: 'stretch' }}>
-            <div style={{ position: 'absolute', left: 0, top: 6, bottom: 6, width: 2, background: '#FF9933' }} />
-            <div style={{
-              fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500,
-              fontSize: 'clamp(8px, 0.68vw, 10px)',
-              letterSpacing: '0.08em', textTransform: 'uppercase',
-              color: 'rgba(250,248,240,.7)', lineHeight: 1.4,
-              marginBottom: 12, whiteSpace: 'nowrap',
-            }}>
-              An initiative of the Office of Shri Sujeet Kumar
-            </div>
-            <button onClick={handleLogoClick} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' }}>
-              <h1 style={{
-                fontFamily: 'var(--font-yatra),var(--font-bebas),sans-serif',
-                fontWeight: 400,
-                fontSize: 'clamp(44px, 5.5vw, 78px)',
-                lineHeight: 0.9,
-                letterSpacing: '-0.01em', color: '#fff',
-                margin: 0, whiteSpace: 'nowrap',
-              }}>
-                Vikas 75
-              </h1>
-            </button>
-            <div style={{
-              fontFamily: 'var(--font-inter),sans-serif',
-              fontWeight: 400,
-              fontSize: 'clamp(12px, 1.3vw, 19px)',
-              lineHeight: 1.35,
-              color: '#FF9933', letterSpacing: '-0.005em',
-              marginTop: 12, whiteSpace: 'nowrap',
-            }}>
-              The best answer isn&apos;t always right
-            </div>
-
-          </div>
+          {/* Logo unit — the brand mark the intro resolves to */}
+          <button onClick={handleLogoClick} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' }}>
+            <LogoLockup size="lg" />
+          </button>
 
           {/* CTA buttons — width: 100% stretches to match logo above */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

@@ -83,7 +83,7 @@ export interface ChatMessage {
 }
 
 // Emotes
-export type EmoteId = 'masterstroke' | 'aatmanirbhar' | 'vishwaguru' | 'fakir' | 'antinational' | '56inch';
+export type EmoteId = 'masterstroke' | 'aatmanirbhar' | 'vishwaguru' | '56inch';
 
 export interface EmoteEvent {
   playerId: string;

@@ -1,69 +1,48 @@
-// Vikas 75 logo lockup — mirrors the landing page exactly:
-// saffron left bar · attribution · title · tagline
+/* Vikas 75 logo lockup — the real brand mark, the same artwork the intro animation resolves to.
+   Three stacked bands: the attribution, the pixel VIKAS 75 wordmark with its skyline, and the
+   PLAY FOR PROGRESS tagline. Widths are locked to one column and each band's height derives from
+   its own aspect ratio, exactly as the intro composes them, so the lockup can never drift from
+   the animation.
+
+   Colour: the source art is flat navy for the intro's cream paper. `_cream` variants (same alpha,
+   colour channels flooded with #faf8f0) are used on the app's dark screens; pass tone="navy" for
+   a light surface. */
 interface Props {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  tone?: 'cream' | 'navy';
 }
 
-export default function LogoLockup({ size = 'md', className = '' }: Props) {
-  // Proportions calibrated to match landing page:
-  //   title ≈ 8× attr, tagline ≈ 1.9× attr, spacing ≈ 15% of title
-  const s = {
-    sm: { attr: 8,  title: 34,  tagline: 10, spacing: 5,  padLeft: 14, barInset: 5 },
-    md: { attr: 9,  title: 54,  tagline: 14, spacing: 8,  padLeft: 16, barInset: 6 },
-    lg: { attr: 11, title: 80,  tagline: 18, spacing: 12, padLeft: 18, barInset: 7 },
-  }[size];
+// Intrinsic pixel sizes of the source art — the ratios that set each band's height.
+const TOP = { w: 1080, h: 57 };
+const MID = { w: 1526, h: 347 };
+const BOT = { w: 1401, h: 97 };
+
+export default function LogoLockup({ size = 'md', className = '', tone = 'cream' }: Props) {
+  // Column width per size. `sm` drops the attribution and tagline: at a phone header's scale the
+  // pixel type in those bands turns to mud, so only the wordmark earns the space.
+  const s = { sm: { w: 132, bands: false }, md: { w: 232, bands: true }, lg: { w: 340, bands: true } }[size];
+  const src = (part: string) => `/intro/logo_${part}_${tone}.webp`;
+  const band = (p: { w: number; h: number }) => Math.round((s.w * p.h) / p.w);
 
   return (
     <div
       className={className}
-      style={{ display: 'inline-flex', flexDirection: 'column', position: 'relative', paddingLeft: s.padLeft, alignItems: 'stretch' }}
+      style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: Math.round(s.w * 0.035), width: s.w }}
     >
-      {/* Saffron left bar */}
-      <div style={{ position: 'absolute', left: 0, top: s.barInset, bottom: s.barInset, width: 2, background: '#FF9933', borderRadius: 1 }} />
-
-      {/* Attribution */}
-      <p style={{
-        fontFamily: 'var(--font-inter),sans-serif',
-        fontWeight: 500,
-        fontSize: s.attr,
-        letterSpacing: '0.08em',
-        textTransform: 'uppercase',
-        color: 'rgba(250,248,240,.65)',
-        lineHeight: 1.4,
-        marginBottom: s.spacing,
-        whiteSpace: 'nowrap',
-      }}>
-        An initiative of the Office of Shri Sujeet Kumar
-      </p>
-
-      {/* Title */}
-      <h1 style={{
-        fontFamily: 'var(--font-yatra),var(--font-bebas),sans-serif',
-        fontWeight: 400,
-        fontSize: s.title,
-        lineHeight: 0.92,
-        letterSpacing: '-0.01em',
-        color: '#fff',
-        margin: 0,
-        whiteSpace: 'nowrap',
-      }}>
-        Vikas 75
-      </h1>
-
-      {/* Tagline */}
-      <p style={{
-        fontFamily: 'var(--font-inter),sans-serif',
-        fontWeight: 400,
-        fontSize: s.tagline,
-        lineHeight: 1.35,
-        color: '#FF9933',
-        letterSpacing: '-0.005em',
-        marginTop: s.spacing,
-        whiteSpace: 'nowrap',
-      }}>
-        The best answer isn&apos;t always right
-      </p>
+      {s.bands && (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={src('top')} alt="An initiative of the Office of Sujeet Kumar"
+             width={s.w} height={band(TOP)} style={{ width: s.w, height: band(TOP), display: 'block' }} />
+      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src('mid')} alt="Vikas 75"
+           width={s.w} height={band(MID)} style={{ width: s.w, height: band(MID), display: 'block' }} />
+      {s.bands && (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={src('bottom')} alt="Play for Progress"
+             width={s.w} height={band(BOT)} style={{ width: s.w, height: band(BOT), display: 'block' }} />
+      )}
     </div>
   );
 }
