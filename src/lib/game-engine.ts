@@ -15,7 +15,7 @@ const schemes = schemesData as SchemeCard[];
 
 const HAND_SIZE = 7;
 const DEFAULT_TOTAL_ROUNDS = 3;
-const DEFAULT_TIMER_DURATION = 69; // seconds
+const DEFAULT_TIMER_DURATION = 60; // seconds
 const MAX_CHAT_MESSAGES = 20;
 
 export function generateRoomCode(): string {
