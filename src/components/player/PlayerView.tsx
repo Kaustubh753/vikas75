@@ -164,6 +164,7 @@ export default function PlayerView({ code }: Props) {
   useEffect(() => {
     if (!hydrated) return;
     const pusher = getPusherClient();
+    if (!pusher) return; // realtime unconfigured — the GET poll below keeps state fresh
     const channel = pusher.subscribe(getRoomChannel(code));
 
     const onRoomUpdated = (updated: GameRoom) => {

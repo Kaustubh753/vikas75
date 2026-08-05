@@ -21,7 +21,7 @@ const PANELS = [
   {
     icon: '👑',
     title: 'The AI Judge Decides',
-    description: 'Claude AI judges all submissions for creativity and fit. The winner earns points — highest score wins the game!',
+    description: 'Claude AI judges all submissions on how well the scheme fits the problem and how well you argue it. The winner earns points — highest score wins the game!',
   },
 ];
 

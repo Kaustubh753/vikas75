@@ -2,7 +2,7 @@
 
 ## Overview
 
-Vikas 75 is a multiplayer card game about Indian government schemes. Players match government schemes to real-world challenges, explain their reasoning, and an AI judge picks the most innovative and funny answer. It is designed for public events, exhibitions, college fests, and corporate workshops.
+Vikas 75 is a multiplayer card game about Indian government schemes. Players match government schemes to real-world challenges, explain their reasoning, and an AI judge picks the answer that best fits the problem and is best argued. It is designed for public events, exhibitions, college fests, and corporate workshops.
 
 ---
 
@@ -60,7 +60,7 @@ Vikas 75 is a multiplayer card game about Indian government schemes. Players mat
 - Hit Submit
 - Projector shows live progress: "4 of 6 players submitted"
 - Player names tick off as they submit
-- Default timer: 90 seconds. Host can extend or force-end early
+- Default timer: 69 seconds (host-adjustable 30–120 in the UI, 10–300 server-side). Host can force-end early
 
 ### 4. The Reveal
 - All submissions shown on projector one by one
@@ -89,8 +89,14 @@ Vikas 75 is a multiplayer card game about Indian government schemes. Players mat
 This is critical to the game feel. The judge must:
 
 - Accept and reward Hinglish answers fully
-- Prioritise funny, creative, and innovative connections over technically correct but boring ones
-- Scoring priority: innovative + funny > unexpected but valid > technically correct > boring but accurate
+- Judge substance first: does the scheme actually address the problem, and does the player show
+  they understand it? Creativity separates good on-point answers from each other — it never lifts
+  an answer over one that fits better
+- Scoring priority: right scheme argued with insight > right scheme, sound and plain > a stretch
+  made to work > entertaining but off-target > wrong scheme with no reasoning
+- Rounds carry an "on-brief" scheme list (`context/cards_mapping.json`, derived from the office's
+  CARDS_MAPPING sheet) as the strongest signal of fit — strong, but not exhaustive, and never a
+  substitute for reasoning
 - Have a witty personality in its verdict text, not dry or formal
 - Explain the reasoning in 2 to 3 sentences maximum
 - Occasionally call out a particularly clever answer with extra flavour text

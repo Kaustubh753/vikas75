@@ -17,6 +17,7 @@ import {
   removePlayer,
 } from '@/lib/game-engine';
 import { judgeRound, noWinnerVerdict } from '@/lib/ai-judge';
+import { EMOTE_IDS } from '@/lib/emotes';
 import { filterText } from '@/lib/word-filter';
 import type { Submission, AvatarId, ChatMessage, GameRoom } from '@/types/game';
 
@@ -414,8 +415,8 @@ export async function POST(req: NextRequest) {
         const { code, playerId, emote, token } = body as {
           code: string; playerId: string; playerName: string; avatarId: AvatarId; emote: string; token?: string;
         };
-        const VALID_EMOTES = ['masterstroke','aatmanirbhar','vishwaguru','fakir','antinational','56inch'];
-        if (!emote || !VALID_EMOTES.includes(emote)) return NextResponse.json({ ok: true });
+        // Single source of truth — a hardcoded copy here would silently drift when emotes change.
+        if (!emote || !(EMOTE_IDS as string[]).includes(emote)) return NextResponse.json({ ok: true });
         const emoteRoom = await getRoom(code?.toUpperCase());
         const emotePlayer = emoteRoom?.players[playerId];
         if (!emotePlayer) return NextResponse.json({ ok: true }); // silently drop unknown senders

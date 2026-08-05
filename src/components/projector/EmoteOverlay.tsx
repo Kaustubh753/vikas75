@@ -21,7 +21,9 @@ export default function EmoteOverlay({ code }: Props) {
   const timersRef = React.useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
-    const channel = getPusherClient().subscribe(getRoomChannel(code));
+    const pusher = getPusherClient();
+    if (!pusher) return; // realtime unconfigured — emotes are ephemeral, nothing to fall back to
+    const channel = pusher.subscribe(getRoomChannel(code));
 
     const onEmote = (payload: EmoteEvent) => {
       const uid = `${payload.playerId}-${payload.timestamp ?? Date.now()}`;
@@ -38,7 +40,7 @@ export default function EmoteOverlay({ code }: Props) {
     channel.bind('emote', onEmote);
     return () => {
       channel.unbind('emote', onEmote);
-      getPusherClient().unsubscribe(getRoomChannel(code));
+      pusher.unsubscribe(getRoomChannel(code));
       // Clear all pending removal timers to avoid setState on unmounted component
       timersRef.current.forEach(clearTimeout);
       timersRef.current = [];

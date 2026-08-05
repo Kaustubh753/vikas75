@@ -129,6 +129,7 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
 
   useEffect(() => {
     const pusher = getPusherClient();
+    if (!pusher) return; // realtime unconfigured — the GET poll below keeps the screen live
     const channel = pusher.subscribe(getRoomChannel(code));
     const onRoomUpdated = (updated: GameRoom) => setRoom(prev => staleRoom(prev, updated) ? prev : updated);
     const onMusicToggle = (payload: { muted: boolean }) => getLobbyMusic().forceMute(payload.muted);
