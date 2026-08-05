@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Avatar from '@/lib/avatars';
 import { getLobbyMusic } from '@/lib/music-manager';
+import LogoLockup from '@/components/ui/LogoLockup';
 import type { GameRoom, Player } from '@/types/game';
 
 const QRCodeSVG = dynamic(
@@ -217,48 +218,18 @@ export default function ProjectorLobby({ room }: Props) {
         {/* ── HEADER ────────────────────────────────────────────────── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
 
-          {/* Saffron-border logo unit — attribution + wordmark + tagline */}
-          <div style={{
-            display: 'inline-flex', flexDirection: 'column',
-            position: 'relative', paddingLeft: 16, alignItems: 'stretch',
-          }}>
-            {/* Left saffron rule */}
-            <div style={{
-              position: 'absolute', left: 0, top: 4, bottom: 4,
-              width: 2, background: '#FF9933',
-            }} />
-            <div style={{
-              fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500,
-              fontSize: 'clamp(8px,0.68vw,10px)',
-              letterSpacing: '0.08em', textTransform: 'uppercase',
-              color: 'rgba(250,248,240,0.7)', lineHeight: 1.4,
-              marginBottom: 10, whiteSpace: 'nowrap',
-            }}>
-              An initiative of the Office of Shri Sujeet Kumar
-            </div>
-            {/* Wordmark + Lobby pill on same baseline */}
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
-              <span style={{
-                fontFamily: 'var(--font-yatra),var(--font-inter),sans-serif',
-                fontSize: 'clamp(22px,2.4vw,34px)', lineHeight: 1, color: '#fff',
-              }}>Vikas 75</span>
-              <span style={{
-                fontFamily: 'var(--font-inter),sans-serif',
-                fontSize: 'clamp(8px,0.7vw,10px)', fontWeight: 600,
-                letterSpacing: '0.22em', textTransform: 'uppercase',
-                color: '#FF9933',
-                border: '1px solid rgba(255,153,51,0.35)',
-                borderRadius: 999, padding: '5px 12px',
-              }}>Lobby</span>
-            </div>
-            <div style={{
-              fontFamily: 'var(--font-inter),sans-serif', fontWeight: 400,
-              fontSize: 'clamp(11px,1.1vw,16px)',
-              lineHeight: 1.35, color: '#FF9933', letterSpacing: '-0.005em',
-              marginTop: 8, whiteSpace: 'nowrap',
-            }}>
-              The best answer isn&apos;t always right
-            </div>
+          {/* Brand mark + phase pill */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14 }}>
+            <LogoLockup size="md" />
+            <span style={{
+              fontFamily: 'var(--font-inter),sans-serif',
+              fontSize: 'clamp(8px,0.7vw,10px)', fontWeight: 600,
+              letterSpacing: '0.22em', textTransform: 'uppercase',
+              color: '#FF9933',
+              border: '1px solid rgba(255,153,51,0.35)',
+              borderRadius: 999, padding: '5px 12px',
+              marginBottom: 4,
+            }}>Lobby</span>
           </div>
 
           {/* Live status indicator */}

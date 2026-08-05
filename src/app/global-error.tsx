@@ -1,5 +1,8 @@
 'use client';
 import { useEffect } from 'react';
+// Safe here despite the self-contained rule below: the lockup is <img> tags with inline
+// styles, so it needs neither globals.css nor the font variables.
+import LogoLockup from '@/components/ui/LogoLockup';
 
 // Last-resort boundary for errors thrown by the root layout itself. It replaces the
 // whole document, so it must render its own <html>/<body> and cannot rely on globals.css
@@ -24,7 +27,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
             <div style={{ flex: 1, background: '#ffffff' }} />
             <div style={{ flex: 1, background: '#138808' }} />
           </div>
-          <h1 style={{ fontSize: 28, fontWeight: 800, color: '#FF9933', margin: 0 }}>Vikas 75</h1>
+          <LogoLockup size="md" />
           <p style={{ fontSize: 16, color: 'rgba(250,248,240,0.7)', maxWidth: 360, lineHeight: 1.6, margin: 0 }}>
             Something went badly wrong loading the app. Please reload.
           </p>
