@@ -257,10 +257,13 @@ function Confetti({ time }: { time: number }) {
    bed, inset rule and shadow as the dealt hand — so a source with a white background still
    reads as part of the deck rather than a pasted-on square. */
 const PORTRAIT_SRC = '/intro/portrait.webp';
+// Flip to true once the artwork exists at PORTRAIT_SRC. Off until then so production doesn't
+// request a file that isn't there (a 404 per intro load) for a beat that can't render anyway.
+const PORTRAIT_READY = false;
 function Portrait({ time }: { time: number }) {
   const inP = seg(time, 0.12, 0.60, E.outBack);
   const out = seg(time, 1.30, 1.90, E.inOutSine);
-  if (inP <= 0 || out >= 1) return null;
+  if (!PORTRAIT_READY || inP <= 0 || out >= 1) return null;
   const S = 300;
   const sc = (0.90 + 0.10 * Math.min(inP, 1)) * (1 + 0.06 * out);
   return (
@@ -324,7 +327,7 @@ const STAGE_W = 1920, STAGE_H = 1080;
 // to hit PLAY NOW instead of dismissing itself.
 const HOLD_T = 9.85;
 const PRELOAD = [
-  PORTRAIT_SRC,
+  ...(PORTRAIT_READY ? [PORTRAIT_SRC] : []),
   ...HAND.map(c => c.src),
   ...[0, 1, 2, 3, 4, 5, 6].map(i => `/intro/letter_${i}.webp`),
   '/intro/logo_mid_navy.webp', '/intro/logo_top_navy.webp', '/intro/logo_bottom_navy.webp',

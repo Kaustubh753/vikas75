@@ -25,11 +25,11 @@ const CARDS = [
 // How To Play steps
 // ─────────────────────────────────────────────────────────────
 const HTP_STEPS = [
-  { num: '01', title: 'Get a room.',         body: "Host a game, share the four-letter code with friends. They'll show up. They always do." },
-  { num: '02', title: 'A challenge drops.',  body: "A real-sounding problem statement appears. It will sound serious. It won't be." },
-  { num: '03', title: 'Play your scheme.',   body: "You're dealt real government schemes. Pick the one that actually answers the problem." },
-  { num: '04', title: 'Convince the judge.', body: 'Sixty seconds to make your case. Know the scheme, then sell it.' },
-  { num: '05', title: 'Best answer wins.',   body: 'The right scheme, argued well — creativity is what separates the good from the great. Five rounds, one winner, eternal bragging rights.' },
+  { num: '01', title: 'Get a room.',        body: 'Host a game and share the four-letter code. Players join from their phones.' },
+  { num: '02', title: 'See the problem.',   body: 'A problem statement goes up on the big screen. Everyone answers the same one.' },
+  { num: '03', title: 'Play your scheme.',  body: 'You hold real government schemes. Pick the one that answers the problem.' },
+  { num: '04', title: 'Make your case.',    body: 'Sixty seconds to argue it. Say what your scheme does and why it fits.' },
+  { num: '05', title: 'Best answer wins.',  body: 'The judge scores fit first, then how well you argued it. Five rounds, one winner.' },
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -235,80 +235,17 @@ function HeroFan() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// HowToPlay — horizontal carousel with in-panel arrows + dot nav
+// HowToPlay — static list; all five steps visible at once (no carousel)
 // ─────────────────────────────────────────────────────────────
 function HowToPlay() {
-  const [step, setStep] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const total = HTP_STEPS.length;
-  const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (paused) return;
-    const t = setTimeout(() => setStep(s => (s + 1) % total), 5200);
-    return () => clearTimeout(t);
-  }, [step, paused, total]);
-
-  // Clean up pause timer on unmount
-  useEffect(() => () => { if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current); }, []);
-
-  const goTo = useCallback((i: number) => {
-    setStep(i);
-    setPaused(true);
-    if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
-    pauseTimerRef.current = setTimeout(() => setPaused(false), 6500);
-  }, []);
-
-  const prev = () => goTo((step - 1 + total) % total);
-  const next = () => goTo((step + 1) % total);
-
-  const arrowBtn = (dir: 'prev' | 'next', onClick: () => void) => (
-    <button
-      onClick={onClick}
-      aria-label={dir === 'prev' ? 'Previous' : 'Next'}
-      style={{
-        position: 'absolute',
-        [dir === 'prev' ? 'left' : 'right']: 6,
-        top: '50%', transform: 'translateY(-50%)',
-        width: 32, height: 32, borderRadius: 6,
-        background: 'rgba(255,153,51,0.08)',
-        border: '1px solid rgba(255,153,51,0.28)',
-        color: 'rgba(255,153,51,0.85)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        cursor: 'pointer', zIndex: 10,
-        transition: 'background .15s, border-color .15s, color .15s',
-        flexShrink: 0,
-      }}
-      onMouseEnter={e => {
-        const b = e.currentTarget as HTMLButtonElement;
-        b.style.background = 'rgba(255,153,51,0.18)';
-        b.style.borderColor = '#FF9933';
-        b.style.color = '#FF9933';
-      }}
-      onMouseLeave={e => {
-        const b = e.currentTarget as HTMLButtonElement;
-        b.style.background = 'rgba(255,153,51,0.08)';
-        b.style.borderColor = 'rgba(255,153,51,0.28)';
-        b.style.color = 'rgba(255,153,51,0.85)';
-      }}
-    >
-      {dir === 'prev'
-        ? <svg width="13" height="13" viewBox="0 0 12 12" fill="none"><path d="M7.5 2L3.5 6L7.5 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        : <svg width="13" height="13" viewBox="0 0 12 12" fill="none"><path d="M4.5 2L8.5 6L4.5 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-      }
-    </button>
-  );
-
   return (
     <div
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
       style={{
         width: '100%',
         background: 'linear-gradient(180deg,rgba(255,153,51,.05) 0%,rgba(255,153,51,0) 22%),linear-gradient(180deg,rgba(5,11,28,.85) 0%,rgba(2,6,18,.9) 100%)',
         border: '1px solid rgba(255,153,51,.22)',
         borderRadius: 12,
-        padding: 'clamp(16px, 1.5vw, 22px) clamp(12px, 1.2vw, 18px)',
+        padding: 'clamp(16px, 1.5vw, 22px) clamp(14px, 1.3vw, 20px)',
         display: 'flex', flexDirection: 'column',
         boxShadow: '0 24px 48px rgba(0,0,0,.45),0 6px 14px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,153,51,.18),inset 0 0 0 1px rgba(255,255,255,.02)',
         backdropFilter: 'blur(8px)',
@@ -316,79 +253,54 @@ function HowToPlay() {
         boxSizing: 'border-box',
       }}
     >
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-        <div style={{ fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500, fontSize: 'clamp(8px, 0.76vw, 11px)', color: 'rgba(250,248,240,.7)', letterSpacing: '0.22em', textTransform: 'uppercase' }}>
-          How to play
-        </div>
-        <div style={{ fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500, fontSize: 'clamp(8px, 0.76vw, 11px)', color: '#FF9933', letterSpacing: '0.14em' }}>
-          {String(step + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}
-        </div>
+      <div style={{
+        fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500,
+        fontSize: 'clamp(8px, 0.76vw, 11px)', color: 'rgba(250,248,240,.7)',
+        letterSpacing: '0.22em', textTransform: 'uppercase',
+        paddingBottom: 'clamp(10px, 1.1vh, 14px)', marginBottom: 'clamp(10px, 1.1vh, 14px)',
+        borderBottom: '1px solid rgba(250,248,240,.14)',
+      }}>
+        How to play
       </div>
 
-      {/* Carousel body */}
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 200 }}>
-        {/* Prev / Next arrows — overlaid on the slide content */}
-        {arrowBtn('prev', prev)}
-        {arrowBtn('next', next)}
-
-        {/* Slide track — all slides in a flex row, translate to show current */}
-        <div style={{
-          display: 'flex',
-          height: '100%',
-          transform: `translateX(calc(-${step} * 100%))`,
-          transition: 'transform .42s cubic-bezier(.4,0,.2,1)',
-        }}>
-          {HTP_STEPS.map((s, i) => (
-            <div key={i} style={{
-              flexShrink: 0, width: '100%', height: '100%',
-              display: 'flex', flexDirection: 'column', gap: 12,
-              // inset horizontal padding keeps text clear of the arrow buttons
-              padding: '4px 44px 0',
+      {/* Steps share the column's spare height so the panel fills without stretching text */}
+      <ol style={{
+        listStyle: 'none', margin: 0, padding: 0,
+        flex: 1, display: 'flex', flexDirection: 'column',
+        justifyContent: 'space-between', gap: 'clamp(8px, 1.1vh, 16px)',
+      }}>
+        {HTP_STEPS.map((s) => (
+          <li key={s.num} style={{ display: 'flex', gap: 'clamp(8px, 0.8vw, 13px)', alignItems: 'baseline' }}>
+            <span style={{
+              flexShrink: 0,
+              fontFamily: 'var(--font-yatra),var(--font-inter),sans-serif',
+              fontSize: 'clamp(14px, 1.35vw, 21px)', lineHeight: 1,
+              color: '#FF9933', letterSpacing: '-0.01em',
+              minWidth: '1.9em',
             }}>
-              <div style={{
-                fontFamily: 'var(--font-yatra),var(--font-inter),sans-serif',
-                fontSize: 'clamp(26px, 3vw, 44px)', lineHeight: 1, color: '#FF9933', letterSpacing: '-0.01em',
-              }}>
-                {s.num}
-              </div>
-              <div style={{
-                fontFamily: 'var(--font-inter),sans-serif',
-                fontWeight: 700, fontSize: 'clamp(12px, 1.3vw, 19px)', lineHeight: 1.15,
+              {s.num}
+            </span>
+            <span style={{ minWidth: 0 }}>
+              <span style={{
+                display: 'block',
+                fontFamily: 'var(--font-inter),sans-serif', fontWeight: 700,
+                fontSize: 'clamp(11px, 1vw, 15px)', lineHeight: 1.25,
                 letterSpacing: '-0.005em', color: '#fff',
               }}>
                 {s.title}
-              </div>
-              <div style={{
-                fontFamily: 'var(--font-inter),sans-serif',
-                fontWeight: 400, fontSize: 'clamp(10px, 0.88vw, 13px)', lineHeight: 1.6,
+              </span>
+              <span style={{
+                display: 'block', marginTop: 3,
+                fontFamily: 'var(--font-inter),sans-serif', fontWeight: 400,
+                fontSize: 'clamp(9px, 0.82vw, 12.5px)', lineHeight: 1.5,
                 color: 'rgba(250,248,240,.7)',
               }}>
                 {s.body}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Dot nav — centred, each dot navigates directly to that slide */}
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(250,248,240,.14)' }}>
-        {HTP_STEPS.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => goTo(i)}
-            aria-label={`Go to step ${i + 1}`}
-            style={{
-              width: i === step ? 20 : 8,
-              height: 8,
-              borderRadius: i === step ? 4 : '50%',
-              background: i === step ? '#FF9933' : 'rgba(250,248,240,.22)',
-              border: 'none', padding: 0, cursor: 'pointer',
-              transition: 'background .2s ease, width .28s cubic-bezier(.4,0,.2,1)',
-            }}
-          />
+              </span>
+            </span>
+          </li>
         ))}
-      </div>
+      </ol>
     </div>
   );
 }
