@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Bebas_Neue, Inter, Noto_Sans_Devanagari, Yatra_One } from 'next/font/google';
+import { Bebas_Neue, Inter, Noto_Sans_Devanagari, Yatra_One, Press_Start_2P } from 'next/font/google';
 import './globals.css';
 import ToasterProvider from '@/components/ui/ToasterProvider';
 
@@ -11,6 +11,10 @@ const devanagari = Noto_Sans_Devanagari({
   weight: ['400', '500'],
 });
 const yatra = Yatra_One({ weight: '400', subsets: ['latin'], variable: '--font-yatra' });
+// The retro-arcade thread from the pixel wordmark. Used only by the intro's PLAY NOW button and
+// the How-to-play panel's numeral/counter — it was referenced by the intro but never loaded, so
+// that text had been falling back to generic monospace.
+const pressStart = Press_Start_2P({ weight: '400', subsets: ['latin'], variable: '--font-press' });
 
 export const metadata: Metadata = {
   metadataBase: new URL(
@@ -43,7 +47,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${bebas.variable} ${inter.variable} ${devanagari.variable} ${yatra.variable}`}>
+      <body className={`${bebas.variable} ${inter.variable} ${devanagari.variable} ${yatra.variable} ${pressStart.variable}`}>
         {/* Tricolour strip — fixed, top of every page only */}
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0,

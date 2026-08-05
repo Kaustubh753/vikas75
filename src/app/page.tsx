@@ -7,6 +7,7 @@ import { FaGlobe, FaInstagram, FaXTwitter, FaLinkedin, FaFacebook, FaYoutube } f
 import { getLobbyMusic } from '@/lib/music-manager';
 import IntroAnimation from '@/components/intro/IntroAnimation';
 import LogoLockup from '@/components/ui/LogoLockup';
+import HowToPlayPanel from '@/components/landing/HowToPlayPanel';
 import type { AvatarId } from '@/types/game';
 
 // ─────────────────────────────────────────────────────────────
@@ -19,17 +20,6 @@ const CARDS = [
   { src: '/cards/card-032.webp', kind: 'scheme'    as const, id: 'skill-india' },  // s002
   { src: '/cards/card-034.webp', kind: 'scheme'    as const, id: 'swachh-bharat' }, // s004
   { src: '/cards/card-037.webp', kind: 'scheme'    as const, id: 'indradhanush' }, // s007
-];
-
-// ─────────────────────────────────────────────────────────────
-// How To Play steps
-// ─────────────────────────────────────────────────────────────
-const HTP_STEPS = [
-  { num: '01', title: 'Get a room.',        body: 'Host a game and share the four-letter code. Players join from their devices.' },
-  { num: '02', title: 'See the problem.',   body: 'A problem statement goes up on the big screen. Everyone answers the same one.' },
-  { num: '03', title: 'Play your scheme.',  body: 'You hold real government schemes. Pick the one that answers the problem.' },
-  { num: '04', title: 'Make your case.',    body: 'The clock runs while you argue it. Say what your scheme does and why it fits.' },
-  { num: '05', title: 'Best answer wins.',  body: 'The AI judge scores fit first, then how well you argued it. Win the most rounds to take the game.' },
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -235,77 +225,6 @@ function HeroFan() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// HowToPlay — static list; all five steps visible at once (no carousel)
-// ─────────────────────────────────────────────────────────────
-function HowToPlay() {
-  return (
-    <div
-      style={{
-        width: '100%',
-        background: 'linear-gradient(180deg,rgba(255,153,51,.05) 0%,rgba(255,153,51,0) 22%),linear-gradient(180deg,rgba(5,11,28,.85) 0%,rgba(2,6,18,.9) 100%)',
-        border: '1px solid rgba(255,153,51,.22)',
-        borderRadius: 12,
-        padding: 'clamp(16px, 1.5vw, 22px) clamp(14px, 1.3vw, 20px)',
-        display: 'flex', flexDirection: 'column',
-        boxShadow: '0 24px 48px rgba(0,0,0,.45),0 6px 14px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,153,51,.18),inset 0 0 0 1px rgba(255,255,255,.02)',
-        backdropFilter: 'blur(8px)',
-        height: '100%',
-        boxSizing: 'border-box',
-      }}
-    >
-      <div style={{
-        fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500,
-        fontSize: 'clamp(8px, 0.76vw, 11px)', color: 'rgba(250,248,240,.7)',
-        letterSpacing: '0.22em', textTransform: 'uppercase',
-        paddingBottom: 'clamp(10px, 1.1vh, 14px)', marginBottom: 'clamp(10px, 1.1vh, 14px)',
-        borderBottom: '1px solid rgba(250,248,240,.14)',
-      }}>
-        How to play
-      </div>
-
-      {/* Steps share the column's spare height so the panel fills without stretching text */}
-      <ol style={{
-        listStyle: 'none', margin: 0, padding: 0,
-        flex: 1, display: 'flex', flexDirection: 'column',
-        justifyContent: 'space-between', gap: 'clamp(8px, 1.1vh, 16px)',
-      }}>
-        {HTP_STEPS.map((s) => (
-          <li key={s.num} style={{ display: 'flex', gap: 'clamp(8px, 0.8vw, 13px)', alignItems: 'baseline' }}>
-            <span style={{
-              flexShrink: 0,
-              fontFamily: 'var(--font-yatra),var(--font-inter),sans-serif',
-              fontSize: 'clamp(14px, 1.35vw, 21px)', lineHeight: 1,
-              color: '#FF9933', letterSpacing: '-0.01em',
-              minWidth: '1.9em',
-            }}>
-              {s.num}
-            </span>
-            <span style={{ minWidth: 0 }}>
-              <span style={{
-                display: 'block',
-                fontFamily: 'var(--font-inter),sans-serif', fontWeight: 700,
-                fontSize: 'clamp(11px, 1vw, 15px)', lineHeight: 1.25,
-                letterSpacing: '-0.005em', color: '#fff',
-              }}>
-                {s.title}
-              </span>
-              <span style={{
-                display: 'block', marginTop: 3,
-                fontFamily: 'var(--font-inter),sans-serif', fontWeight: 400,
-                fontSize: 'clamp(9px, 0.82vw, 12.5px)', lineHeight: 1.5,
-                color: 'rgba(250,248,240,.7)',
-              }}>
-                {s.body}
-              </span>
-            </span>
-          </li>
-        ))}
-      </ol>
-    </div>
-  );
-}
-
-
 // ─────────────────────────────────────────────────────────────
 // Full-page landing layout — fully responsive, no fixed canvas
 // ─────────────────────────────────────────────────────────────
@@ -470,9 +389,12 @@ function LandingPage() {
             >
               Join a Game
             </button>
-            <a href="/how-to-play" style={{ textAlign: 'center', marginTop: 4, fontFamily: 'var(--font-inter),sans-serif', fontSize: 12, letterSpacing: '0.08em', color: 'rgba(250,248,240,.55)', textDecoration: 'none' }}>
-              How to play →
-            </a>
+          </div>
+
+          {/* The column has stacked, so the panel takes its list layout — five steps in place
+              beats a link to another page. */}
+          <div style={{ width: '100%', maxWidth: 340 }}>
+            <HowToPlayPanel layout="list" />
           </div>
 
           {/* Footer */}
@@ -564,7 +486,7 @@ function LandingPage() {
 
         {/* ── RIGHT: How To Play ───────────────────────────────── */}
         <div style={{ display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end', zIndex: 5 }}>
-          <HowToPlay />
+          <HowToPlayPanel />
         </div>
 
         {/* ── BOTTOM STRIP ────────────────────────────────────── */}
