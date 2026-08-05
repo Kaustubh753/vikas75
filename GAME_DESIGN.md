@@ -60,7 +60,7 @@ Vikas 75 is a multiplayer card game about Indian government schemes. Players mat
 - Hit Submit
 - Projector shows live progress: "4 of 6 players submitted"
 - Player names tick off as they submit
-- Default timer: 90 seconds. Host can extend or force-end early
+- Default timer: 69 seconds (host-adjustable 30–120 in the UI, 10–300 server-side). Host can force-end early
 
 ### 4. The Reveal
 - All submissions shown on projector one by one

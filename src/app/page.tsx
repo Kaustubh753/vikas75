@@ -25,11 +25,11 @@ const CARDS = [
 // How To Play steps
 // ─────────────────────────────────────────────────────────────
 const HTP_STEPS = [
-  { num: '01', title: 'Get a room.',        body: 'Host a game and share the four-letter code. Players join from their phones.' },
+  { num: '01', title: 'Get a room.',        body: 'Host a game and share the four-letter code. Players join from their devices.' },
   { num: '02', title: 'See the problem.',   body: 'A problem statement goes up on the big screen. Everyone answers the same one.' },
   { num: '03', title: 'Play your scheme.',  body: 'You hold real government schemes. Pick the one that answers the problem.' },
-  { num: '04', title: 'Make your case.',    body: 'Sixty seconds to argue it. Say what your scheme does and why it fits.' },
-  { num: '05', title: 'Best answer wins.',  body: 'The judge scores fit first, then how well you argued it. Five rounds, one winner.' },
+  { num: '04', title: 'Make your case.',    body: 'The clock runs while you argue it. Say what your scheme does and why it fits.' },
+  { num: '05', title: 'Best answer wins.',  body: 'The AI judge scores fit first, then how well you argued it. Win the most rounds to take the game.' },
 ];
 
 // ─────────────────────────────────────────────────────────────

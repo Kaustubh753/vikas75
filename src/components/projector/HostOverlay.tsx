@@ -311,7 +311,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
             </div>
             <input
               type="range"
-              min={5}
+              min={1}
               max={15}
               value={rounds}
               onChange={(e) => {
@@ -352,7 +352,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
               type="range"
               min={30}
               max={120}
-              step={5}
+              step={1}
               value={timer}
               onChange={(e) => {
                 const v = Number(e.target.value);
