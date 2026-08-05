@@ -5,23 +5,23 @@ import LogoLockup from '@/components/ui/LogoLockup';
 const PANELS = [
   {
     icon: '📋',
-    title: 'A Challenge is Read',
-    description: 'A real government problem is revealed — from healthcare to infrastructure. Everyone sees it on the big screen.',
+    title: 'See the problem',
+    description: 'A real government problem goes up on the big screen, from healthcare to infrastructure. Everyone answers the same one.',
   },
   {
     icon: '🃏',
-    title: 'Pick the Best Scheme',
-    description: 'From your hand of 7 cards, choose the government scheme that best solves the challenge. Think fast!',
+    title: 'Play your scheme',
+    description: 'You hold seven real government schemes. Pick the one that answers the problem.',
   },
   {
     icon: '💬',
-    title: 'Justify in 25 Words',
-    description: 'Type your explanation — why does your scheme work? Keep it punchy. Bonus point for one crisp sentence!',
+    title: 'Make your case',
+    description: 'Say what your scheme does and why it fits, in 25 words. Keep it to one sentence and you earn a bonus point.',
   },
   {
     icon: '👑',
-    title: 'The AI Judge Decides',
-    description: 'Claude AI judges all submissions on how well the scheme fits the problem and how well you argue it. The winner earns points — highest score wins the game!',
+    title: 'The AI judge decides',
+    description: 'Claude scores how well your scheme fits the problem, then how well you argued it. Win the most rounds to take the game.',
   },
 ];
 
