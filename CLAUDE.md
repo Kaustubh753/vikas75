@@ -93,7 +93,7 @@ User text is cleaned before storage: `sanitizeName()` (length/trim) and `filterT
   - `startRound(room)` — increments round, picks a challenge card, resets submissions
   - `startSubmission(room)` — sets `timerEndsAt = now + timerDuration` (default 60 s, host-adjustable)
   - `addSubmission(room, submission)` — idempotent add to submissions map
-  - `applyVerdict(room, verdict)` — awards each ranked player by placement (**1st=3, 2nd=2, 3rd=1**, others 0) plus **+1 per player whose `bonusPoint` is true**; the winner's `roundsWon` is incremented (that count, not total score, decides the overall game winner); sets `phase: 'winner'`. A `noWinner` verdict has empty rankings → nobody scores. Not internally idempotent, but every caller re-checks `phase === 'judging'` under the lock first, so it never double-applies.
+  - `applyVerdict(room, verdict)` — awards each ranked player by placement (**1st=3, 2nd=2, 3rd=1**, others 0) the winner's `roundsWon` is incremented (that count, not total score, decides the overall game winner); sets `phase: 'winner'`. A `noWinner` verdict has empty rankings → nobody scores. Not internally idempotent, but every caller re-checks `phase === 'judging'` under the lock first, so it never double-applies.
   - `advancePhase(room)` — state machine dispatcher; `judging` phase does nothing (AI handles it)
   - `allPlayersSubmitted(room)` — true when every player who joined *before* this round has submitted (excludes mid-round late joiners)
 
@@ -111,7 +111,6 @@ User text is cleaned before storage: `sanitizeName()` (length/trim) and `filterT
   - The judge **ranks all submissions** and returns per-player `gamePoints` (1st=3, 2nd=2, 3rd=1); `applyVerdict` consumes that.
   - Falls back to `fallbackJudge()` (random winner + Hindi-flavoured verdicts) when the key is absent, and **silently** if the live call throws/times out (8s `AbortController`) or returns unparseable JSON.
   - Strips accidental markdown fences before `JSON.parse`; `buildVerdict` rejects a verdict that names an unknown `playerId`.
-  - Bonus rule on the **fallback** path: `explanation.trim().split(/[.!?]/).filter(Boolean).length <= 1`. On the **live** path the model supplies `bonusPoint` directly (same one-sentence intent, not server-recomputed).
 
 ### API
 - `src/app/api/game/route.ts` — Single POST + GET endpoint.
@@ -137,7 +136,7 @@ User text is cleaned before storage: `sanitizeName()` (length/trim) and `filterT
 ### Player Components
 - `src/app/page.tsx` — Home page (join/create screen). Uses `<CodeInput>`. Stores `vikas75_playerId`, `vikas75_playerName`, `vikas75_avatarId` in localStorage on join. Host redirected to `/host/[code]?h=[hostId]`.
 - `src/components/player/PlayerView.tsx` — Player state machine. Reads identity from localStorage in `useEffect` only (avoids hydration mismatch). Redirects to `/?code=${code}` if no identity found. Polls `/api/game` every 30 s as Pusher fallback.
-- `src/components/player/PlayerSubmit.tsx` — Card selection + explanation. Horizontal scroll tray; 160×214 card images; word counter (25-word cap); bonus point hint (≤1 sentence).
+- `src/components/player/PlayerSubmit.tsx` — Card selection + explanation. Horizontal scroll tray; 160×214 card images; word counter (25-word cap).
 - `src/components/player/PlayerLobby.tsx` — Waiting in lobby, shows player list.
 - `src/components/player/PlayerWaiting.tsx` — Generic waiting screen with pulsing dots.
 

@@ -395,7 +395,7 @@ export default function PlayerSubmit({
           className="w-full rounded-xl border-2 border-white/20 bg-white/5 text-white px-4 py-3 text-sm focus:outline-none focus:border-[#FF9933] focus:ring-2 focus:ring-[#FF9933]/40 placeholder-white/30 resize-none transition-all font-[family-name:var(--font-inter)]"
         />
         <p className="text-white/50 text-xs mt-1 font-[family-name:var(--font-inter)]">
-          Tip: End with exactly one sentence (. ! or ?) to earn a bonus point!
+          Tip: say what your scheme does and why it fits the problem.
         </p>
       </div>
 

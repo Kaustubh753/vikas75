@@ -16,7 +16,7 @@ const PANELS = [
   {
     icon: '💬',
     title: 'Make your case',
-    description: 'Say what your scheme does and why it fits, in 25 words. Keep it to one sentence and you earn a bonus point.',
+    description: 'Say what your scheme does and why it fits, in 25 words or less.',
   },
   {
     icon: '👑',

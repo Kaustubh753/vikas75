@@ -7,6 +7,7 @@ import type {
   JudgeVerdict,
   ChatMessage,
 } from '@/types/game';
+import { BLOCKED_CODES } from '@/lib/room-code-blocklist';
 import challengesData from '@/../context/cards_challenges.json';
 import schemesData from '@/../context/cards_schemes.json';
 
@@ -21,7 +22,15 @@ const MAX_CHAT_MESSAGES = 20;
 export function generateRoomCode(): string {
   // No I, O — too similar to 1 and 0 on a projector screen
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-  return Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  const draw = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  // Reject codes that spell a real word or a slur — the code goes on a projector in front of an
+  // audience. Blocked codes are 0.8% of the space, so this effectively never loops more than once;
+  // the bound is a backstop, and returning an unfiltered code beats hanging the request.
+  for (let i = 0; i < 20; i++) {
+    const code = draw();
+    if (!BLOCKED_CODES.has(code)) return code;
+  }
+  return draw();
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -171,7 +180,7 @@ export function applyVerdict(room: GameRoom, verdict: JudgeVerdict): GameRoom {
     if (players[ranking.playerId]) {
       players[ranking.playerId] = {
         ...players[ranking.playerId],
-        score: players[ranking.playerId].score + ranking.gamePoints + (ranking.bonusPoint ? 1 : 0),
+        score: players[ranking.playerId].score + ranking.gamePoints,
       };
     }
   }

@@ -39,8 +39,6 @@ Accept Hinglish fully. Reward creativity in any language.
 Keep each judgeComment to one punchy sentence.
 The reasoning field is 2–3 sentences overall narrative about the round.
 
-Bonus point (bonusPoint: true): if the explanation is a single sentence or less.
-
 ON-BRIEF SCHEMES: most rounds list the schemes that genuinely address the problem statement.
 Treat that list as the strongest available signal of whether an answer fits, and weigh it
 accordingly — an on-brief scheme starts in tier 1–2 above, an off-brief one starts in tier 3–4.
@@ -63,7 +61,7 @@ addresses the challenge and how well the player argues it.
 You must respond with valid JSON only, no markdown fences, exactly this format:
 {
   "rankings": [
-    { "playerId": "<exact playerId>", "judgeScore": 9, "judgeComment": "<one line>", "bonusPoint": false },
+    { "playerId": "<exact playerId>", "judgeScore": 9, "judgeComment": "<one line>" },
     ...
   ],
   "reasoning": "<2–3 sentence narrative about the round>"
@@ -137,7 +135,7 @@ async function claudeJudge(challenge: ChallengeCard, submissions: Submission[]):
   console.log(`[ai-judge] Live verdict via ${JUDGE_MODEL} (${text.length} chars)`);
   const json = text.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim();
   const parsed = JSON.parse(json) as {
-    rankings: Array<{ playerId: string; judgeScore: number; judgeComment: string; bonusPoint: boolean }>;
+    rankings: Array<{ playerId: string; judgeScore: number; judgeComment: string }>;
     reasoning: string;
   };
 
@@ -146,7 +144,7 @@ async function claudeJudge(challenge: ChallengeCard, submissions: Submission[]):
 
 function buildVerdict(
   submissions: Submission[],
-  rankingsRaw: Array<{ playerId: string; judgeScore: number; judgeComment: string; bonusPoint: boolean }>,
+  rankingsRaw: Array<{ playerId: string; judgeScore: number; judgeComment: string }>,
   reasoning: string,
 ): JudgeVerdict {
   // Validate Claude ranked every submitted player, no unknown IDs, and scores are valid numbers
@@ -185,7 +183,6 @@ function buildVerdict(
       judgeScore: r.judgeScore,
       judgeComment: r.judgeComment,
       gamePoints,
-      bonusPoint: r.bonusPoint,
     };
   });
 
@@ -196,7 +193,6 @@ function buildVerdict(
     schemeCard: winner.schemeCard,
     explanation: winner.explanation,
     reasoning,
-    bonusPoint: winner.bonusPoint,
     rankings,
   };
 }
@@ -210,10 +206,6 @@ function fallbackJudge(submissions: Submission[]): JudgeVerdict {
     // Distribute scores evenly across [1, 10] regardless of player count
     const judgeScore = shuffled.length === 1 ? 10 : Math.round(10 - (9 * i) / (shuffled.length - 1));
     const gamePoints = i === 0 ? 3 : i === 1 ? 2 : i === 2 ? 1 : 0;
-    // Match Claude's bonus point rule: a single sentence or less — but an empty explanation
-    // (e.g. a timer auto-submit for a silent player) earns no bonus.
-    const trimmed = sub.explanation.trim();
-    const bonusPoint = trimmed.length > 0 && trimmed.split(/[.!?]/).filter(Boolean).length <= 1;
     return {
       playerId: sub.playerId,
       playerName: sub.playerName,
@@ -223,7 +215,6 @@ function fallbackJudge(submissions: Submission[]): JudgeVerdict {
       judgeScore,
       judgeComment: FALLBACK_COMMENTS[i % FALLBACK_COMMENTS.length],
       gamePoints,
-      bonusPoint,
     };
   });
 
@@ -234,7 +225,6 @@ function fallbackJudge(submissions: Submission[]): JudgeVerdict {
     schemeCard: winner.schemeCard,
     explanation: winner.explanation,
     reasoning,
-    bonusPoint: winner.bonusPoint,
     rankings,
   };
 }
@@ -252,7 +242,6 @@ export function noWinnerVerdict(reason = "The judge couldn't pick a winner this 
     schemeCard: { id: '', name: '', hi: '', desc: '', bullets: [] },
     explanation: '',
     reasoning: reason,
-    bonusPoint: false,
     rankings: [],
     noWinner: true,
   };
