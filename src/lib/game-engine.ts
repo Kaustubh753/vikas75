@@ -23,9 +23,10 @@ export function generateRoomCode(): string {
   // No I, O — too similar to 1 and 0 on a projector screen
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
   const draw = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-  // Reject codes that spell a real word or a slur — the code goes on a projector in front of an
-  // audience. Blocked codes are 0.8% of the space, so this effectively never loops more than once;
-  // the bound is a backstop, and returning an unfiltered code beats hanging the request.
+  // Reject codes that spell a slur — the code goes on a projector in front of an audience.
+  // Ordinary words are fine (BANK, CARD, HAND are all valid codes). Blocked codes are 0.03% of
+  // the space, so this effectively never loops; the bound is a backstop, and returning an
+  // unfiltered code beats hanging the request.
   for (let i = 0; i < 20; i++) {
     const code = draw();
     if (!BLOCKED_CODES.has(code)) return code;
