@@ -31,7 +31,7 @@ function mulberry(seed: number) { return function () { let t = (seed += 0x6D2B79
 /* ── palette ─────────────────────────────────────────────────── */
 const CREAM = '#f6efd8', CREAM_HI = '#fdf8e8', INK = '#173458';
 const SAFFRON = '#ee7d23', GREEN = '#1fa24a';
-const PSFONT = "'Press Start 2P', ui-monospace, monospace";
+const PSFONT = "var(--font-press), 'Press Start 2P', ui-monospace, monospace";
 
 /* ── logo geometry (cropped-source coords → 1920×1080) ───────── */
 const SRC_W = 1600, LOGO_W = 1180, SCALE = LOGO_W / SRC_W;     // 0.7375
