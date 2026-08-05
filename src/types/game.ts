@@ -45,10 +45,9 @@ export interface PlayerRanking {
   avatarId: AvatarId;
   schemeCard: SchemeCard;
   explanation: string;
-  judgeScore: number;    // 1–10 score given by judge
+  judgeScore: number;    // 1–10 quality rating of this round's answer (displayed as 5 stars)
   judgeComment: string;  // one-line remark
   gamePoints: number;    // actual points earned this round (1st=3, 2nd=2, 3rd=1)
-  bonusPoint: boolean;   // extra point for one-sentence explanation
 }
 
 export interface JudgeVerdict {
@@ -57,7 +56,6 @@ export interface JudgeVerdict {
   schemeCard: SchemeCard;
   explanation: string;
   reasoning: string;       // overall narrative from the judge
-  bonusPoint: boolean;
   rankings: PlayerRanking[]; // all players sorted by judgeScore desc
   noWinner?: boolean;      // true = explicit "no winner this round" (judge failed / no submissions); rankings empty, no points awarded
 }

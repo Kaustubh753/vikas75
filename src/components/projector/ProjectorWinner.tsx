@@ -7,6 +7,35 @@ import { getMusicManager } from '@/lib/music';
 import { vibrate } from '@/lib/vibrate';
 import type { GameRoom } from '@/types/game';
 
+/** Answer quality for the round, shown as 5 stars. The judge still scores 1–10 (finer grain
+ *  keeps the ranking order clean), so this halves it and fills to the nearest half star.
+ *  Quality is display only — points come from placement, not from this. */
+function Stars({ score }: { score: number }) {
+  const outOfFive = Math.max(0, Math.min(10, score)) / 2;
+  return (
+    <span
+      className="inline-flex items-center gap-[3px] leading-none"
+      role="img"
+      aria-label={`Answer quality ${outOfFive.toFixed(1)} out of 5`}
+    >
+      {[0, 1, 2, 3, 4].map((i) => {
+        const fill = Math.max(0, Math.min(1, outOfFive - i)); // 0 → empty, 1 → full
+        return (
+          <span key={i} className="relative text-lg" style={{ color: 'rgba(255,255,255,0.18)' }}>
+            ★
+            <span
+              className="absolute left-0 top-0 overflow-hidden"
+              style={{ width: `${fill * 100}%`, color: '#FF9933' }}
+            >
+              ★
+            </span>
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
 interface Props { room: GameRoom }
 
 export default function ProjectorWinner({ room }: Props) {
@@ -124,6 +153,11 @@ export default function ProjectorWinner({ room }: Props) {
           <h2 className="font-[family-name:var(--font-bebas)] text-white text-4xl tracking-widest text-center mb-8">
             Round {room.round} Rankings
           </h2>
+          {/* Says what the stars mean without spelling it out twice — points come from placement,
+              the stars rate the answer itself. */}
+          <p className="text-center text-white/40 text-sm tracking-widest uppercase font-[family-name:var(--font-inter)] -mt-6 mb-8">
+            Stars rate this round&apos;s answer
+          </p>
           <div className="space-y-3 max-w-3xl mx-auto">
             {rankings.map((r, i) => (
               <motion.div
@@ -146,12 +180,9 @@ export default function ProjectorWinner({ room }: Props) {
                   <p className="text-white/50 text-xs font-[family-name:var(--font-inter)]">{r.schemeCard.name}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-[family-name:var(--font-bebas)] text-[#FF9933] text-xl">{r.judgeScore}/10</p>
+                  <Stars score={r.judgeScore} />
                   <p className="text-white/40 text-xs font-[family-name:var(--font-inter)] italic truncate max-w-[200px]">{r.judgeComment}</p>
                 </div>
-                {r.bonusPoint && (
-                  <span className="text-[#FFD700] text-sm font-[family-name:var(--font-inter)] font-bold">+bonus</span>
-                )}
               </motion.div>
             ))}
           </div>

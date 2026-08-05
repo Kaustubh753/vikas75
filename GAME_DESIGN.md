@@ -74,7 +74,7 @@ Vikas 75 is a multiplayer card game about Indian government schemes. Players mat
 ### 6. Winner Announced
 - Big dramatic reveal on projector
 - Winner name, scheme, reason why they won
-- Scoring: +2 points to winner, +1 bonus if explanation was a single sentence
+- Scoring: placement points each round (1st=3, 2nd=2, 3rd=1); most rounds won takes the game
 - Leaderboard updates live
 
 ### 7. Between Rounds
