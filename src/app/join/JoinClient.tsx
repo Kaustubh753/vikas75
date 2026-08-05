@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { AvatarId } from '@/types/game';
 import AvatarPicker from '@/components/ui/AvatarPicker';
 import IntroAnimation from '@/components/intro/IntroAnimation';
+import LogoLockup from '@/components/ui/LogoLockup';
 
 // Dedicated join screen. Reached from the home "Join a Game" button and from the lobby QR
 // code (which deep-links here with ?code=XXXX prefilled). Keeps joining off the landing page.
@@ -109,11 +110,8 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
       <div style={{ width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 24 }}>
 
         {/* Heading */}
-        <div style={{ textAlign: 'center' }}>
-          <h1 style={{
-            fontFamily: 'var(--font-yatra),var(--font-bebas),sans-serif', fontWeight: 400,
-            fontSize: 'clamp(36px, 11vw, 56px)', lineHeight: 0.95, color: '#fff', margin: 0,
-          }}>Vikas 75</h1>
+        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <LogoLockup size="md" />
           <p style={{
             fontFamily: 'var(--font-inter),sans-serif', fontSize: 14, color: '#FF9933',
             marginTop: 8, letterSpacing: '0.02em',
