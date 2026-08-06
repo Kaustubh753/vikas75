@@ -229,7 +229,10 @@ function fallbackJudge(submissions: Submission[]): JudgeVerdict {
       schemeCard: sub.schemeCard,
       explanation: sub.explanation,
       judgeScore,
-      judgeComment: FALLBACK_COMMENTS[i % FALLBACK_COMMENTS.length],
+      // Comments are ordered best-to-worst, so wrapping the index would hand a mid-table player
+      // the winner's line — a visible tell at a full table. Past the list, everyone gets the
+      // tail comment instead.
+      judgeComment: FALLBACK_COMMENTS[Math.min(i, FALLBACK_COMMENTS.length - 1)],
       gamePoints,
     };
   });

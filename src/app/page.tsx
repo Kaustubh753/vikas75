@@ -8,7 +8,6 @@ import { getLobbyMusic } from '@/lib/music-manager';
 import IntroAnimation from '@/components/intro/IntroAnimation';
 import LogoLockup from '@/components/ui/LogoLockup';
 import HowToPlayPanel from '@/components/landing/HowToPlayPanel';
-import type { AvatarId } from '@/types/game';
 
 // ─────────────────────────────────────────────────────────────
 // Card data — real game card images
