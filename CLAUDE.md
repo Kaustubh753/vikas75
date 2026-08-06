@@ -90,7 +90,7 @@ User text is cleaned before storage: `sanitizeName()` (length/trim) and `filterT
   - `createRoom(hostId, hostName, totalRounds?)` — creates room in lobby phase
   - `dealHand()` — always draws from full 75-card pool (supports 15+ players; hands can overlap)
   - `addPlayer(room, id, name)` — adds player with fresh hand, `joinedRound` set to current round
-  - `startRound(room)` — increments round, picks a challenge card, resets submissions
+  - `startRound(room)` — increments round, picks a challenge card, resets submissions. Hands persist across rounds (a played card is gone for good); only an empty hand is refilled
   - `startSubmission(room)` — sets `timerEndsAt = now + timerDuration` (default 60 s, host-adjustable)
   - `addSubmission(room, submission)` — idempotent add to submissions map
   - `applyVerdict(room, verdict)` — awards each ranked player by placement (**1st=3, 2nd=2, 3rd=1**, others 0) the winner's `roundsWon` is incremented (that count, not total score, decides the overall game winner); sets `phase: 'winner'`. A `noWinner` verdict has empty rankings → nobody scores. Not internally idempotent, but every caller re-checks `phase === 'judging'` under the lock first, so it never double-applies.
