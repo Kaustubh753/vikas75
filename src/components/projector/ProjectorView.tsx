@@ -16,7 +16,7 @@ import ProjectorWinner from '@/components/projector/ProjectorWinner';
 import ProjectorBetweenRounds from '@/components/projector/ProjectorBetweenRounds';
 import ProjectorGameOver from '@/components/projector/ProjectorGameOver';
 import MobileHostContent from '@/components/projector/MobileHostContent';
-import SkeletonCard from '@/components/ui/SkeletonCard';
+import ProjectorLoading from '@/components/projector/ProjectorLoading';
 import { staleRoom } from '@/lib/room-state';
 import type { GameRoom } from '@/types/game';
 
@@ -259,17 +259,7 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
     );
   }
 
-  if (!room) {
-    return (
-      <div className="w-screen h-screen bg-[#08070f] flex items-center justify-center p-12">
-        <div className="grid grid-cols-3 gap-4 w-full max-w-2xl">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <SkeletonCard key={i} className="h-32" />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  if (!room) return <ProjectorLoading />;
 
   return (
     <motion.div

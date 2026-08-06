@@ -6,6 +6,8 @@ import type { AvatarId } from '@/types/game';
 import AvatarPicker from '@/components/ui/AvatarPicker';
 import IntroAnimation from '@/components/intro/IntroAnimation';
 import LogoLockup from '@/components/ui/LogoLockup';
+import JoinTurnAnimation, { type TurnResult } from '@/components/join/JoinTurnAnimation';
+import { HANDOFF_KEY, prefersReducedMotion, type Rect, type TurnHandoff } from '@/components/join/turn-timeline';
 
 /** Smallest the join form is allowed to shrink to. Past this it stops scaling and the page is
  *  allowed to scroll instead — a form too small to read is worse than a short scroll. */
@@ -52,6 +54,59 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
   const slotsRef = useRef<(HTMLInputElement | null)[]>([]);
   const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (retryRef.current) clearTimeout(retryRef.current); }, []);
+
+  // ── The turn (design direction 2a) ──────────────────────────────────────────────
+  // On submit the four code boxes gather into a card, it turns over to show the player, and
+  // it rises into the lobby. The gesture starts with the request rather than after it, so
+  // the network cost is spent inside the animation; the turn itself is gated on the answer,
+  // so a refused code gets the refusal instead of a card. See `turn-timeline.ts`.
+  const [turn, setTurn] = useState<{ slots: Rect[]; code: string; name: string } | null>(null);
+  const [turnResult, setTurnResult] = useState<TurnResult>('pending');
+  /** The form settles back and blurs while the card is in play, and comes back into focus if
+   *  the card is refused. A CSS transition, so it costs nothing per frame. */
+  const [formSettled, setFormSettled] = useState(false);
+  // The avatar the server actually assigned — the requested value may be the 'a0' auto
+  // sentinel, which has no artwork. Resolved well before the card turns to show it.
+  const [cardAvatar, setCardAvatar] = useState<AvatarId>('a1');
+  const turnActiveRef = useRef(false);
+  const turnRouteRef = useRef<string | null>(null);
+  const pendingErrorRef = useRef<string | null>(null);
+
+  /** Live viewport rects of the four code inputs — the animation is built off these, so it
+   *  fits whatever size the form actually rendered at. */
+  function measureSlots(): Rect[] | null {
+    const rects = [0, 1, 2, 3].map(i => slotsRef.current[i]?.getBoundingClientRect());
+    if (rects.some(r => !r || r.width < 1)) return null;
+    return rects.map(r => ({ left: r!.left, top: r!.top, width: r!.width, height: r!.height }));
+  }
+
+  const handleTurnSuccess = useCallback((h: Omit<TurnHandoff, 'at'> | null) => {
+    // Hand the card's exact rect to the room route so it can pick it up mid-air. If that
+    // fails the player still gets to their room — they just arrive without the landing.
+    if (h) {
+      try { sessionStorage.setItem(HANDOFF_KEY, JSON.stringify({ ...h, at: Date.now() })); } catch { /* optional */ }
+    }
+    if (turnRouteRef.current) router.push(turnRouteRef.current);
+  }, [router]);
+
+  // The refusal's cue: the form comes out of its blur and, in its own place, says what went
+  // wrong — both as one movement, so the words arrive with the screen rather than after it.
+  const restoreForm = useCallback(() => {
+    setFormSettled(false);
+    const msg = pendingErrorRef.current;
+    if (msg !== null) {
+      setError(msg);
+      setLoading(false);
+      setWaiting(false);
+    }
+  }, []);
+
+  const handleTurnRefused = useCallback(() => {
+    turnActiveRef.current = false;
+    pendingErrorRef.current = null;
+    setTurn(null);
+    setFormSettled(false);
+  }, []);
   // Play the brand intro when arriving from a QR / deep link (a code is prefilled). Manual
   // "Join a Game" from the home page already showed the intro there, so don't replay it.
   const [showIntro, setShowIntro] = useState(() => initialCode.length === 4);
@@ -73,6 +128,30 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
     setLoading(true); setError('');
     // Stable id across retries so the server treats them as the same joiner.
     const playerId = crypto.randomUUID();
+
+    // Deal the card. Only on the first attempt — an auto-retry while a round finishes is a
+    // quiet wait, not a fresh gesture — and never when the player asked not to be moved.
+    const slots = measureSlots();
+    if (slots && !prefersReducedMotion()) {
+      turnActiveRef.current = true;
+      turnRouteRef.current = null;
+      pendingErrorRef.current = null;
+      setCardAvatar(avatarId === 'a0' ? 'a1' : avatarId);
+      setTurnResult('pending');
+      setTurn({ slots, code: trimmedCode, name: name.trim() });
+      setFormSettled(true);
+    }
+
+    /** Refuse: hand the reason to the animation if it's playing, so the words arrive on the
+     *  beat where the screen comes back. Otherwise say it plainly, straight away. */
+    const refuse = (msg: string) => {
+      if (turnActiveRef.current) {
+        pendingErrorRef.current = msg;
+        setTurnResult('error');
+        return;
+      }
+      setError(msg); setLoading(false); setWaiting(false);
+    };
 
     const attempt = async () => {
       try {
@@ -99,20 +178,32 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
               localStorage.setItem(`vikas75_hand_${trimmedCode}`, JSON.stringify(myHand));
             }
           } catch { /* ignore */ }
-          router.push(`/room/${trimmedCode}`);
+          const dest = `/room/${trimmedCode}`;
+          if (turnActiveRef.current) {
+            // Let the card turn and rise; it navigates when it reaches the top.
+            setCardAvatar(assignedAvatar);
+            turnRouteRef.current = dest;
+            setTurnResult('ok');
+          } else {
+            router.push(dest);
+          }
           return;
         }
-        // A round is in progress — don't dead-end: wait and auto-retry until it ends.
+        // A round is in progress — don't dead-end: wait and auto-retry until it ends. The
+        // card can't wait that long, so it hands off to the quiet wait state instead.
         if (res.status === 400 && /round is in progress/i.test(data.error || '')) {
           setWaiting(true);
+          if (turnActiveRef.current) setTurnResult('wait');
           retryRef.current = setTimeout(attempt, 4000);
           return;
         }
-        setError(data.error || 'Could not join room');
-        setLoading(false); setWaiting(false);
+        // "No room called V7KS" — a refused code is named in the game's own terms; anything
+        // else the server has to say, it says itself.
+        refuse(res.status === 404
+          ? `No room called ${trimmedCode}`
+          : data.error || 'Could not join room');
       } catch {
-        setError('Network error. Please try again.');
-        setLoading(false); setWaiting(false);
+        refuse('Network error. Please try again.');
       }
     };
     await attempt();
@@ -139,6 +230,18 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
       overflowY: fitScale > FIT_FLOOR ? 'hidden' : 'auto',
     }}>
       {showIntro && <IntroAnimation onDone={dismissIntro} />}
+      {turn && (
+        <JoinTurnAnimation
+          code={turn.code}
+          name={turn.name}
+          avatarId={cardAvatar}
+          slots={turn.slots}
+          result={turnResult}
+          onRestoreForm={restoreForm}
+          onSuccess={handleTurnSuccess}
+          onRefused={handleTurnRefused}
+        />
+      )}
       <div
         ref={fitRef}
         style={{
@@ -146,8 +249,20 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
           // A transform is visual only: the element keeps its natural layout height, which is
           // exactly what `fit` measures, and the inputs keep their real 16px font size so iOS
           // still doesn't zoom on focus.
-          transform: `scale(${fitScale})`,
+          transform: `scale(${fitScale})${formSettled ? ' translateY(10px)' : ''}`,
           transformOrigin: 'center center',
+          // The first beat of the turn: the form settles back and blurs, handing the screen
+          // to the card. Reversed — more slowly, after a beat — if the card is refused.
+          opacity: formSettled ? 0 : 1,
+          filter: formSettled ? 'blur(3px)' : 'blur(0px)',
+          // Going: a beat, then it settles back over 620ms. Coming back: no delay — the
+          // refusal cues this at the exact beat the screen is meant to return, so waiting
+          // again here would just leave the player looking at nothing.
+          transition: turn || formSettled
+            ? ['opacity', 'filter', 'transform']
+              .map(p => `${p} ${formSettled ? '620ms' : '700ms'} cubic-bezier(.33,0,.25,1) ${formSettled ? '120ms' : '0ms'}`)
+              .join(', ')
+            : undefined,
         }}
       >
 
@@ -222,7 +337,14 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
 
           <AvatarPicker value={avatarId} onChange={setAvatarId} disabled={loading} />
 
-          {error && <div style={{ color: '#f87171', fontSize: 13, fontFamily: 'var(--font-inter),sans-serif' }}>{error}</div>}
+          {/* The refusal's words. They fade rather than snap in, so a rejected code arrives as
+              part of the screen coming back rather than as a jolt. */}
+          {error && (
+            <div
+              className="animate-fade-in"
+              style={{ color: '#f87171', fontSize: 13, fontFamily: 'var(--font-inter),sans-serif' }}
+            >{error}</div>
+          )}
           {waiting && <div style={{ color: '#FF9933', fontSize: 13, fontFamily: 'var(--font-inter),sans-serif' }}>A round is in progress — you&apos;ll join automatically when it ends…</div>}
 
           <button

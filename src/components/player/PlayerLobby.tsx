@@ -55,10 +55,15 @@ function SeatCard({ player, isMe, isHost, delay }: { player: Player; isMe: boole
         boxShadow: '0 12px 24px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.05)',
       }}
     >
-      <div style={{
-        borderRadius: '50%', overflow: 'hidden', flexShrink: 0,
-        border: `2px solid ${isMe ? 'rgba(255,153,51,0.7)' : 'rgba(255,153,51,0.3)'}`,
-      }}>
+      <div
+        // Landing mark for the join animation — the card that turned over on the join screen
+        // flies here and dissolves into this seat. Purely a hook; see `turn-timeline.ts`.
+        data-vikas-my-seat={isMe ? '' : undefined}
+        style={{
+          borderRadius: '50%', overflow: 'hidden', flexShrink: 0,
+          border: `2px solid ${isMe ? 'rgba(255,153,51,0.7)' : 'rgba(255,153,51,0.3)'}`,
+        }}
+      >
         <Avatar id={player.avatarId} size={54} />
       </div>
       <span style={{
