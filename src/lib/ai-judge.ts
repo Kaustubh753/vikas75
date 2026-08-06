@@ -114,14 +114,25 @@ async function claudeJudge(challenge: ChallengeCard, submissions: Submission[]):
     : '';
   const userMessage = `Challenge Card:\n"${challenge.en}"\n(Hindi: ${challenge.hi})${onBriefBlock}\n\nSubmissions:\n${submissionsText}\n\nRank all players. Respond with JSON only.`;
 
+  // The judge must rank EVERY player, so the reply grows with the room. A fixed cap truncated
+  // the JSON mid-object from about 12 players up — JSON.parse then threw and the round quietly
+  // resolved through the random fallback judge, looking identical on screen. Budget per player
+  // (a UUID, a score and a one-line comment run ~90 tokens) plus headroom for the reasoning.
+  const maxTokens = Math.min(4000, 400 + submissions.length * 100);
+
+  // Generating that many tokens takes real time at a full table, and an abort here costs the
+  // room a genuine verdict — it falls back to a random winner. Scale the budget with the reply
+  // and keep it under the judging lock's TTL so a slow call can't be double-fired.
+  const timeoutMs = Math.min(18_000, 8_000 + submissions.length * 700);
+
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8_000); // 8s hard cap — on timeout we fall back to local judging
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   let response: Awaited<ReturnType<typeof client.messages.create>>;
   try {
     response = await client.messages.create(
       {
         model: JUDGE_MODEL,
-        max_tokens: 800,
+        max_tokens: maxTokens,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userMessage }],
       },
@@ -132,7 +143,12 @@ async function claudeJudge(challenge: ChallengeCard, submissions: Submission[]):
   }
 
   const text = response.content[0]?.type === 'text' ? response.content[0].text.trim() : '';
-  console.log(`[ai-judge] Live verdict via ${JUDGE_MODEL} (${text.length} chars)`);
+  // Name the failure rather than letting it surface as an opaque JSON parse error — a truncated
+  // reply is a budget problem, not a malformed model, and the two need different fixes.
+  if (response.stop_reason === 'max_tokens') {
+    throw new Error(`Verdict truncated at max_tokens=${maxTokens} for ${submissions.length} players`);
+  }
+  console.log(`[ai-judge] Live verdict via ${JUDGE_MODEL} — ${submissions.length} players, ${text.length} chars, stop=${response.stop_reason}`);
   const json = text.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim();
   const parsed = JSON.parse(json) as {
     rankings: Array<{ playerId: string; judgeScore: number; judgeComment: string }>;
