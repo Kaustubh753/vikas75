@@ -124,9 +124,12 @@ export function startRound(room: GameRoom): GameRoom {
   const pool = remainingChallenges.length > 0 ? remainingChallenges : challenges;
   const challenge = shuffle(pool)[0] ?? challenges[0];
 
-  // Deal fresh hands for all players every round
+  // Hands persist for the whole game: you keep the seven cards you were dealt and are one
+  // lighter after every round, since addSubmission removes the card you played. Only a hand
+  // that has actually run out is refilled — reachable when the host sets more rounds than a
+  // hand has cards, and a player with nothing to play would otherwise sit out the rest.
   const refreshedPlayers = Object.fromEntries(
-    Object.entries(room.players).map(([id, p]) => [id, { ...p, hand: dealHand() }])
+    Object.entries(room.players).map(([id, p]) => [id, p.hand?.length ? p : { ...p, hand: dealHand() }])
   );
 
   return {
