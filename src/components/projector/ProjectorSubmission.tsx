@@ -75,7 +75,10 @@ export default function ProjectorSubmission({ room }: Props) {
   // Adaptive tile size — fewer players get larger tiles so the screen fills nicely
   const minTile = n <= 4 ? 220 : n <= 8 ? 180 : n <= 12 ? 150 : 120;
   const maxTile = Math.round(minTile * 1.5);
-  const avatarSize = n <= 4 ? 80 : n <= 8 ? 64 : n <= 12 ? 52 : 40;
+  // Tiles are sized to the room. With only a few players the old sizes left one small row
+  // marooned in the middle of a 1080p stage, so the fewer the players the larger their tile.
+  const avatarSize = n <= 4 ? 132 : n <= 8 ? 92 : n <= 12 ? 60 : 44;
+  const tileMinH = n <= 4 ? 300 : n <= 8 ? 230 : n <= 12 ? 170 : 130;
 
   return (
     <div className="w-full h-full bg-[#08070f] flex flex-col overflow-hidden">
@@ -111,7 +114,7 @@ export default function ProjectorSubmission({ room }: Props) {
       <div className="flex-1 p-8 overflow-hidden">
         <div
           className="grid gap-4 h-full content-center justify-center"
-          style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${minTile}px, ${maxTile}px))` }}
+          style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${minTile}px, ${maxTile}px))`, gridAutoRows: `minmax(${tileMinH}px, auto)` }}
         >
           {players.map((p) => {
             const submitted = submittedIds.has(p.id);
