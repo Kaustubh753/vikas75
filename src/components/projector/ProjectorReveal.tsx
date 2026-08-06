@@ -8,9 +8,11 @@ import { getSchemeCardImage, BLUR_CREAM } from '@/lib/cards';
 
 interface Props { room: GameRoom }
 
-function RevealCard({ sub, isRevealed }: { sub: Submission; isRevealed: boolean }) {
+function RevealCard({ sub, isRevealed, h }: { sub: Submission; isRevealed: boolean; h: string }) {
+  // The printed card is 413x554, so deriving width from height keeps it in proportion and lets
+  // object-contain show the whole face without letterboxing.
   return (
-    <div style={{ perspective: 1000, width: 'clamp(160px, 18vw, 260px)', height: 'clamp(220px, 25vw, 360px)', flexShrink: 0 }}>
+    <div style={{ perspective: 1000, height: h, width: `calc(${h} * 413 / 554)`, flexShrink: 0 }}>
       <div
         style={{
           width: '100%',
@@ -42,22 +44,14 @@ function RevealCard({ sub, isRevealed }: { sub: Submission; isRevealed: boolean 
                 alt={sub.schemeCard.name}
                 fill
                 sizes="(min-width: 1440px) 260px, 18vw"
-                className="object-cover"
+                className="object-contain"
                 loading="lazy"
                 placeholder="blur"
                 blurDataURL={BLUR_CREAM}
               />
-              {/* Scheme name — gradient pill at bottom of image so it's readable at projector distance */}
-              <div
-                className="absolute bottom-0 left-0 right-0 px-3 pb-2 pt-6"
-                style={{ background: 'linear-gradient(transparent, rgba(7,16,31,0.88))' }}
-              >
-                <p
-                  className="font-[family-name:var(--font-bebas)] text-white text-center leading-tight"
-                  style={{ fontSize: 'clamp(12px, 1.2vw, 17px)', letterSpacing: '0.04em' }}
-                >
-                  {sub.schemeCard.name}
-                </p>
+              {/* No name overlay: the card face already prints its own title, and the pill sat
+                  on top of the card's bullets. */}
+              <div className="hidden">
               </div>
             </div>
 
@@ -99,6 +93,10 @@ export default function ProjectorReveal({ room }: Props) {
   // Snapshot submissions on mount — prevent re-ordering mid-animation when Pusher fires room updates
   const submissionsRef = useRef<Submission[]>(Object.values(room.submissions));
   const submissions = submissionsRef.current;
+  // A four-card round left the row marooned in the middle of the stage. Fewer cards, taller cards.
+  const cardH = submissions.length <= 4 ? 'clamp(300px, 46vh, 500px)'
+    : submissions.length <= 8 ? 'clamp(240px, 30vh, 360px)'
+    : 'clamp(180px, 21vh, 260px)';
   const [revealed, setRevealed] = useState(0);
 
   useEffect(() => {
@@ -122,7 +120,7 @@ export default function ProjectorReveal({ room }: Props) {
       <div className="flex-1 flex items-center justify-center px-10 py-6 min-h-0 overflow-y-auto">
         <div className="flex flex-wrap gap-6 justify-center">
           {submissions.map((sub, i) => (
-            <RevealCard key={sub.playerId} sub={sub} isRevealed={i < revealed} />
+            <RevealCard key={sub.playerId} sub={sub} isRevealed={i < revealed} h={cardH} />
           ))}
         </div>
       </div>
