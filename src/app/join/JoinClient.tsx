@@ -153,11 +153,7 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
 
         {/* Heading */}
         <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <LogoLockup size="md" />
-          <p style={{
-            fontFamily: 'var(--font-inter),sans-serif', fontSize: 14, color: '#FF9933',
-            marginTop: 8, letterSpacing: '0.02em',
-          }}>Join the game</p>
+          <LogoLockup fluid />
         </div>
 
         <form onSubmit={handleJoin} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
