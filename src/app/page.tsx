@@ -486,7 +486,9 @@ function LandingPage() {
 
         {/* ── RIGHT: How To Play ───────────────────────────────── */}
         <div style={{ display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end', zIndex: 5 }}>
-          <HowToPlayPanel />
+          {/* Held at step 01 until the intro clears — the panel renders behind it, and a sequence
+              that runs during the intro would greet the visitor mid-way through. */}
+          <HowToPlayPanel active={!showIntro} />
         </div>
 
         {/* ── BOTTOM STRIP ────────────────────────────────────── */}
