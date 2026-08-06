@@ -65,11 +65,11 @@ export default function ProjectorChallengeReveal({ room }: Props) {
 
   if (!challenge) return null;
 
-  // Card at 65vh tall — dramatic and large
-  // Width = 65vh × (413/554) ≈ 48.4vh
+  // The card is the whole screen here, so it takes as much height as the strip above and the
+  // round marker below leave it. Width follows the artwork's 413:554 ratio.
   const cardStyle: React.CSSProperties = {
-    height: '65vh',
-    width: 'calc(65vh * 413 / 554)',
+    height: '74vh',
+    width: 'calc(74vh * 413 / 554)',
     position: 'relative',
     borderRadius: 24,
     overflow: 'hidden',
@@ -78,28 +78,42 @@ export default function ProjectorChallengeReveal({ room }: Props) {
   };
 
   return (
-    <div className="w-full h-full bg-[#110b26] flex items-center justify-center relative overflow-hidden">
+    <div className="w-full h-full bg-[#110b26] flex flex-col items-center justify-center relative overflow-hidden"
+         style={{ backgroundImage: 'radial-gradient(#ffffff08 1px, transparent 1px)', backgroundSize: '32px 32px' }}>
       {room.timerEndsAt
         ? <TimerBar total={room.timerDuration} remaining={remaining} />
         : <AwaitingSubmissionBanner />
       }
 
-      {/* Card centred, filling most of the screen height */}
-      <motion.div
-        style={cardStyle}
-        className="animate-slam-in"
-      >
+      {/* A card alone on a 1080p stage reads as a hole in the screen. The glow gives the
+          surrounding dark something to be, and keeps the eye on the card. */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          width: '150vh', height: '150vh',
+          background: 'radial-gradient(circle, rgba(255,153,51,0.22) 0%, rgba(255,153,51,0.09) 34%, rgba(255,153,51,0.02) 55%, transparent 72%)',
+        }}
+      />
+
+      <motion.div style={cardStyle} className="animate-slam-in">
         <Image
           src={getChallengeCardImage(challenge.id)}
           alt={challenge.en}
           fill
-          sizes="48vw"
-          className="object-cover"
+          sizes="55vh"
+          className="object-contain"
           priority
           placeholder="blur"
           blurDataURL={BLUR_NAVY}
         />
       </motion.div>
+
+      {room.round > 0 && (
+        <p className="relative font-[family-name:var(--font-inter)] uppercase text-white/35"
+           style={{ marginTop: 'clamp(14px, 2.2vh, 26px)', fontSize: 'clamp(10px, 0.8vw, 14px)', letterSpacing: '0.28em' }}>
+          Round {room.round} of {room.totalRounds}
+        </p>
+      )}
     </div>
   );
 }

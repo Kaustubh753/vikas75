@@ -237,7 +237,7 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
       case 'challenge-reveal': return <ProjectorChallengeReveal room={room} />;
       case 'submission':       return <ProjectorSubmission room={room} />;
       case 'reveal':           return <ProjectorReveal room={room} />;
-      case 'judging':          return <ProjectorJudging />;
+      case 'judging':          return <ProjectorJudging room={room} />;
       case 'winner':           return <ProjectorWinner room={room} />;
       case 'between-rounds':   return <ProjectorBetweenRounds room={room} />;
       case 'game-over':        return <ProjectorGameOver room={room} />;
