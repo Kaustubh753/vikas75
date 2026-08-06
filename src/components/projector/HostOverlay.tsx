@@ -352,7 +352,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
               type="range"
               min={30}
               max={120}
-              step={1}
+              step={5}
               value={timer}
               onChange={(e) => {
                 const v = Number(e.target.value);

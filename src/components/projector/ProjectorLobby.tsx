@@ -34,6 +34,10 @@ const FACTS = [
   'Jan Dhan accounts now power Direct Benefit Transfer for 327 government schemes. (Dept. of Financial Services, August 2025)',
 ];
 
+// Citations stay in FACTS above but are hidden on screen for now. Stripping the trailing
+// "(source)" at render keeps the data intact, so putting them back is a one-line change.
+const factText = (fact: string) => fact.replace(/\s*\([^)]*\)\s*$/, '');
+
 // The tile rotations for each letter — tiny rotations like playing cards freshly placed
 const TILE_ROTATIONS = ['-3deg', '1.5deg', '-1deg', '2.5deg'];
 
@@ -218,8 +222,10 @@ export default function ProjectorLobby({ room }: Props) {
         {/* ── HEADER ────────────────────────────────────────────────── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
 
-          {/* Brand mark + phase pill */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14 }}>
+          {/* Brand mark + phase pill. The pill is centred on the lockup's own height rather than
+              hung off the bottom band, so it reads as a label beside the mark instead of an
+              afterthought under it. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <LogoLockup size="md" />
             <span style={{
               fontFamily: 'var(--font-inter),sans-serif',
@@ -228,7 +234,6 @@ export default function ProjectorLobby({ room }: Props) {
               color: '#FF9933',
               border: '1px solid rgba(255,153,51,0.35)',
               borderRadius: 999, padding: '5px 12px',
-              marginBottom: 4,
             }}>Lobby</span>
           </div>
 
@@ -431,7 +436,7 @@ export default function ProjectorLobby({ room }: Props) {
                 fontFamily: 'var(--font-inter),sans-serif',
                 fontSize: 'clamp(11px,0.9vw,13px)', fontStyle: 'italic',
                 color: 'rgba(250,248,240,0.45)',
-              }}>quiet so far. someone always breaks it.</span>
+              }}>Scan the code to take a seat</span>
             ) : (
               banterItems.map(b => (
                 <div key={b.key} style={{
@@ -477,7 +482,7 @@ export default function ProjectorLobby({ room }: Props) {
               fontFamily: 'var(--font-inter),sans-serif',
               fontSize: 'clamp(12px,1vw,14px)', fontWeight: 500,
               letterSpacing: '0.04em', color: '#FF9933',
-            }}>Waiting for the host to deal…</span>
+            }}>Waiting for the host to start the game…</span>
           </div>
         </div>
 
@@ -515,7 +520,7 @@ export default function ProjectorLobby({ room }: Props) {
               fontSize: 'clamp(11px,1vw,14px)',
               color: 'rgba(250,248,240,0.7)', letterSpacing: '0.005em',
               animation: 'vkFactIn 0.5s ease both',
-            }}>{FACTS[factIdx]}</span>
+            }}>{factText(FACTS[factIdx])}</span>
           </div>
           <span style={{
             flexShrink: 0,

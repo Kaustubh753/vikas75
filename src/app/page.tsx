@@ -544,7 +544,7 @@ function LandingPage() {
               {musicOn ? '🔊' : '🔇'}
             </button>
             <div style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 'clamp(9px, 0.76vw, 11px)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(250,248,240,.4)' }}>
-              © 2026 · Vikas 75 · all rounds reserved
+              © 2026 · Vikas 75
             </div>
           </div>
         </div>

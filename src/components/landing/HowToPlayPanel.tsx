@@ -93,9 +93,9 @@ function ListLayout() {
 function StageLayout({ active }: { active: boolean }) {
   const [i, setI] = useState(0);
   const [fill, setFill] = useState(0);
-  // Hover, off screen and a hidden tab all pause; every one of them resumes on its own. Nothing
-  // stops the panel for good — see the note on `pick` below.
-  const [hovered, setHovered] = useState(false);
+  // Only pauses a visitor cannot see: off screen, or a backgrounded tab. Hovering deliberately
+  // does NOT pause. The handoff asks for it, but the panel sits in the column your pointer
+  // crosses to read it, so in use it just looked like the timer had died mid-sequence.
   const [visible, setVisible] = useState(true);
   // One size step for short panels (the 1366x640 case). Measured off the panel itself rather than
   // the viewport, since the panel's height is what has to fit. A CSS container query expresses
@@ -113,7 +113,7 @@ function StageLayout({ active }: { active: boolean }) {
     armer.current = setTimeout(() => setFill(100), 40);
   }, []);
 
-  const paused = hovered || !visible || !active;
+  const paused = !visible || !active;
 
   // Hold at step 01 until the panel is actually on show. The landing renders behind the intro,
   // so without this the sequence runs through the whole intro and the first thing a visitor sees
@@ -159,8 +159,6 @@ function StageLayout({ active }: { active: boolean }) {
       ref={panelRef}
       className="htp-panel"
       style={shell}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
       <Header counter={`STEP ${i + 1}/5`} />
 
