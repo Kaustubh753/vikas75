@@ -50,6 +50,10 @@ export default function ProjectorGameOver({ room }: Props) {
 
       <LogoLockup size="md" className="mt-4" />
 
+      {/* Title and standings centre as one group between the mark and the socials. With
+          justify-between alone they were pinned to opposite ends, which left a long gap down the
+          middle of the screen whenever the standings were short. */}
+      <div className="flex-1 w-full flex flex-col items-center justify-center gap-10 min-h-0">
       <div className="text-center animate-bounce-in">
         <p className="font-[family-name:var(--font-bebas)] text-[#FF9933] text-3xl tracking-[0.4em] mb-1">
           GAME OVER
@@ -167,6 +171,8 @@ export default function ProjectorGameOver({ room }: Props) {
           )}
         </>
       )}
+
+      </div>
 
       <div className="flex flex-col items-center gap-3">
         <SocialLinks />

@@ -44,7 +44,6 @@ export default function HostOverlay({ room, code, hostId }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showSettings, setShowSettings] = useState(false);
-  const [musicMuted, setMusicMuted] = useState(false);
   const [rounds, setRounds] = useState(room.totalRounds);
   const [timer, setTimer] = useState(room.timerDuration);
   const settingsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -53,7 +52,6 @@ export default function HostOverlay({ room, code, hostId }: Props) {
   const [advanceHover, setAdvanceHover] = useState(false);
   const [collapseHover, setCollapseHover] = useState(false);
   const [settingsHover, setSettingsHover] = useState(false);
-  const [musicHover, setMusicHover] = useState(false);
   const [expandHover, setExpandHover] = useState(false);
   const [endGameHover, setEndGameHover] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
@@ -122,20 +120,6 @@ export default function HostOverlay({ room, code, hostId }: Props) {
       setError('Network error');
     }
     setLoading(false);
-  }
-
-  async function handleMusicToggle() {
-    const nextMuted = !musicMuted;
-    setMusicMuted(nextMuted);
-    try {
-      await fetch('/api/game', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'music-toggle', code, hostId, muted: nextMuted }),
-      });
-    } catch {
-      // fire-and-forget
-    }
   }
 
   async function handleEndGame() {
@@ -598,18 +582,6 @@ export default function HostOverlay({ room, code, hostId }: Props) {
               ⚙
             </button>
           )}
-
-          {/* Music toggle */}
-          <button
-            onClick={handleMusicToggle}
-            onMouseEnter={() => setMusicHover(true)}
-            onMouseLeave={() => setMusicHover(false)}
-            title={musicMuted ? 'Unmute projector music' : 'Mute projector music'}
-            style={iconBtnStyle(musicHover)}
-            aria-label={musicMuted ? 'Unmute projector music' : 'Mute projector music'}
-          >
-            {musicMuted ? '🔇' : '🔊'}
-          </button>
 
           {/* Collapse chevron */}
           <button
