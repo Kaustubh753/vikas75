@@ -109,8 +109,9 @@ User text is cleaned before storage: `sanitizeName()` (length/trim) and `filterT
 - `src/lib/ai-judge.ts` — Dual-mode judge.
   - Live model id is `JUDGE_MODEL = 'claude-sonnet-4-6'` (used when `ANTHROPIC_API_KEY` present). This is the current Sonnet 4.6 id — do not "correct" it to an older dated id.
   - The judge **ranks all submissions** and returns per-player `gamePoints` (1st=3, 2nd=2, 3rd=1); `applyVerdict` consumes that.
-  - Falls back to `fallbackJudge()` (random winner + Hindi-flavoured verdicts) when the key is absent, and **silently** if the live call throws/times out (8s `AbortController`) or returns unparseable JSON.
-  - Strips accidental markdown fences before `JSON.parse`; `buildVerdict` rejects a verdict that names an unknown `playerId`.
+  - `max_tokens` and the request timeout **scale with the submission count** (`400 + 100/player` capped at 4000; `8s + 0.7s/player` capped at 18s). They must: the judge ranks every player, so a fixed budget truncated the reply from ~12 players up, and truncation is indistinguishable from a random verdict on screen. If you change either, keep the timeout under the `lock:judging:` TTL in `route.ts` (30s) or a slow call can be double-fired by the kick-judge watchdog.
+  - Falls back to `fallbackJudge()` (random winner + Hindi-flavoured verdicts) when the key is absent, and **silently** if the live call throws/times out or returns unparseable JSON. Nothing on the projector distinguishes a fallback verdict from a real one — check the Vercel logs for `[ai-judge] Live verdict via …` (success, with player count and stop reason) vs `[ai-judge] Claude call failed/timed out` (fallback).
+  - Strips accidental markdown fences before `JSON.parse`; `buildVerdict` rejects a verdict that names an unknown `playerId`, omits a player, repeats one, or returns a `judgeScore` outside 1–10.
 
 ### API
 - `src/app/api/game/route.ts` — Single POST + GET endpoint.
