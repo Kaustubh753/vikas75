@@ -93,12 +93,10 @@ function ListLayout() {
 function StageLayout({ active }: { active: boolean }) {
   const [i, setI] = useState(0);
   const [fill, setFill] = useState(0);
-  // Hover / off-screen / hidden-tab all pause temporarily. `stopped` is separate and permanent:
-  // once someone picks a row the panel must not move under them again, and a plain `paused` flag
-  // would resume the moment the pointer left.
+  // Hover, off screen and a hidden tab all pause; every one of them resumes on its own. Nothing
+  // stops the panel for good — see the note on `pick` below.
   const [hovered, setHovered] = useState(false);
   const [visible, setVisible] = useState(true);
-  const [stopped, setStopped] = useState(false);
   // One size step for short panels (the 1366x640 case). Measured off the panel itself rather than
   // the viewport, since the panel's height is what has to fit. A CSS container query expresses
   // this more directly but needs `container-type: size`, whose size containment collapses this
@@ -115,7 +113,7 @@ function StageLayout({ active }: { active: boolean }) {
     armer.current = setTimeout(() => setFill(100), 40);
   }, []);
 
-  const paused = hovered || !visible || stopped || !active;
+  const paused = hovered || !visible || !active;
 
   // Hold at step 01 until the panel is actually on show. The landing renders behind the intro,
   // so without this the sequence runs through the whole intro and the first thing a visitor sees
@@ -127,11 +125,15 @@ function StageLayout({ active }: { active: boolean }) {
 
   useEffect(() => () => { if (armer.current) clearTimeout(armer.current); }, []);
 
+  // One timeout per step rather than a free-running interval, re-created whenever the step changes.
+  // A shared interval keeps its own schedule, so picking a step late in a dwell would advance again
+  // a moment later; this way every step — picked or automatic — gets the full dwell, and the
+  // progress line always matches the time actually left.
   useEffect(() => {
     if (paused) return;
-    const t = setInterval(() => { setI(prev => (prev + 1) % STEPS.length); arm(); }, STEP_DWELL_MS);
-    return () => clearInterval(t);
-  }, [paused, arm]);
+    const t = setTimeout(() => { setI(prev => (prev + 1) % STEPS.length); arm(); }, STEP_DWELL_MS);
+    return () => clearTimeout(t);
+  }, [paused, i, arm]);
 
   // Don't run the timeline for a panel nobody can see — scrolled away or a backgrounded tab.
   useEffect(() => {
@@ -146,15 +148,10 @@ function StageLayout({ active }: { active: boolean }) {
     return () => { ro.disconnect(); io.disconnect(); document.removeEventListener('visibilitychange', onVis); };
   }, []);
 
-  // Picking a step hands control to the visitor and ends autoplay for good. The progress line is
-  // emptied rather than re-armed: a bar filling toward an advance that will never happen is a
-  // promise the panel no longer keeps.
-  const pick = (n: number) => {
-    if (armer.current) clearTimeout(armer.current);
-    setStopped(true);
-    setI(n);
-    setFill(0);
-  };
+  // Picking a step jumps to it and carries on from there, timer and all. The handoff asks for a
+  // manual pick to stop autoplay for the session, but in use that made one click freeze the panel
+  // for good: no advance, and an empty bar on every step thereafter, which reads as broken.
+  const pick = (n: number) => { setI(n); arm(); };
   const step = STEPS[i];
 
   return (
