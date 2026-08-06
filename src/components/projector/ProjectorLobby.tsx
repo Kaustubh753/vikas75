@@ -253,13 +253,17 @@ export default function ProjectorLobby({ room }: Props) {
           </div>
         </div>
 
-        {/* ── BODY — vertically centred ─────────────────────────────── */}
+        {/* ── BODY ──────────────────────────────────────────────────
+            Distributed rather than centred: on a 1080p screen the join card, the seats and the
+            status line are small next to the space they sit in, and centring them as one block
+            left a long dead band between the seats and the waiting bar. */}
         <div style={{
           flex: 1,
           display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
+          alignItems: 'center', justifyContent: 'space-evenly',
           gap: 'clamp(18px,2.6vh,34px)',
           position: 'relative',
+          paddingBottom: 'clamp(6px,1.4vh,18px)',
         }}>
 
           {/* JOIN CARD — QR + code tiles in a glass container */}
@@ -465,9 +469,9 @@ export default function ProjectorLobby({ room }: Props) {
               ))
             )}
           </div>
-        </div>
 
-        {/* ── FOOTER — "waiting for host" spinner ───────────────────── */}
+        {/* Waiting bar sits with the rest of the body. Pinned below it, the gap between the
+              seats and this line read as dead screen on a 1080p display. */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           minHeight: 'clamp(52px,7vh,76px)',
@@ -489,6 +493,8 @@ export default function ProjectorLobby({ room }: Props) {
               letterSpacing: '0.04em', color: '#FF9933',
             }}>Waiting for the host to start the game…</span>
           </div>
+        </div>
+
         </div>
 
         {/* ── BOTTOM STRIP — attribution, centred ──────────────────── */}
