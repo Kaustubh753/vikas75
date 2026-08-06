@@ -7,6 +7,10 @@ import AvatarPicker from '@/components/ui/AvatarPicker';
 import IntroAnimation from '@/components/intro/IntroAnimation';
 import LogoLockup from '@/components/ui/LogoLockup';
 
+/** Smallest the join form is allowed to shrink to. Past this it stops scaling and the page is
+ *  allowed to scroll instead — a form too small to read is worse than a short scroll. */
+const FIT_FLOOR = 0.62;
+
 // Dedicated join screen. Reached from the home "Join a Game" button and from the lobby QR
 // code (which deep-links here with ?code=XXXX prefilled). Keeps joining off the landing page.
 export default function JoinClient({ initialCode }: { initialCode: string }) {
@@ -20,6 +24,31 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
   const [waiting, setWaiting] = useState(false); // a round is in progress — auto-retrying
   const [error, setError] = useState('');
   const nameRef = useRef<HTMLInputElement>(null);
+
+  // Fit the whole form — logo, name, all nine avatars, code boxes, button — into whatever screen
+  // the player is on, rather than making them scroll to find the join button. Measures the form's
+  // natural height against the viewport and scales down only as far as it needs to.
+  const fitRef = useRef<HTMLDivElement>(null);
+  const [fitScale, setFitScale] = useState(1);
+  useEffect(() => {
+    const el = fitRef.current;
+    if (!el) return;
+    const fit = () => {
+      const natural = el.offsetHeight;              // transform doesn't change this
+      if (!natural) return;
+      const pad = window.innerWidth < 420 ? 24 : 96; // matches the container's vertical padding
+      const avail = window.innerHeight - pad;
+      setFitScale(Math.max(FIT_FLOOR, Math.min(1, avail / natural)));
+    };
+    fit();
+    // Re-fit when the content changes height (an error appears, the avatar grid reflows) and when
+    // the viewport does (rotation, the mobile URL bar collapsing).
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    window.addEventListener('resize', fit);
+    window.addEventListener('orientationchange', fit);
+    return () => { ro.disconnect(); window.removeEventListener('resize', fit); window.removeEventListener('orientationchange', fit); };
+  }, []);
   const slotsRef = useRef<(HTMLInputElement | null)[]>([]);
   const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (retryRef.current) clearTimeout(retryRef.current); }, []);
@@ -101,13 +130,26 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
 
   return (
     <div style={{
-      minHeight: '100dvh', width: '100%',
+      height: '100dvh', width: '100%',
       background: '#08070f',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      padding: 'clamp(20px, 6vw, 48px) 20px', boxSizing: 'border-box',
+      padding: 'clamp(12px, 4vw, 48px) 20px', boxSizing: 'border-box',
+      // Scaled to fit, so nothing should scroll — unless the screen is so short that `fit` bottoms
+      // out at its floor, in which case scrolling is the honest fallback.
+      overflowY: fitScale > FIT_FLOOR ? 'hidden' : 'auto',
     }}>
       {showIntro && <IntroAnimation onDone={dismissIntro} />}
-      <div style={{ width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div
+        ref={fitRef}
+        style={{
+          width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 24,
+          // A transform is visual only: the element keeps its natural layout height, which is
+          // exactly what `fit` measures, and the inputs keep their real 16px font size so iOS
+          // still doesn't zoom on focus.
+          transform: `scale(${fitScale})`,
+          transformOrigin: 'center center',
+        }}
+      >
 
         {/* Heading */}
         <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>

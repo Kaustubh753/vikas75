@@ -431,12 +431,17 @@ export default function ProjectorLobby({ room }: Props) {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             gap: 12, minHeight: 38, flexWrap: 'wrap',
           }}>
+            {/* The prompt is for a genuinely empty room. Chips only appear for players who join
+                after this screen opens, so keying the prompt off them alone told a lobby with
+                three people seated to go and scan the code. */}
             {banterItems.length === 0 ? (
-              <span style={{
-                fontFamily: 'var(--font-inter),sans-serif',
-                fontSize: 'clamp(11px,0.9vw,13px)', fontStyle: 'italic',
-                color: 'rgba(250,248,240,0.45)',
-              }}>Scan the code to take a seat</span>
+              players.length === 0 ? (
+                <span style={{
+                  fontFamily: 'var(--font-inter),sans-serif',
+                  fontSize: 'clamp(11px,0.9vw,13px)', fontStyle: 'italic',
+                  color: 'rgba(250,248,240,0.45)',
+                }}>Scan the code to take a seat</span>
+              ) : null
             ) : (
               banterItems.map(b => (
                 <div key={b.key} style={{
