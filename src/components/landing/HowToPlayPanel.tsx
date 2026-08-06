@@ -19,12 +19,18 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 export const STEP_DWELL_MS = 4500;
 
 const STEPS = [
-  { num: '01', title: 'Get a room.',       label: 'Get a room',       body: 'Host a game and share the four-letter code. Players join from their devices.' },
-  { num: '02', title: 'See the problem.',  label: 'See the problem',  body: 'A problem statement goes up on the big screen. Everyone answers the same one.' },
-  { num: '03', title: 'Play your scheme.', label: 'Play your scheme', body: 'You hold real government schemes. Pick the one that answers the problem.' },
-  { num: '04', title: 'Make your case.',   label: 'Make your case',   body: 'The clock runs while you argue it. Say what your scheme does and why it fits.' },
-  { num: '05', title: 'Best answer wins.', label: 'Best answer wins', body: 'The AI judge scores fit first, then how well you argued it. Win the most rounds to take the game.' },
+  { num: '01', title: 'Get a room',       label: 'Get a room',       body: 'Host a game and share the four-letter code. Players join from their devices.' },
+  { num: '02', title: 'See the problem',  label: 'See the problem',  body: 'A problem statement goes up on the big screen. Everyone answers the same one.' },
+  { num: '03', title: 'Play your scheme', label: 'Play your scheme', body: 'You hold real government schemes. Pick the one that answers the problem.' },
+  { num: '04', title: 'Make your case',   label: 'Make your case',   body: 'The clock runs while you argue it. Say what your scheme does and why it fits.' },
+  { num: '05', title: 'Best answer wins', label: 'Best answer wins', body: 'The AI judge scores fit first, then how well you argued it. Win the most rounds to take the game.' },
 ];
+
+/* The bodies differ in length — step 05 runs to four lines where step 03 takes two. Left to
+ * itself the stage centres each one, so the numeral and title jump between steps. Reserving the
+ * tallest body's height keeps all five identical: the numeral, title and first line of body land
+ * in the same place every time. */
+const BODY_MIN_LINES = 4;
 
 const CREAM = '#f5efdc';
 const SAFFRON = '#FF9933';
@@ -84,7 +90,7 @@ function ListLayout() {
   );
 }
 
-function StageLayout() {
+function StageLayout({ active }: { active: boolean }) {
   const [i, setI] = useState(0);
   const [fill, setFill] = useState(0);
   // Hover / off-screen / hidden-tab all pause temporarily. `stopped` is separate and permanent:
@@ -109,9 +115,16 @@ function StageLayout() {
     armer.current = setTimeout(() => setFill(100), 40);
   }, []);
 
-  const paused = hovered || !visible || stopped;
+  const paused = hovered || !visible || stopped || !active;
 
-  useEffect(() => { arm(); }, [arm]);
+  // Hold at step 01 until the panel is actually on show. The landing renders behind the intro,
+  // so without this the sequence runs through the whole intro and the first thing a visitor sees
+  // is step 03. Re-arming here also starts the progress line the moment the panel appears.
+  useEffect(() => {
+    if (!active) { setI(0); return; }
+    arm();
+  }, [active, arm]);
+
   useEffect(() => () => { if (armer.current) clearTimeout(armer.current); }, []);
 
   useEffect(() => {
@@ -133,7 +146,15 @@ function StageLayout() {
     return () => { ro.disconnect(); io.disconnect(); document.removeEventListener('visibilitychange', onVis); };
   }, []);
 
-  const pick = (n: number) => { setStopped(true); setI(n); arm(); };
+  // Picking a step hands control to the visitor and ends autoplay for good. The progress line is
+  // emptied rather than re-armed: a bar filling toward an advance that will never happen is a
+  // promise the panel no longer keeps.
+  const pick = (n: number) => {
+    if (armer.current) clearTimeout(armer.current);
+    setStopped(true);
+    setI(n);
+    setFill(0);
+  };
   const step = STEPS[i];
 
   return (
@@ -170,7 +191,13 @@ function StageLayout() {
         <h3 className="htp-title" style={{ fontSize: compact ? 24 : 30, fontWeight: 700, lineHeight: 1.12, letterSpacing: '-0.01em', margin: '0 0 12px' }}>
           {step.title}
         </h3>
-        <p className="htp-body" style={{ fontSize: compact ? 14 : 15, lineHeight: 1.55, color: 'rgba(245,239,220,0.68)', margin: 0 }}>
+        <p
+          className="htp-body"
+          style={{
+            fontSize: compact ? 14 : 15, lineHeight: 1.55, color: 'rgba(245,239,220,0.68)', margin: 0,
+            minHeight: `${BODY_MIN_LINES * 1.55}em`,   // every step reserves the tallest body — see BODY_MIN_LINES
+          }}
+        >
           {step.body}
         </p>
       </div>
@@ -212,7 +239,7 @@ function StageLayout() {
 
 /** `layout` forces the list (used where the column stacks). Reduced-motion callers get the list
  *  too — the handoff asks for no autoplay at all in that case. */
-export default function HowToPlayPanel({ layout = 'stage' }: { layout?: 'stage' | 'list' }) {
+export default function HowToPlayPanel({ layout = 'stage', active = true }: { layout?: 'stage' | 'list'; active?: boolean }) {
   const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
@@ -223,5 +250,5 @@ export default function HowToPlayPanel({ layout = 'stage' }: { layout?: 'stage' 
     return () => mq.removeEventListener('change', on);
   }, []);
 
-  return layout === 'list' || reduced ? <ListLayout /> : <StageLayout />;
+  return layout === 'list' || reduced ? <ListLayout /> : <StageLayout active={active} />;
 }
