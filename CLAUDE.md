@@ -155,7 +155,9 @@ User text is cleaned before storage: `sanitizeName()` (length/trim) and `filterT
 ### UI Components
 Buttons are styled inline per-component — there is **no shared `Button` primitive**. App-wide visual concerns live in `globals.css` (focus-visible rings, `prefers-reduced-motion` collapse, iOS input-zoom guard, safe-area padding, keyframes/animation utilities). The `ui/` directory holds:
 - `CodeInput.tsx` — OTP-style 4-box room code input. `onChange` for mobile compatibility (IME-safe); `onKeyDown` for backspace navigation; `onPaste` fills all boxes; `onFocus` selects content; `caret-transparent` hides cursor.
-- `AvatarPicker.tsx`, `CardBack.tsx`, `Confetti.tsx`, `ConnectionBanner.tsx`, `CountUp.tsx`, `LogoLockup.tsx`, `MuteButton.tsx`, `SkeletonCard.tsx`, `SocialLinks.tsx`, `ToasterProvider.tsx`.
+- `AvatarPicker.tsx`, `CardBack.tsx`, `Confetti.tsx`, `ConnectionBanner.tsx`, `CountUp.tsx`, `LogoLockup.tsx`, `MuteButton.tsx`, `SocialLinks.tsx`, `ToasterProvider.tsx`.
+
+Loading states are **not** generic skeletons: `ProjectorLoading.tsx` and `PlayerLoading.tsx` are low-fidelity ghosts of `ProjectorLobby`/`PlayerLobby` — same tile, seat and QR dimensions in the same positions — so the room resolving fills the layout in rather than replacing it. Their sizing expressions are duplicated from the lobby components; change one, change the other.
 
 ### Cards and Cards Components
 - `context/cards_challenges.json` — 30 challenge cards (c001–c030). Fields: `id`, `en`, `hi`, `icon`.

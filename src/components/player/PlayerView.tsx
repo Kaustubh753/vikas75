@@ -8,7 +8,7 @@ import { vibrate } from '@/lib/vibrate';
 import ConnectionBanner from '@/components/ui/ConnectionBanner';
 import LogoLockup from '@/components/ui/LogoLockup';
 import { getMusicManager } from '@/lib/music';
-import SkeletonCard from '@/components/ui/SkeletonCard';
+import PlayerLoading from '@/components/player/PlayerLoading';
 import PlayerLobby from '@/components/player/PlayerLobby';
 import PlayerChallengeReveal from '@/components/player/PlayerChallengeReveal';
 import PlayerSubmit from '@/components/player/PlayerSubmit';
@@ -415,15 +415,7 @@ export default function PlayerView({ code }: Props) {
     return () => document.removeEventListener('visibilitychange', handler);
   }, [room?.phase, room?.timerEndsAt]);
 
-  if (!hydrated || !room) {
-    return (
-      <div className="min-h-screen bg-[#08070f] flex flex-col gap-4 p-4">
-        <SkeletonCard className="h-24" />
-        <SkeletonCard className="h-40" />
-        <SkeletonCard className="h-32" />
-      </div>
-    );
-  }
+  if (!hydrated || !room) return <PlayerLoading />;
 
   const mySubmission = room.submissions[playerId];
   const phase = room.phase;
