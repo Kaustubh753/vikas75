@@ -625,10 +625,11 @@ async function triggerJudge(code: string) {
   if (!room || room.phase !== 'judging') return;
 
   // Distributed lock — prevent double-judging if after() fires more than once. TTL is kept
-  // comfortably above the judge's own 8s timeout but short enough that, if the function is
-  // killed mid-judge, the lock clears quickly so the kick-judge watchdog can recover.
+  // comfortably above the judge's own timeout (up to 18s at a full table) but short enough
+  // that, if the function is killed mid-judge, the lock clears quickly so the kick-judge
+  // watchdog can recover.
   const lockKey = `lock:judging:${code}:${room.round}`;
-  const acquired = await acquireLock(lockKey, 20);
+  const acquired = await acquireLock(lockKey, 30);
   if (!acquired) return; // Another instance already handling this round
 
   if (!room.currentChallenge) {
