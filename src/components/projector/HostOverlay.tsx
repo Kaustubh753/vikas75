@@ -205,7 +205,13 @@ export default function HostOverlay({ room, code, hostId }: Props) {
     backdropFilter: 'blur(24px)',
     WebkitBackdropFilter: 'blur(24px)',
     borderTop: '1px solid rgba(255,153,51,0.22)',
-    display: 'flex',
+    // Three columns with equal, flexible sides — the advance button lands on the screen's true
+    // centre line, under the card. As a flex row the side zones sized to their own content
+    // (220 left vs 140 right), so the "centre" was only the middle of the leftover space and
+    // the button sat ~50px right of the card above it. minmax(0,…) lets the sides truncate
+    // rather than push the button off-centre when the left zone's text runs long.
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)',
     alignItems: 'center',
     paddingLeft: isNarrow ? 8 : 20,
     paddingRight: isNarrow ? 8 : 20,
@@ -409,7 +415,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
       <div style={barStyle}>
         {/* LEFT ZONE — shrinks/truncates on narrow screens so the advance button and right-hand
             icons always stay on-screen. */}
-        <div style={{ minWidth: 0, flex: isNarrow ? '1 1 0' : undefined, ...(isNarrow ? {} : { minWidth: 220 }), display: 'flex', flexDirection: 'column', gap: 3, justifyContent: 'center', overflow: 'hidden' }}>
+        <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3, justifyContent: 'center', overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {/* HOST badge */}
             <span style={{
@@ -478,7 +484,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
         </div>
 
         {/* CENTER ZONE */}
-        <div style={{ flex: isNarrow ? '0 1 auto' : 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {isJudging ? (
             /* Pulsing AI judging indicator */
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -534,7 +540,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
         </div>
 
         {/* RIGHT ZONE — never shrinks, so the host's controls stay reachable. */}
-        <div style={{ minWidth: isNarrow ? 0 : 140, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: isNarrow ? 4 : 6 }}>
+        <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: isNarrow ? 4 : 6 }}>
           {/* End Game — available in any non-finished phase */}
           {room.phase !== 'game-over' && (
             <button
