@@ -13,6 +13,11 @@ import { HANDOFF_KEY, prefersReducedMotion, type Rect, type TurnHandoff } from '
  *  allowed to scroll instead — a form too small to read is worse than a short scroll. */
 const FIT_FLOOR = 0.62;
 
+/** How long to wait for the join to be answered before giving the screen back. Comfortably
+ *  longer than a slow-but-working request on venue Wi-Fi, short enough that a stalled one
+ *  doesn't strand the player behind the animation's overlay. */
+const JOIN_TIMEOUT_MS = 8_000;
+
 // Dedicated join screen. Reached from the home "Join a Game" button and from the lobby QR
 // code (which deep-links here with ?code=XXXX prefilled). Keeps joining off the landing page.
 export default function JoinClient({ initialCode }: { initialCode: string }) {
@@ -154,10 +159,17 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
     };
 
     const attempt = async () => {
+      // A hung request must not become a dead end. `fetch` does not reject on a stalled
+      // connection — it just never settles — and the turn animation covers the screen with a
+      // pointer-events overlay until the server answers, so without this the player is sealed
+      // behind "Joining…" with no way back but a browser reload. Venue Wi-Fi does this.
+      const ctl = new AbortController();
+      const bail = setTimeout(() => ctl.abort(), JOIN_TIMEOUT_MS);
       try {
         const res = await fetch('/api/game', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'join', code: trimmedCode, playerId, playerName: name.trim(), avatarId }),
+          signal: ctl.signal,
         });
         const data = await res.json();
         if (res.ok) {
@@ -202,8 +214,14 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
         refuse(res.status === 404
           ? `No room called ${trimmedCode}`
           : data.error || 'Could not join room');
-      } catch {
-        refuse('Network error. Please try again.');
+      } catch (err) {
+        // An abort is our own timeout firing, not a dead network — say which, so a player on a
+        // slow-but-alive connection knows retrying is worth it.
+        refuse((err as Error)?.name === 'AbortError'
+          ? 'Taking too long to reach the game. Please try again.'
+          : 'Network error. Please try again.');
+      } finally {
+        clearTimeout(bail);
       }
     };
     await attempt();

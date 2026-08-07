@@ -83,6 +83,21 @@ function sanitizeName(name: unknown): string {
   return name.replace(/[<>]/g, '').trim().slice(0, 30);
 }
 
+// ── Auto-shutdown ────────────────────────────────────────────────────────────
+// Idle-room cleanup, not a disconnection detector. Only a room nobody is playing may be
+// reaped: one still in the lobby, or one whose game has finished. A room in any playing
+// phase is never scheduled and never deleted, however quiet the heartbeats go — phones lock,
+// people watch the projector, and a host can pause a round for a speech. The 24 h Redis TTL
+// is the real backstop for anything this leaves behind.
+const REAPABLE_PHASES = new Set<GameRoom['phase']>(['lobby', 'game-over']);
+function isReapable(phase: GameRoom['phase']): boolean {
+  return REAPABLE_PHASES.has(phase);
+}
+/** A finished game can go soon; a lobby has to outlive the host waiting for latecomers. */
+function reapWindowMs(phase: GameRoom['phase']): number {
+  return phase === 'lobby' ? 15 * 60 * 1000 : 5 * 60 * 1000;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -488,13 +503,22 @@ export async function POST(req: NextRequest) {
           const activePlayers = Object.values(hbRoom.players)
             .filter(p => p.lastSeen && now - p.lastSeen < 45_000);
 
-          if (activePlayers.length <= 1) {
-            // Last person standing — schedule auto-shutdown 5 min from now.
-            // Each subsequent beacon resets the clock, so the room only dies
-            // 5 min after the very last beacon from anyone.
-            hbRoom.shutdownAt = now + 5 * 60 * 1000;
+          // Auto-shutdown only ever reaps a room nobody is *playing*: one still in the lobby, or
+          // one whose game is over. It used to arm on any beat that saw ≤1 active player, with no
+          // regard for phase — so a two-player round where one phone had locked (>45 s without a
+          // beat, which backgrounded mobile Safari does routinely) scheduled a live game for
+          // deletion, and five quiet minutes later a poll destroyed it mid-round with every score.
+          if (isReapable(hbRoom.phase)) {
+            if (activePlayers.length <= 1) {
+              // Last person standing — each subsequent beacon resets the clock, so the room only
+              // dies once nobody has checked in for the whole window.
+              hbRoom.shutdownAt = now + reapWindowMs(hbRoom.phase);
+            } else {
+              hbRoom.shutdownAt = undefined;   // multiple people about — cancel any pending shutdown
+            }
           } else {
-            // Multiple people active — cancel any pending shutdown
+            // A game is in flight. Clear anything armed earlier (e.g. during the lobby) so it
+            // can't fire once play has started.
             hbRoom.shutdownAt = undefined;
           }
 
@@ -578,15 +602,25 @@ export async function GET(req: NextRequest) {
     const room = await getRoom(code.toUpperCase());
     if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
 
-    // Auto-shutdown: if all players have been gone for 5 minutes, delete the room. Do it under
-    // the room lock and re-check, so a concurrent locked mutation (a late heartbeat/advance)
-    // can't setRoom right after the delete and resurrect a zombie room.
-    if (room.shutdownAt && Date.now() > room.shutdownAt) {
-      await withRoomLock(code.toUpperCase(), async () => {
+    // Auto-shutdown: reap a room nobody is playing once its window has passed. The phase check
+    // is deliberately repeated here rather than trusted from the heartbeat — it's the guard that
+    // actually prevents a live game being destroyed, and it also covers a shutdownAt armed in
+    // the lobby by a room that has since started playing without anyone beating again.
+    if (room.shutdownAt && Date.now() > room.shutdownAt && isReapable(room.phase)) {
+      // Under the room lock, re-reading and re-checking, so a concurrent locked mutation (a late
+      // heartbeat/advance) can't setRoom right after the delete and resurrect a zombie room —
+      // and so a game that started between the two reads is not deleted out from under itself.
+      const deleted = await withRoomLock(code.toUpperCase(), async () => {
         const fresh = await getRoom(code.toUpperCase());
-        if (fresh?.shutdownAt && Date.now() > fresh.shutdownAt) await deleteRoom(code.toUpperCase());
+        if (fresh?.shutdownAt && Date.now() > fresh.shutdownAt && isReapable(fresh.phase)) {
+          await deleteRoom(code.toUpperCase());
+          return true;
+        }
+        return false;
       });
-      return NextResponse.json({ error: 'Room closed — all players disconnected' }, { status: 404 });
+      if (deleted) {
+        return NextResponse.json({ error: 'Room closed — it was idle for too long' }, { status: 404 });
+      }
     }
 
     const token = req.headers.get('x-player-token');
