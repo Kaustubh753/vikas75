@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { SchemeCard, ChallengeCard } from '@/types/game';
 import { getChallengeCardImage, getSchemeCardImage, BLUR_NAVY, BLUR_CREAM } from '@/lib/cards';
 import PlayerWaiting from '@/components/player/PlayerWaiting';
@@ -77,6 +77,40 @@ export default function PlayerSubmit({
   const draftKey = `${DRAFT_KEY}_${challenge.id}`;
   const [loading, setLoading] = useState(false);
   const [throwing, setThrowing] = useState(false);
+
+  // Card the pointer is over, shown large above the tray. Only on devices that actually have a
+  // pointer: on a touchscreen `:hover` latches on tap and stays until you tap elsewhere, which
+  // would leave a big card stuck over the screen. Phones get the existing tap-to-select instead.
+  const [peeked, setPeeked] = useState<SchemeCard | null>(null);
+  const [canHover, setCanHover] = useState(false);
+  const trayRef = useRef<HTMLDivElement | null>(null);
+  // Where to draw the preview. Anchoring it to the tray alone isn't enough — on a short window
+  // the card is taller than the gap above the tray and runs off the top of the screen — so it's
+  // fixed-positioned and clamped: as close above the tray as it fits, never past the top edge.
+  const [peekBox, setPeekBox] = useState<{ top: number; height: number } | null>(null);
+  const peek = (card: SchemeCard | null) => {
+    setPeeked(card);
+    if (!card || !trayRef.current) { setPeekBox(null); return; }
+    const r = trayRef.current.getBoundingClientRect();
+    const GAP = 10, EDGE = 8;
+    // Use whichever side of the tray has more room. Always going above gave a card barely
+    // larger than the tray's own, because the challenge sits directly over it.
+    const above = r.top - GAP - EDGE;
+    const below = window.innerHeight - r.bottom - GAP - EDGE;
+    const room = Math.max(above, below);
+    const height = Math.min(420, window.innerHeight * 0.55, room);
+    setPeekBox({
+      top: above >= below ? Math.max(EDGE, r.top - GAP - height) : r.bottom + GAP,
+      height,
+    });
+  };
+  useEffect(() => {
+    const mq = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const sync = () => setCanHover(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
   const didRestoreDraft = useRef(false);
   const autoFiredRef = useRef(false);
   const mountedRef = useRef(true);
@@ -251,8 +285,45 @@ export default function PlayerSubmit({
           Your Hand — tap to select
         </p>
 
-        {/* Card tray — fixed 160×214, image only */}
-        <div className="overflow-x-auto overflow-y-hidden" style={{ paddingTop: 8, paddingBottom: 16 }}>
+        {/* Card tray — fixed 160×214, image only.
+            The wrapper exists so the hover preview can be positioned against the tray from
+            *outside* it: the tray scrolls on x, and a scroll container clips both axes, so a
+            card enlarged in place would be cut off. The preview is a sibling, not a child. */}
+        <div className="relative">
+          <AnimatePresence>
+            {canHover && peeked && peekBox && (
+              <motion.div
+                key={peeked.id}
+                className="fixed left-1/2 z-30 pointer-events-none"
+                style={{ top: peekBox.top, x: '-50%' }}
+                initial={{ opacity: 0, y: 8, scale: 0.94 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 6, scale: 0.96, transition: { duration: 0.12 } }}
+                transition={{ type: 'spring', stiffness: 380, damping: 26 }}
+              >
+                <div
+                  className="relative rounded-2xl overflow-hidden"
+                  style={{
+                    height: peekBox.height,
+                    width: peekBox.height * 413 / 554,
+                    boxShadow: '0 24px 60px rgba(0,0,0,0.6), 0 0 0 2px rgba(255,153,51,0.45)',
+                  }}
+                >
+                  <Image
+                    src={getSchemeCardImage(peeked.id)}
+                    alt=""
+                    fill
+                    sizes="320px"
+                    className="object-contain"
+                    priority
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div ref={trayRef} className="overflow-x-auto overflow-y-hidden" style={{ paddingTop: 8, paddingBottom: 16 }}
+               onMouseLeave={() => peek(null)}>
           <div className="flex gap-3 px-4" style={{ width: 'max-content' }}>
             {hand.map((card, index) => {
               const isSelected = selected?.id === card.id;
@@ -261,6 +332,10 @@ export default function PlayerSubmit({
                 <motion.div
                   key={card.id}
                   onClick={() => setSelected(card)}
+                  onMouseEnter={() => peek(card)}
+                  // Keyboard users get the same look — tabbing through the tray peeks each card.
+                  onFocus={() => peek(card)}
+                  onBlur={() => { if (peeked?.id === card.id) peek(null); }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(card); }
                   }}
@@ -280,7 +355,9 @@ export default function PlayerSubmit({
                   }}
                   initial={{ scale: 0.85, opacity: 0, rotate: tilt }}
                   animate={{ scale: 1, opacity: 1, rotate: isSelected ? 0 : tilt }}
-                  whileHover={{ rotate: 0, scale: 1.03, y: -4 }}
+                  // The tray card lifts and straightens so it's clear which one the big preview
+                  // above is showing; the reading happens up there, not down here.
+                  whileHover={{ rotate: 0, scale: 1.06, y: -8 }}
                   whileTap={{ scale: 0.97 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 20, delay: index * 0.05 }}
                 >
@@ -303,6 +380,7 @@ export default function PlayerSubmit({
                 </motion.div>
               );
             })}
+          </div>
           </div>
         </div>
 
