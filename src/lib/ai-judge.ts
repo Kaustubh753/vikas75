@@ -24,6 +24,11 @@ Judge on SUBSTANCE FIRST, then flair. Does the scheme actually address the probl
 player show they understand what it does? That comes first. Creativity is what separates good
 answers from each other — it is not a substitute for a scheme that fits.
 
+Every submission carries the scheme's own description and list of benefits. That is the
+authoritative account of what the scheme does — judge the fit against it rather than against
+what the scheme's name suggests, and mark down a player whose explanation claims a benefit the
+scheme does not actually provide.
+
 Scoring priority (highest to lowest):
 1. Right scheme for the problem, argued with insight and flair (9–10)
 2. Right scheme, sound reasoning, plainly put (7–8)
@@ -99,10 +104,21 @@ async function claudeJudge(challenge: ChallengeCard, submissions: Submission[]):
   // can't forge prompt structure or smuggle instructions (see the SECURITY line in the system
   // prompt). buildVerdict still structurally validates whatever the model returns.
   const clean = (t: string) => (t ?? '').replace(/\s+/g, ' ').trim();
+  // The scheme's own description and benefits travel with the submission. Without them the
+  // judge had only the scheme's *name* to decide whether it addresses the problem, which works
+  // for the famous ones and not at all for the rest of this deck — "Atal Beemit Vyakti Kalyan
+  // Yojana", "Mission Solar Charkha", "SMILE Scheme" and "Coir Udyami Yojana" say nothing about
+  // what they do. This is card data the server already holds (the submission stores the whole
+  // card), it is not player-supplied, so it needs no untrusted-input markers. ~9 words of desc
+  // and ~4 bullets per card: a few hundred input tokens for the thing the ranking turns on.
+  const cardFacts = (c: Submission['schemeCard']) => {
+    const bits = [c.desc && clean(c.desc), c.bullets?.length && `Benefits: ${c.bullets.map(clean).join('; ')}`];
+    return bits.filter(Boolean).map(b => `\n   ${b}`).join('');
+  };
   const submissionsText = submissions
     .map(
       (s, i) =>
-        `${i + 1}. Player: <<<${clean(s.playerName)}>>> (id: ${s.playerId})\n   Scheme: ${s.schemeCard.name} (${s.schemeCard.hi})\n   Explanation: <<<${clean(s.explanation)}>>>`
+        `${i + 1}. Player: <<<${clean(s.playerName)}>>> (id: ${s.playerId})\n   Scheme: ${s.schemeCard.name} (${s.schemeCard.hi})${cardFacts(s.schemeCard)}\n   Explanation: <<<${clean(s.explanation)}>>>`
     )
     .join('\n\n');
 
