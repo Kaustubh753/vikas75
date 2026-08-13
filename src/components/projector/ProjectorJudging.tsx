@@ -53,10 +53,18 @@ export default function ProjectorJudging({ room }: Props) {
         </div>
 
         <div className="text-center">
+          {/* Not "AI Judge Deliberates" any more. Two reasons: it named the machine rather than
+              the moment, and it is a claim the screen cannot always honour — when the live call
+              fails the round is decided by the local fallback, and the projector would still be
+              promising an AI judge. "The verdict" is true either way, and it matches the scales. */}
           <h2 className="font-[family-name:var(--font-bebas)] text-white tracking-widest leading-none"
               style={{ fontSize: 'clamp(40px, 6.5vh, 84px)' }}>
-            AI Judge Deliberates
+            The Verdict Is Coming
           </h2>
+          <p className="font-[family-name:var(--font-devanagari)]"
+             style={{ marginTop: 'clamp(6px, 1vh, 12px)', fontSize: 'clamp(16px, 2.2vh, 30px)', color: 'rgba(173,200,255,0.9)' }}>
+            फैसला आ रहा है
+          </p>
           {count > 0 && (
             <p className="font-[family-name:var(--font-inter)] uppercase text-white/35"
                style={{ marginTop: 'clamp(8px, 1.4vh, 16px)', fontSize: 'clamp(10px, 0.85vw, 14px)', letterSpacing: '0.24em' }}>
