@@ -145,7 +145,7 @@ export default function MobileHostContent({ room }: { room: GameRoom }) {
           </div>
         );
       case 'judging':
-        return <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 16, textAlign: 'center', padding: '24px 0' }}>The AI judge is deciding the winner…</p>;
+        return <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 16, textAlign: 'center', padding: '24px 0' }}>The verdict is coming…</p>;
       case 'winner':
       case 'between-rounds': {
         const win = verdict && !verdict.noWinner;

@@ -10,7 +10,7 @@ const MESSAGES: Partial<Record<GamePhase, string>> = {
   'challenge-reveal': 'Challenge is being revealed…',
   submission: 'Others are submitting their cards…',
   reveal: 'Submissions are being revealed…',
-  judging: 'AI Judge is deliberating…',
+  judging: 'The verdict is coming…',
   winner: 'Winner is being announced!',
   'between-rounds': 'Preparing next round…',
   'game-over': 'Game over! Check the big screen.',
