@@ -33,6 +33,12 @@ export default function ProjectorJudging({ room }: Props) {
              style={{ fontSize: 'clamp(20px, 2.2vw, 36px)' }}>
             {challenge.en}
           </p>
+          {challenge.hi && (
+            <p className="font-[family-name:var(--font-devanagari)] leading-relaxed"
+               style={{ fontSize: 'clamp(13px, 1.35vw, 22px)', color: 'rgba(173,200,255,0.85)', marginTop: 6 }}>
+              {challenge.hi}
+            </p>
+          )}
         </div>
       ) : <div />}
 
