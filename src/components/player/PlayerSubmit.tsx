@@ -273,7 +273,7 @@ export default function PlayerSubmit({
                 {challenge.en}
               </p>
               <p className="text-blue-200/70 font-[family-name:var(--font-devanagari)] mt-1 leading-relaxed"
-                 style={{ fontSize: 12 }}>
+                 style={{ fontSize: 15, lineHeight: 1.55 }}>
                 {challenge.hi}
               </p>
             </div>
