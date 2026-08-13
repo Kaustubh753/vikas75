@@ -35,7 +35,7 @@ export default function ProjectorJudging({ room }: Props) {
           </p>
           {challenge.hi && (
             <p className="font-[family-name:var(--font-devanagari)] leading-relaxed"
-               style={{ fontSize: 'clamp(13px, 1.35vw, 22px)', color: 'rgba(173,200,255,0.85)', marginTop: 6 }}>
+               style={{ fontSize: 'clamp(18px, 2.05vw, 33px)', lineHeight: 1.5, color: 'rgba(173,200,255,0.92)', marginTop: 10 }}>
               {challenge.hi}
             </p>
           )}
@@ -62,7 +62,7 @@ export default function ProjectorJudging({ room }: Props) {
             The Verdict Is Coming
           </h2>
           <p className="font-[family-name:var(--font-devanagari)]"
-             style={{ marginTop: 'clamp(6px, 1vh, 12px)', fontSize: 'clamp(16px, 2.2vh, 30px)', color: 'rgba(173,200,255,0.9)' }}>
+             style={{ marginTop: 'clamp(8px, 1.4vh, 16px)', fontSize: 'clamp(24px, 3.4vh, 46px)', lineHeight: 1.4, color: 'rgba(173,200,255,0.92)' }}>
             फैसला आ रहा है
           </p>
           {count > 0 && (

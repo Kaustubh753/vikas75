@@ -98,7 +98,7 @@ export default function ProjectorSubmission({ room }: Props) {
                 against was English-only once it became live text. */}
             {challenge.hi && (
               <p className="font-[family-name:var(--font-devanagari)] leading-relaxed"
-                 style={{ fontSize: 'clamp(13px, 1.35vw, 22px)', color: 'rgba(173,200,255,0.85)', marginTop: 6 }}>
+                 style={{ fontSize: 'clamp(18px, 2.05vw, 33px)', lineHeight: 1.5, color: 'rgba(173,200,255,0.92)', marginTop: 10 }}>
                 {challenge.hi}
               </p>
             )}

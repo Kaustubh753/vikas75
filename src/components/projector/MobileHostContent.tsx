@@ -49,7 +49,7 @@ export default function MobileHostContent({ room }: { room: GameRoom }) {
       <div style={{ ...card, background: '#1a3a6e', borderColor: 'rgba(255,153,51,0.25)' }}>
         <p style={{ ...label, marginBottom: 8 }}>Problem Statement</p>
         <p style={{ fontFamily: 'var(--font-bebas)', fontSize: 22, lineHeight: 1.2, letterSpacing: '0.02em' }}>{challenge.en}</p>
-        <p style={{ fontFamily: 'var(--font-devanagari)', fontSize: 14, color: 'rgba(173,200,255,0.85)', marginTop: 8, lineHeight: 1.5 }}>{challenge.hi}</p>
+        <p style={{ fontFamily: 'var(--font-devanagari)', fontSize: 19, color: 'rgba(173,200,255,0.92)', marginTop: 10, lineHeight: 1.55 }}>{challenge.hi}</p>
       </div>
     ) : null;
 
