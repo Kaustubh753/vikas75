@@ -100,7 +100,14 @@ export default function ProjectorChallengeReveal({ room }: Props) {
           src={getChallengeCardImage(challenge.id)}
           alt={challenge.en}
           fill
-          sizes="55vh"
+          // `sizes` describes the image's WIDTH, and this card's width derives from viewport
+          // HEIGHT (74vh x 413/554) — no static vw value is correct across aspect ratios, and a
+          // vh value here made the browser pick a far-too-small srcset candidate (a 203px-wide
+          // decode stretched to 596px on a hi-DPI display). The source art is only 412px wide,
+          // so asking for the largest candidate costs nothing: the optimizer caps at the source
+          // and there is nothing bigger to over-fetch.
+          sizes="100vw"
+          quality={90}
           className="object-contain"
           priority
           placeholder="blur"

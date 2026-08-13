@@ -619,10 +619,35 @@ export default function PlayerView({ code }: Props) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">{renderContent()}</div>
+      {/* The chat and emote buttons are fixed at bottom-20 and float over this scroller. Most
+          phases are short enough that nothing ever reaches them, but a long leaderboard runs
+          underneath — so reserve their footprint (80px offset + ~56px button + the safe area)
+          as scroll padding whenever they're shown, and the last row always clears them. */}
+      <div
+        className="flex-1 overflow-y-auto"
+        style={showEmoteAndChat
+          ? { paddingBottom: 'calc(148px + env(safe-area-inset-bottom))' }
+          : undefined}
+      >
+        {renderContent()}
+      </div>
 
       {showEmoteAndChat && (
         <>
+          {/* The chat and emote controls are pinned to the viewport, so on any screen long
+              enough to scroll — the leaderboard especially — rows pass underneath them and the
+              circles read as colliding with the content. This strip gives them something to sit
+              on: the list dissolves into it instead of running into them. Black rather than a
+              phase colour because every phase background is near-black, and it must never take
+              a pointer event meant for the list beneath. */}
+          <div
+            aria-hidden="true"
+            className="fixed left-0 right-0 bottom-0 z-30 pointer-events-none"
+            style={{
+              height: 'calc(150px + env(safe-area-inset-bottom))',
+              background: 'linear-gradient(to top, rgba(4,3,9,0.94) 38%, rgba(4,3,9,0.72) 62%, rgba(4,3,9,0) 100%)',
+            }}
+          />
           <EmotePanel onEmote={handleEmote} />
           <ChatPanel
             messages={room.messages}
