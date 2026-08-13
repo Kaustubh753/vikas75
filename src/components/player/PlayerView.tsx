@@ -9,6 +9,7 @@ import ConnectionBanner from '@/components/ui/ConnectionBanner';
 import LogoLockup from '@/components/ui/LogoLockup';
 import { getMusicManager } from '@/lib/music';
 import PlayerLoading from '@/components/player/PlayerLoading';
+import PlayerLeaderboard from '@/components/player/PlayerLeaderboard';
 import PlayerLobby from '@/components/player/PlayerLobby';
 import PlayerChallengeReveal from '@/components/player/PlayerChallengeReveal';
 import PlayerSubmit from '@/components/player/PlayerSubmit';
@@ -536,6 +537,9 @@ export default function PlayerView({ code }: Props) {
             </a>
           </div>
         );
+      // Standings on the player's own phone, not just the projector.
+      case 'between-rounds':
+        return <PlayerLeaderboard room={room} playerId={playerId} />;
       default:
         return <PlayerWaiting phase={phase} />;
     }

@@ -101,8 +101,14 @@ export default function ProjectorReveal({ room }: Props) {
 
   useEffect(() => {
     if (revealed < submissions.length) {
-      // Reveal pacing — fewer players = more drama per card; many players = shorter delay so total time stays sane
-      const baseDelay = submissions.length <= 4 ? 1800 : submissions.length <= 8 ? 1200 : 900;
+      // Pace the whole reveal, not each card. The old per-card delays (1800/1200/900ms by
+      // bracket) meant total time grew with the table: 6s for four players but 13s for fifteen
+      // and nearly 18s for twenty, which is a long time to watch cards flip. Budget the
+      // sequence instead — a small table still gets its full 1800ms of drama per card because
+      // the budget divides to more than that, and a big one compresses to fit.
+      const REVEAL_BUDGET_MS = 6_500;
+      const gaps = Math.max(1, submissions.length - 1);
+      const baseDelay = Math.min(1800, Math.max(260, Math.round(REVEAL_BUDGET_MS / gaps)));
       const delay = revealed === 0 ? 600 : baseDelay;
       const t = setTimeout(() => setRevealed((n) => n + 1), delay);
       return () => clearTimeout(t);
