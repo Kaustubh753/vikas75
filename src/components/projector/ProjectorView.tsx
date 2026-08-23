@@ -284,7 +284,7 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
       {isHost && isMobileHost ? (
         // Host running the game from a phone — portrait-native game state; controls come from
         // <HostOverlay> (the fixed bar below). The TV phase layouts are 16:9-first and cramped here.
-        <div className="w-full overflow-y-auto" style={{ height: '100dvh' }}>
+        <div className="w-full overflow-y-auto" style={{ height: '100dvh', paddingBottom: 'calc(76px + env(safe-area-inset-bottom))', boxSizing: 'border-box' }}>
           <MobileHostContent room={room} />
         </div>
       ) : (
@@ -358,8 +358,8 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
       </AnimatePresence>
 
       <EmoteOverlay code={code} />
-      {/* Mobile host already has a music toggle in the control bar — hide the floating one
-          so it doesn't collide with the room-code header. */}
+      {/* Mobile host gets a music toggle in the host bar (HostOverlay) that remote-mutes the
+          projector — hide the floating one so it doesn't collide with the room-code header. */}
       {!(isHost && isMobileHost) && <MuteButton />}
       {isHost && hostId && <HostOverlay room={room} code={code} hostId={hostId} />}
     </motion.div>

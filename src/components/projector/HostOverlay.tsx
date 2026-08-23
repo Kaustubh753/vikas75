@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { GameRoom } from '@/types/game';
 import Avatar from '@/lib/avatars';
+import { getLobbyMusic } from '@/lib/music-manager';
 
 interface Props {
   room: GameRoom;
@@ -58,6 +59,10 @@ export default function HostOverlay({ room, code, hostId }: Props) {
   const [playersHover, setPlayersHover] = useState(false);
   const [showPlayers, setShowPlayers] = useState(false);
   const [kickingId, setKickingId] = useState<string | null>(null);
+  const [musicHover, setMusicHover] = useState(false);
+  // Last mute command this host sent to the room. The projector's actual state isn't
+  // readable from here, so the button is a command, not a mirror — worst case one extra tap.
+  const [remoteMuted, setRemoteMuted] = useState(false);
   // Narrow screens (a host running the game from their phone): the control bar must shrink
   // its zones and buttons so the advance button and the right-hand icons stay on-screen and
   // tappable instead of overflowing off the right edge.
@@ -65,6 +70,16 @@ export default function HostOverlay({ room, code, hostId }: Props) {
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 640px)');
     const update = () => setIsNarrow(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+  // Same breakpoint as ProjectorView's isMobileHost, which hides the floating MuteButton for
+  // mobile hosts — this bar's music toggle is the replacement, so the two must flip together.
+  const [isMobileHost, setIsMobileHost] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const update = () => setIsMobileHost(mq.matches);
     update();
     mq.addEventListener('change', update);
     return () => mq.removeEventListener('change', update);
@@ -157,6 +172,19 @@ export default function HostOverlay({ room, code, hostId }: Props) {
     setKickingId(null);
   }
 
+  function handleMusicToggle() {
+    const next = !remoteMuted;
+    setRemoteMuted(next);
+    // This device follows immediately; the music-toggle broadcast reaches the projector
+    // (and any other screen on the room channel) via the music:toggle Pusher event.
+    getLobbyMusic().forceMute(next);
+    fetch('/api/game', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'music-toggle', code, hostId, muted: next }),
+    }).catch(() => { /* non-critical */ });
+  }
+
   const scheduleSettingsUpdate = useCallback((nextRounds: number, nextTimer: number) => {
     if (settingsDebounceRef.current) clearTimeout(settingsDebounceRef.current);
     settingsDebounceRef.current = setTimeout(async () => {
@@ -205,13 +233,17 @@ export default function HostOverlay({ room, code, hostId }: Props) {
     backdropFilter: 'blur(24px)',
     WebkitBackdropFilter: 'blur(24px)',
     borderTop: '1px solid rgba(255,153,51,0.22)',
-    // Three columns with equal, flexible sides — the advance button lands on the screen's true
-    // centre line, under the card. As a flex row the side zones sized to their own content
-    // (220 left vs 140 right), so the "centre" was only the middle of the leftover space and
-    // the button sat ~50px right of the card above it. minmax(0,…) lets the sides truncate
-    // rather than push the button off-centre when the left zone's text runs long.
+    // Wide: three columns with equal, flexible sides — the advance button lands on the
+    // screen's true centre line, under the card. As a flex row the side zones sized to their
+    // own content (220 left vs 140 right), so the "centre" was only the middle of the leftover
+    // space and the button sat ~50px right of the card above it. minmax(0,…) lets the sides
+    // truncate rather than push the button off-centre when the left zone's text runs long.
+    // Narrow: the icon cluster (up to five non-shrinking buttons) overflowed its 1fr track and
+    // slid *under* the centre button. Sides get content width, the button takes what's left
+    // and truncates — tracks sized this way cannot overlap. True centring doesn't matter here:
+    // the phone host layout has no card above the bar.
     display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)',
+    gridTemplateColumns: isNarrow ? 'auto minmax(0, 1fr) auto' : 'minmax(0, 1fr) auto minmax(0, 1fr)',
     alignItems: 'center',
     paddingLeft: isNarrow ? 8 : 20,
     paddingRight: isNarrow ? 8 : 20,
@@ -237,7 +269,11 @@ export default function HostOverlay({ room, code, hostId }: Props) {
     gap: 32,
     alignItems: 'flex-start',
     transform: showSettings ? 'translateY(0)' : 'translateY(100%)',
-    transition: 'transform 0.28s cubic-bezier(.4,0,.2,1)',
+    // Hidden = fully hidden: the slid-down panel parks behind the translucent bar, and its
+    // rows otherwise ghost through the bar's 8% transparency.
+    opacity: showSettings ? 1 : 0,
+    pointerEvents: showSettings ? 'auto' : 'none',
+    transition: 'transform 0.28s cubic-bezier(.4,0,.2,1), opacity 0.2s ease',
   };
 
   const playersPanelStyle: React.CSSProperties = {
@@ -253,7 +289,9 @@ export default function HostOverlay({ room, code, hostId }: Props) {
     borderRadius: '12px 12px 0 0',
     padding: '14px 24px',
     transform: showPlayers ? 'translateY(0)' : 'translateY(100%)',
-    transition: 'transform 0.28s cubic-bezier(.4,0,.2,1)',
+    opacity: showPlayers ? 1 : 0,
+    pointerEvents: showPlayers ? 'auto' : 'none',
+    transition: 'transform 0.28s cubic-bezier(.4,0,.2,1), opacity 0.2s ease',
   };
 
   const iconBtnStyle = (hovered: boolean): React.CSSProperties => ({
@@ -411,10 +449,23 @@ export default function HostOverlay({ room, code, hostId }: Props) {
         </div>
       )}
 
+      {/* Narrow error strip — sits on top of the bar so the message never clips inside it */}
+      {error && isNarrow && !collapsed && (
+        <div style={{
+          position: 'fixed', bottom: 60, left: 0, right: 0, zIndex: 199,
+          background: 'rgba(127,29,29,0.95)', padding: '6px 12px',
+          fontFamily: 'var(--font-inter)', fontSize: 11, color: '#fecaca',
+          textAlign: 'center', lineHeight: 1.3,
+        }}>
+          {error}
+        </div>
+      )}
+
       {/* Main bar */}
       <div style={barStyle}>
-        {/* LEFT ZONE — shrinks/truncates on narrow screens so the advance button and right-hand
-            icons always stay on-screen. */}
+        {/* LEFT ZONE. Narrow keeps only the HOST badge and round counter — the phase and
+            player count are already on the screen above (MobileHostContent), and two stacked
+            text rows overflow a 60px bar. */}
         <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3, justifyContent: 'center', overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {/* HOST badge */}
@@ -434,16 +485,18 @@ export default function HostOverlay({ room, code, hostId }: Props) {
               HOST
             </span>
             {/* Phase label */}
-            <span style={{
-              fontFamily: 'var(--font-inter)',
-              fontSize: 10,
-              fontWeight: 600,
-              color: 'rgba(255,255,255,0.45)',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-            }}>
-              {getPhaseLabel(room.phase)}
-            </span>
+            {!isNarrow && (
+              <span style={{
+                fontFamily: 'var(--font-inter)',
+                fontSize: 10,
+                fontWeight: 600,
+                color: 'rgba(255,255,255,0.45)',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+              }}>
+                {getPhaseLabel(room.phase)}
+              </span>
+            )}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -454,24 +507,28 @@ export default function HostOverlay({ room, code, hostId }: Props) {
                 fontSize: 16,
                 color: 'rgba(255,255,255,0.75)',
                 letterSpacing: '0.04em',
+                whiteSpace: 'nowrap',
               }}>
-                Round{' '}
+                {isNarrow ? '' : 'Round '}
                 <span style={{ color: '#FF9933' }}>{room.round}</span>
                 /{room.totalRounds}
               </span>
             )}
             {/* Player count */}
-            <span style={{
-              fontFamily: 'var(--font-inter)',
-              fontSize: 11,
-              color: 'rgba(255,255,255,0.35)',
-            }}>
-              · {playerCount} player{playerCount !== 1 ? 's' : ''}
-            </span>
+            {!isNarrow && (
+              <span style={{
+                fontFamily: 'var(--font-inter)',
+                fontSize: 11,
+                color: 'rgba(255,255,255,0.35)',
+              }}>
+                · {playerCount} player{playerCount !== 1 ? 's' : ''}
+              </span>
+            )}
           </div>
 
-          {/* Error text */}
-          {error && (
+          {/* Error text — on narrow it gets its own strip above the bar (the 60px bar can't
+              fit a third text row without clipping). */}
+          {error && !isNarrow && (
             <span style={{
               fontFamily: 'var(--font-inter)',
               fontSize: 10,
@@ -516,6 +573,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
               style={{
                 height: isNarrow ? 38 : 44,
                 minWidth: isNarrow ? 0 : 200,
+                maxWidth: '100%',
                 paddingLeft: isNarrow ? 14 : 28,
                 paddingRight: isNarrow ? 14 : 28,
                 borderRadius: 22,
@@ -541,6 +599,23 @@ export default function HostOverlay({ room, code, hostId }: Props) {
 
         {/* RIGHT ZONE — never shrinks, so the host's controls stay reachable. */}
         <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: isNarrow ? 4 : 6 }}>
+          {/* Music toggle — mobile host only. The floating MuteButton is hidden for mobile
+              hosts (it would collide with the room-code header), and their phone isn't the
+              venue's speaker anyway: this sends the host-gated music-toggle action so the
+              projector mutes/unmutes remotely. Desktop hosts keep the floating button. */}
+          {isMobileHost && room.phase !== 'game-over' && (
+            <button
+              onClick={handleMusicToggle}
+              onMouseEnter={() => setMusicHover(true)}
+              onMouseLeave={() => setMusicHover(false)}
+              title={remoteMuted ? 'Unmute music on the big screen' : 'Mute music on the big screen'}
+              style={iconBtnStyle(musicHover)}
+              aria-label={remoteMuted ? 'Unmute music on the big screen' : 'Mute music on the big screen'}
+            >
+              {remoteMuted ? '🔇' : '🔊'}
+            </button>
+          )}
+
           {/* End Game — available in any non-finished phase */}
           {room.phase !== 'game-over' && (
             <button
