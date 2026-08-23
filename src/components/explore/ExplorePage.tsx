@@ -215,7 +215,11 @@ function DeckTab({ schemes, query, onQuery, total, onOpen }: {
       ) : (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
+          // Fluid column count: ~5 on a desktop content width, 4 on tablets, 2 on phones.
+          // The old hard repeat(5, 1fr) overflowed the viewport on phones — five columns of
+          // unbreakable card names forced the grid wider than the screen and clipped the
+          // right column.
+          gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(150px, 16vw, 220px), 1fr))',
           gap: 'clamp(12px,1.4vw,20px)',
         }}>
           {schemes.map(s => (
@@ -241,7 +245,7 @@ function CardTile({ card, onOpen }: { card: SchemeCard; onOpen: (s: SchemeCard) 
       style={{
         background: 'none', border: 'none', padding: 0,
         cursor: 'pointer', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', gap: 10,
+        alignItems: 'center', gap: 10, minWidth: 0,
       }}
     >
       {/* Card image wrapper */}
@@ -347,20 +351,23 @@ function CardModal({ card, onClose }: { card: SchemeCard; onClose: () => void })
     >
       <motion.div
         style={{
+          // flexWrap + the panel's min-width stack the layout on phones: side-by-side left
+          // the detail panel ~60px wide at 390px. The wrapper scrolls when stacked content
+          // exceeds the viewport.
           display: 'flex', gap: 'clamp(20px,3vw,40px)',
-          alignItems: 'flex-start',
+          alignItems: 'flex-start', flexWrap: 'wrap', justifyContent: 'center',
           width: '100%', maxWidth: 1100,
-          maxHeight: '90vh',
+          maxHeight: '90vh', overflowY: 'auto',
         }}
         initial={{ scale: 0.93, y: 16, opacity: 0 }}
         animate={{ scale: 1, y: 0, opacity: 1 }}
         exit={{ scale: 0.96, y: 8, opacity: 0 }}
         transition={{ duration: 0.24, ease: [0.34, 1.56, 0.64, 1] }}
       >
-        {/* Card image — left */}
+        {/* Card image — left (above on phones) */}
         <div style={{
           flexShrink: 0,
-          width: 'clamp(280px,44vw,440px)',
+          width: 'clamp(200px,44vw,440px)',
           aspectRatio: '5 / 7',
           borderRadius: 12,
           overflow: 'hidden',
@@ -370,9 +377,9 @@ function CardModal({ card, onClose }: { card: SchemeCard; onClose: () => void })
           <img src={imgSrc} alt={card.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         </div>
 
-        {/* Detail panel — right */}
+        {/* Detail panel — right (below on phones; the min-width is what forces the wrap) */}
         <div style={{
-          flex: 1, minWidth: 0,
+          flex: 1, minWidth: 'min(100%, 260px)',
           background: 'linear-gradient(160deg,rgba(255,153,51,.06) 0%,rgba(5,11,28,.96) 100%)',
           border: `1px solid rgba(255,153,51,0.25)`,
           borderRadius: 14,
