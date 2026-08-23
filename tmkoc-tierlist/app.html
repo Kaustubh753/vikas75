@@ -1,0 +1,1608 @@
+<title>Gokuldham Tier List</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Yatra+One&family=Baloo+2:wght@400;500;600;700;800&display=swap" />
+<style>
+  :root {
+    --bg: #F7EFDE;
+    --panel: #FFFAEE;
+    --panel-2: #F1E6CC;
+    --ink: #22303A;
+    --ink-soft: #5D6E77;
+    --line: #E2D3B4;
+    --accent: #E4640F;
+    --accent-ink: #FFF7EA;
+    --gold: #F2A413;
+    --teal: #0E6E7E;
+    --pink: #C2185B;
+    --dot: rgba(34, 48, 58, 0.06);
+    --card-bg: #FFFFFF;
+    --card-line: #E6D9BD;
+    --card-shadow: 0 1px 2px rgba(60, 42, 10, 0.10), 0 4px 10px rgba(60, 42, 10, 0.07);
+    --plate-text: #FFF7EA;
+    --tier-S: #CE3434;
+    --tier-A: #DD6511;
+    --tier-B: #E19C0C;
+    --tier-C: #3B8C53;
+    --tier-D: #2F74A8;
+    --tier-F: #6B5E93;
+    --tier-B-ink: #2E2205;
+    --ok: #3B8C53;
+    --danger: #C33B2E;
+    --focus: #0E6E7E;
+    --scrim: rgba(24, 18, 6, 0.45);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #101A26;
+      --panel: #182634;
+      --panel-2: #14202C;
+      --ink: #F3E9D2;
+      --ink-soft: #9FB0BC;
+      --line: #28394A;
+      --accent: #F27A2A;
+      --accent-ink: #1B1206;
+      --gold: #F5B031;
+      --teal: #2FA3B5;
+      --pink: #E24B84;
+      --dot: rgba(243, 233, 210, 0.05);
+      --card-bg: #21313F;
+      --card-line: #31445A;
+      --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.25);
+      --plate-text: #FFF4E0;
+      --tier-S: #C53A3A;
+      --tier-A: #CF6318;
+      --tier-B: #D29A16;
+      --tier-C: #3B7E4F;
+      --tier-D: #2F6C9A;
+      --tier-F: #665C8C;
+      --tier-B-ink: #241B04;
+      --ok: #58A374;
+      --danger: #E06456;
+      --focus: #2FA3B5;
+      --scrim: rgba(2, 6, 10, 0.62);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #101A26;
+    --panel: #182634;
+    --panel-2: #14202C;
+    --ink: #F3E9D2;
+    --ink-soft: #9FB0BC;
+    --line: #28394A;
+    --accent: #F27A2A;
+    --accent-ink: #1B1206;
+    --gold: #F5B031;
+    --teal: #2FA3B5;
+    --pink: #E24B84;
+    --dot: rgba(243, 233, 210, 0.05);
+    --card-bg: #21313F;
+    --card-line: #31445A;
+    --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.25);
+    --plate-text: #FFF4E0;
+    --tier-S: #C53A3A;
+    --tier-A: #CF6318;
+    --tier-B: #D29A16;
+    --tier-C: #3B7E4F;
+    --tier-D: #2F6C9A;
+    --tier-F: #665C8C;
+    --tier-B-ink: #241B04;
+    --ok: #58A374;
+    --danger: #E06456;
+    --focus: #2FA3B5;
+    --scrim: rgba(2, 6, 10, 0.62);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Baloo 2", "Hind", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  button { font-family: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
+
+  .canopy {
+    height: 26px;
+    background: repeating-linear-gradient(90deg,
+      var(--accent) 0 52px,
+      var(--gold) 52px 104px,
+      var(--teal) 104px 156px,
+      var(--pink) 156px 208px);
+    -webkit-mask-image: radial-gradient(26px at 26px 0, #000 24px, transparent 25px);
+    -webkit-mask-size: 52px 26px;
+    -webkit-mask-repeat: repeat-x;
+    mask-image: radial-gradient(26px at 26px 0, #000 24px, transparent 25px);
+    mask-size: 52px 26px;
+    mask-repeat: repeat-x;
+  }
+
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 0 20px 90px; }
+
+  header.masthead {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+    padding: 26px 0 14px;
+  }
+  .title-block .eyebrow {
+    font-family: "Yatra One", "Baloo 2", sans-serif;
+    color: var(--pink);
+    font-size: 18px;
+    letter-spacing: 0.06em;
+    margin: 0 0 -4px 2px;
+  }
+  h1 {
+    font-family: "Yatra One", "Baloo 2", sans-serif;
+    font-weight: 400;
+    font-size: clamp(34px, 6vw, 54px);
+    line-height: 1.02;
+    margin: 0;
+    text-wrap: balance;
+    color: var(--ink);
+  }
+  h1 .brush { color: var(--accent); }
+  .tagline { margin: 6px 0 0 2px; color: var(--ink-soft); font-size: 15px; max-width: 56ch; }
+
+  .head-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+  .btn {
+    border: 2px solid var(--ink);
+    background: var(--panel);
+    color: var(--ink);
+    border-radius: 12px;
+    padding: 9px 16px 10px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 0 var(--ink);
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn:active { transform: translateY(2px); box-shadow: 0 0 0 var(--ink); }
+  .btn.primary { background: var(--accent); border-color: color-mix(in srgb, var(--accent) 60%, var(--ink)); color: var(--accent-ink); box-shadow: 0 2px 0 color-mix(in srgb, var(--accent) 55%, var(--ink)); }
+  .btn.ghost { border-color: var(--line); box-shadow: 0 2px 0 var(--line); background: transparent; }
+  .btn.small { padding: 5px 12px 6px; font-size: 13.5px; border-radius: 10px; }
+  .btn[disabled] { opacity: 0.5; cursor: default; }
+
+  .statusbar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap;
+    padding: 10px 14px;
+    background: var(--panel);
+    border: 1.5px solid var(--line);
+    border-radius: 14px;
+    margin-bottom: 22px;
+  }
+  .progress-wrap { display: flex; align-items: center; gap: 12px; min-width: 220px; flex: 1; }
+  .progress-track { flex: 1; height: 10px; border-radius: 99px; background: var(--panel-2); border: 1px solid var(--line); overflow: hidden; max-width: 340px; }
+  .progress-fill { height: 100%; width: 0%; border-radius: 99px; background: linear-gradient(90deg, var(--gold), var(--accent)); transition: width 0.4s ease; }
+  .progress-label { font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .progress-label .muted { color: var(--ink-soft); font-weight: 600; }
+  .sync-chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 13px; font-weight: 700; color: var(--ink-soft);
+    padding: 4px 12px; border-radius: 99px;
+    background: var(--panel-2); border: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-soft); flex: none; }
+  .sync-chip[data-kind="saved"] .sync-dot { background: var(--ok); }
+  .sync-chip[data-kind="saving"] .sync-dot { background: var(--gold); }
+  .sync-chip[data-kind="error"] .sync-dot { background: var(--danger); }
+
+  /* ---------- Tier board ---------- */
+  .board { display: flex; flex-direction: column; gap: 12px; }
+  .tier-row {
+    display: grid;
+    grid-template-columns: 148px 1fr;
+    gap: 0;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1.5px solid var(--line);
+    background: var(--panel);
+    background-image: radial-gradient(var(--dot) 1px, transparent 1.3px);
+    background-size: 16px 16px;
+  }
+  .tier-plate {
+    background: var(--tc);
+    color: var(--plate-text);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 14px 10px;
+    position: relative;
+    text-align: center;
+  }
+  .tier-plate::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(0,0,0,0.08));
+    pointer-events: none;
+  }
+  .tier-letter {
+    font-family: "Yatra One", sans-serif;
+    font-size: 36px;
+    line-height: 1;
+    text-shadow: 0 2px 0 rgba(0,0,0,0.18);
+  }
+  .tier-name-btn {
+    appearance: none; border: none; background: none;
+    color: inherit;
+    font-family: "Baloo 2", sans-serif;
+    font-weight: 700; font-size: 13.5px; line-height: 1.15;
+    padding: 2px 6px; border-radius: 8px; cursor: pointer;
+    position: relative; z-index: 1;
+    opacity: 0.95;
+  }
+  .tier-name-btn:hover { background: rgba(0,0,0,0.14); }
+  .tier-name-input {
+    width: 92%; border: none; border-radius: 8px; padding: 3px 6px;
+    font-family: "Baloo 2", sans-serif; font-weight: 700; font-size: 13.5px;
+    text-align: center; position: relative; z-index: 1;
+    background: rgba(255,255,255,0.92); color: #22303A;
+  }
+  .tier-zone {
+    display: flex; flex-wrap: wrap; align-content: flex-start;
+    gap: 8px;
+    padding: 12px;
+    min-height: 74px;
+    transition: background-color 0.15s ease;
+  }
+  .tier-zone.drag-over { background-color: color-mix(in srgb, var(--tc, var(--teal)) 12%, transparent); }
+  .zone-hint { color: var(--ink-soft); font-size: 13.5px; align-self: center; padding: 4px 6px; opacity: 0.75; font-style: italic; }
+
+  /* ---------- Cards ---------- */
+  .card {
+    appearance: none;
+    display: inline-flex; align-items: center; gap: 8px;
+    max-width: 100%;
+    border: 1.5px solid var(--card-line);
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 7px 12px 8px 9px;
+    font-size: 14.5px; font-weight: 600;
+    color: var(--ink);
+    box-shadow: var(--card-shadow);
+    cursor: grab;
+    text-align: left;
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .card:hover { border-color: var(--accent); }
+  .card .emoji { font-size: 17px; flex: none; }
+  .card .card-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 30ch; }
+  .card .era {
+    flex: none;
+    font-size: 11.5px; font-weight: 700; color: var(--ink-soft);
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    padding: 1px 7px 2px; border-radius: 99px;
+    font-variant-numeric: tabular-nums;
+  }
+  .card.dragging-src { opacity: 0.35; }
+  .card.pulse { animation: card-pulse 1.1s ease 2; }
+  @keyframes card-pulse {
+    0%, 100% { box-shadow: var(--card-shadow); }
+    50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--gold) 55%, transparent); }
+  }
+
+  .drag-ghost {
+    position: fixed; z-index: 60; pointer-events: none;
+    transform: translate(-50%, -50%) rotate(2.5deg) scale(1.06);
+    filter: drop-shadow(0 10px 16px rgba(20, 10, 0, 0.3));
+  }
+  .drop-caret {
+    width: 3px; height: 34px; border-radius: 2px;
+    background: var(--accent);
+    align-self: center;
+    animation: caret-blink 0.8s ease infinite alternate;
+  }
+  @keyframes caret-blink { from { opacity: 1; } to { opacity: 0.45; } }
+
+  /* ---------- Pool ---------- */
+  .pool-section { margin-top: 30px; }
+  .pool-head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 4px; }
+  h2 {
+    font-family: "Yatra One", sans-serif;
+    font-weight: 400;
+    font-size: 26px;
+    margin: 0;
+    color: var(--teal);
+  }
+  .pool-sub { color: var(--ink-soft); font-size: 14px; margin: 0; }
+  .pool-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 10px 0 12px; }
+  .search {
+    flex: 1; min-width: 180px; max-width: 320px;
+    border: 1.5px solid var(--line);
+    background: var(--panel);
+    color: var(--ink);
+    border-radius: 12px;
+    padding: 8px 14px;
+    font-family: inherit; font-size: 15px;
+  }
+  .search::placeholder { color: var(--ink-soft); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    border: 1.5px solid var(--line);
+    background: var(--panel);
+    border-radius: 99px;
+    padding: 4px 12px 5px;
+    font-size: 13px; font-weight: 700;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  .chip[aria-pressed="true"] { background: var(--teal); border-color: var(--teal); color: #FFF6E3; }
+  .pool-zone {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    padding: 14px;
+    border: 2px dashed var(--line);
+    border-radius: 16px;
+    background: var(--panel-2);
+    min-height: 84px;
+    transition: background-color 0.15s ease;
+  }
+  .pool-zone.drag-over { background-color: color-mix(in srgb, var(--teal) 10%, var(--panel-2)); border-color: var(--teal); }
+  .pool-empty { color: var(--ink-soft); font-size: 14.5px; padding: 8px; }
+  .pool-empty b { color: var(--accent); }
+
+  /* ---------- Modals ---------- */
+  dialog {
+    border: 2px solid var(--ink);
+    border-radius: 18px;
+    background: var(--panel);
+    color: var(--ink);
+    padding: 0;
+    max-width: min(430px, calc(100vw - 36px));
+    width: 100%;
+    box-shadow: 0 18px 50px rgba(10, 5, 0, 0.35);
+  }
+  dialog::backdrop { background: var(--scrim); }
+  .dlg-pad { padding: 20px 22px 22px; }
+  .dlg-title { font-family: "Yatra One", sans-serif; font-size: 24px; margin: 0 0 4px; color: var(--accent); }
+  .dlg-sub { margin: 0 0 14px; color: var(--ink-soft); font-size: 14px; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 4px; }
+  .field input[type="text"], .field select, .field textarea {
+    width: 100%;
+    border: 1.5px solid var(--line);
+    background: var(--card-bg);
+    color: var(--ink);
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-family: inherit; font-size: 15px;
+  }
+  .field textarea { resize: vertical; min-height: 64px; }
+  .dlg-row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
+  .dlg-row .spacer { flex: 1; }
+
+  .tier-pick-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+  .tier-pick-btn {
+    border: none; border-radius: 12px;
+    padding: 12px 6px 13px;
+    font-family: "Yatra One", sans-serif;
+    font-size: 22px;
+    color: var(--plate-text);
+    background: var(--tc);
+    cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 0;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.25);
+  }
+  .tier-pick-btn small { font-family: "Baloo 2", sans-serif; font-size: 11px; font-weight: 700; opacity: 0.9; line-height: 1.1; }
+  .tier-pick-btn:active { transform: translateY(2px); box-shadow: none; }
+  .detail-meta { display: flex; gap: 8px; flex-wrap: wrap; margin: 2px 0 8px; }
+  .meta-chip { font-size: 12.5px; font-weight: 700; color: var(--ink-soft); background: var(--panel-2); border: 1px solid var(--line); border-radius: 99px; padding: 2px 10px 3px; }
+  .detail-summary { margin: 0 0 4px; font-size: 15px; }
+  .kbd-hint { color: var(--ink-soft); font-size: 12.5px; margin-top: 10px; }
+  .kbd-hint kbd { background: var(--panel-2); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 0 5px; font-family: inherit; font-size: 11.5px; }
+
+  .export-img { width: 100%; border-radius: 12px; border: 1.5px solid var(--line); display: block; }
+
+  /* ---------- Toast ---------- */
+  .toast-holder { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 80; display: flex; flex-direction: column; gap: 8px; align-items: center; width: max-content; max-width: calc(100vw - 32px); }
+  .toast {
+    background: var(--ink);
+    color: var(--bg);
+    font-weight: 700; font-size: 14.5px;
+    border-radius: 12px;
+    padding: 10px 18px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    animation: toast-in 0.25s ease;
+    text-align: center;
+  }
+  @keyframes toast-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  footer.colophon {
+    margin-top: 46px;
+    color: var(--ink-soft);
+    font-size: 13px;
+    text-align: center;
+  }
+  footer.colophon .dots { color: var(--gold); letter-spacing: 4px; }
+
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  @media (max-width: 620px) {
+    .wrap { padding: 0 12px 80px; }
+    .tier-row { grid-template-columns: 1fr; }
+    .tier-plate { flex-direction: row; justify-content: flex-start; gap: 10px; padding: 8px 14px; }
+    .tier-letter { font-size: 26px; }
+    .tier-name-btn { font-size: 14px; }
+    .card .card-title { max-width: 20ch; }
+    .head-actions { width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+
+<div class="canopy" aria-hidden="true"></div>
+<div class="wrap">
+  <header class="masthead">
+    <div class="title-block">
+      <p class="eyebrow">तारक मेहता का उल्टा चश्मा</p>
+      <h1>Gokuldham <span class="brush">Tier List</span></h1>
+      <p class="tagline">Jaise-jaise arcs dekhte jao, waise-waise unhe unki asli jagah dete jao. Drag karo, ya card pe tap karke tier chuno.</p>
+    </div>
+    <div class="head-actions">
+      <button class="btn primary" id="btn-add">+ Add arc</button>
+      <button class="btn" id="btn-watch-next" title="Pool me se ek random arc chunta hai">🎲 Kya dekhein?</button>
+      <button class="btn" id="btn-export">📸 Poster</button>
+      <button class="btn ghost" id="btn-menu" aria-haspopup="dialog">⋯<span class="visually-hidden">More options</span></button>
+    </div>
+  </header>
+
+  <div class="statusbar">
+    <div class="progress-wrap">
+      <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progress-fill"></div></div>
+      <span class="progress-label" id="progress-label"><span class="muted">0 / 0 rated</span></span>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <button class="btn small ghost" id="btn-undo" hidden>↩ Undo</button>
+      <span class="sync-chip" id="sync-chip" data-kind="local" role="status"><span class="sync-dot"></span><span id="sync-text">Saved on this device</span></span>
+    </div>
+  </div>
+
+  <main class="board" id="board" aria-label="Tier board"></main>
+
+  <section class="pool-section" aria-label="Arcs yet to rate">
+    <div class="pool-head">
+      <h2>Abhi Dekhna / Rate Karna Baaki</h2>
+      <p class="pool-sub" id="pool-count"></p>
+    </div>
+    <div class="pool-tools">
+      <input class="search" id="search" type="text" placeholder="Arc dhundo…" aria-label="Search arcs" />
+      <div class="chips" id="cat-chips" role="group" aria-label="Filter by category"></div>
+    </div>
+    <div class="pool-zone" id="pool-zone" data-zone="pool"></div>
+  </section>
+
+  <footer class="colophon">
+    <div class="dots">● ● ●</div>
+    <p>Gokuldham Society ke saare famous arcs, ek board pe. Board apne aap save hota hai.<br />Tier ke naam pe tap karke unhe rename bhi kar sakte ho.</p>
+  </footer>
+</div>
+
+<!-- Arc detail / tier picker -->
+<dialog id="dlg-detail">
+  <div class="dlg-pad">
+    <h3 class="dlg-title" id="detail-title">Arc</h3>
+    <div class="detail-meta" id="detail-meta"></div>
+    <p class="detail-summary" id="detail-summary"></p>
+    <div class="tier-pick-grid" id="detail-tiers"></div>
+    <p class="kbd-hint">Shortcut: card focus karke <kbd>S</kbd> <kbd>A</kbd> <kbd>B</kbd> <kbd>C</kbd> <kbd>D</kbd> <kbd>F</kbd> dabao, <kbd>P</kbd> = wapas pool me.</p>
+    <div class="dlg-row">
+      <button class="btn small ghost" id="detail-remove">↩ Pool me wapas</button>
+      <span class="spacer"></span>
+      <button class="btn small ghost" id="detail-edit">✏️ Edit</button>
+      <button class="btn small ghost" id="detail-delete">🗑 Delete</button>
+      <button class="btn small" id="detail-close">Done</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Add / edit arc -->
+<dialog id="dlg-arc">
+  <div class="dlg-pad">
+    <h3 class="dlg-title" id="arc-dlg-title">Naya arc</h3>
+    <p class="dlg-sub">Jo arc list me nahi hai, use khud add karo.</p>
+    <form id="arc-form" method="dialog">
+      <div class="field">
+        <label for="arc-title">Arc ka naam</label>
+        <input type="text" id="arc-title" maxlength="60" required autocomplete="off" placeholder="e.g. Bhide ka Scooter Arc" />
+      </div>
+      <div class="field" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <span>
+          <label for="arc-era">Saal (approx)</label>
+          <input type="text" id="arc-era" maxlength="12" autocomplete="off" placeholder="e.g. 2015" />
+        </span>
+        <span>
+          <label for="arc-cat">Type</label>
+          <select id="arc-cat"></select>
+        </span>
+      </div>
+      <div class="field">
+        <label for="arc-summary">Note (optional)</label>
+        <textarea id="arc-summary" maxlength="180" placeholder="Kya hua tha is arc me…"></textarea>
+      </div>
+      <div class="dlg-row">
+        <button class="btn small ghost" type="button" id="arc-cancel">Cancel</button>
+        <button class="btn small primary" type="submit" id="arc-save">Add karo</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<!-- Menu -->
+<dialog id="dlg-menu">
+  <div class="dlg-pad">
+    <h3 class="dlg-title">Board options</h3>
+    <div style="display:flex; flex-direction:column; gap:9px; margin-top:10px;">
+      <button class="btn" id="menu-theme">🌗 Theme badlo</button>
+      <button class="btn" id="menu-backup">⬇️ Backup (JSON)</button>
+      <button class="btn" id="menu-import">⬆️ Import backup</button>
+      <button class="btn" id="menu-reset" style="border-color: var(--danger); color: var(--danger); box-shadow: 0 2px 0 var(--danger);">🧹 Poora board reset</button>
+    </div>
+    <div class="dlg-row"><button class="btn small" id="menu-close">Close</button></div>
+  </div>
+</dialog>
+
+<!-- Import -->
+<dialog id="dlg-import">
+  <div class="dlg-pad">
+    <h3 class="dlg-title">Import backup</h3>
+    <p class="dlg-sub">Pehle export kiya hua JSON yahan paste karo. Abhi wala board replace ho jayega.</p>
+    <div class="field"><textarea id="import-text" style="min-height:120px" placeholder='{"v":1,…}'></textarea></div>
+    <div class="dlg-row">
+      <button class="btn small ghost" id="import-cancel">Cancel</button>
+      <button class="btn small primary" id="import-go">Import</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Export preview (fallback when downloads capability is unavailable) -->
+<dialog id="dlg-export">
+  <div class="dlg-pad">
+    <h3 class="dlg-title">Tumhara poster</h3>
+    <p class="dlg-sub" id="export-hint">Image ko press-and-hold / right-click karke save karo.</p>
+    <img class="export-img" id="export-img" alt="Tier list poster" />
+    <div class="dlg-row">
+      <button class="btn small ghost" id="export-copy">📋 Copy image</button>
+      <button class="btn small" id="export-close">Done</button>
+    </div>
+  </div>
+</dialog>
+
+<div class="toast-holder" id="toast-holder" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ============================== Data ============================== */
+
+  var CATEGORIES = {
+    trip:      { emoji: "🧳", label: "Trip" },
+    festival:  { emoji: "🪔", label: "Festival" },
+    drama:     { emoji: "🎭", label: "Drama" },
+    comedy:    { emoji: "😂", label: "Comedy" },
+    romance:   { emoji: "💘", label: "Romance" },
+    sports:    { emoji: "🏏", label: "Sports" },
+    mystery:   { emoji: "👻", label: "Mystery" },
+    milestone: { emoji: "🏆", label: "Milestone" }
+  };
+
+  var TIER_DEFS = [
+    { id: "S", name: "Ek Number!" },
+    { id: "A", name: "Fantastic!" },
+    { id: "B", name: "Thik Thak" },
+    { id: "C", name: "Hmm… Chalega" },
+    { id: "D", name: "Hey Maa Mataji!" },
+    { id: "F", name: "Fire Brigade Bulao!" }
+  ];
+
+  /* __SEED_ARCS__ — curated & web-verified list is injected here */
+  var SEED_ARCS = [
+    { id: "gpl", title: "GPL — Gokuldham Premier League", era: "2012", category: "sports", summary: "Society ka apna cricket tournament — sabse yaadgaar arcs me se ek." },
+    { id: "gada-robbery", title: "Gada Electronics Robbery", era: "2013", category: "drama", summary: "Dukaan me chori — Jethalal pe pahad toot padta hai." },
+    { id: "secretary-election", title: "Society Secretary Election", era: "recurring", category: "comedy", summary: "Bhide ki kursi ke liye Gokuldham me chunavi mahaul." },
+    { id: "uttarayan", title: "Uttarayan Kite Special", era: "yearly", category: "festival", summary: "Makar Sankranti pe patang-baazi aur kata hua pech." },
+    { id: "navratri-garba", title: "Navratri Garba Nights", era: "yearly", category: "festival", summary: "Society ke garba raat — Daya ka signature garba." },
+    { id: "popatlal-rishta", title: "Popatlal ki Shaadi Attempts", era: "recurring", category: "romance", summary: "Har baar rishta aata hai, har baar chhatri reh jaati hai." },
+    { id: "natu-strike", title: "Natu Kaka & Bagha ki Strike", era: "recurring", category: "comedy", summary: "Pagaar badhao andolan — dukaan thap." },
+    { id: "ahmedabad-trip", title: "Ahmedabad Trip", era: "2010s", category: "trip", summary: "Gada parivaar apne des — Ahmedabad me dhamaal." }
+  ];
+
+  /* ============================== State ============================== */
+
+  var LS_KEY = "tmkoc-tierlist-v1";
+  var PENDING_KEY = "tmkoc-tierlist-pending";
+
+  function freshState() {
+    return {
+      v: 1,
+      savedAt: 0,
+      tierNames: TIER_DEFS.reduce(function (m, t) { m[t.id] = t.name; return m; }, {}),
+      placements: { S: [], A: [], B: [], C: [], D: [], F: [] },
+      customArcs: [],
+      removedSeeds: [],
+      edits: {}
+    };
+  }
+
+  var state = freshState();
+  var history = [];
+  var readOnly = false;
+  var cloudOff = false;
+  var saveTimer = null;
+  var retryTimer = null;
+
+  function allArcs() {
+    var map = {};
+    SEED_ARCS.forEach(function (a) {
+      if (state.removedSeeds.indexOf(a.id) === -1) {
+        map[a.id] = Object.assign({}, a, state.edits[a.id] || {});
+      }
+    });
+    state.customArcs.forEach(function (a) { map[a.id] = a; });
+    return map;
+  }
+  function placedIds() {
+    var s = [];
+    TIER_DEFS.forEach(function (t) { s = s.concat(state.placements[t.id] || []); });
+    return s;
+  }
+  function poolArcs() {
+    var arcs = allArcs();
+    var placed = placedIds();
+    var pool = [];
+    SEED_ARCS.forEach(function (a) {
+      if (arcs[a.id] && placed.indexOf(a.id) === -1) pool.push(arcs[a.id]);
+    });
+    state.customArcs.forEach(function (a) {
+      if (placed.indexOf(a.id) === -1) pool.push(a);
+    });
+    return pool;
+  }
+
+  function normalizeState(raw) {
+    if (!raw || typeof raw !== "object" || raw.v !== 1) return null;
+    var s = freshState();
+    s.savedAt = Number(raw.savedAt) || 0;
+    if (raw.tierNames) TIER_DEFS.forEach(function (t) {
+      if (typeof raw.tierNames[t.id] === "string" && raw.tierNames[t.id].trim()) s.tierNames[t.id] = raw.tierNames[t.id].slice(0, 28);
+    });
+    if (raw.placements) TIER_DEFS.forEach(function (t) {
+      if (Array.isArray(raw.placements[t.id])) s.placements[t.id] = raw.placements[t.id].filter(function (x) { return typeof x === "string"; });
+    });
+    if (Array.isArray(raw.customArcs)) s.customArcs = raw.customArcs.filter(function (a) {
+      return a && typeof a.id === "string" && typeof a.title === "string";
+    }).map(function (a) {
+      return { id: a.id, title: String(a.title).slice(0, 60), era: String(a.era || "").slice(0, 12),
+               category: CATEGORIES[a.category] ? a.category : "comedy", summary: String(a.summary || "").slice(0, 180), custom: true };
+    });
+    if (Array.isArray(raw.removedSeeds)) s.removedSeeds = raw.removedSeeds.filter(function (x) { return typeof x === "string"; });
+    if (raw.edits && typeof raw.edits === "object") s.edits = raw.edits;
+    // Drop placements pointing at arcs that no longer exist
+    var arcs = {};
+    SEED_ARCS.forEach(function (a) { arcs[a.id] = 1; });
+    s.customArcs.forEach(function (a) { arcs[a.id] = 1; });
+    var seen = {};
+    TIER_DEFS.forEach(function (t) {
+      s.placements[t.id] = s.placements[t.id].filter(function (id) {
+        if (!arcs[id] || seen[id] || s.removedSeeds.indexOf(id) !== -1) return false;
+        seen[id] = 1; return true;
+      });
+    });
+    return s;
+  }
+
+  /* ============================== Persistence ============================== */
+
+  var capsPromise = (typeof window !== "undefined" && window.claude && window.claude.use)
+    ? Promise.all([window.claude.use("artifact"), window.claude.use("downloads")])
+        .then(function (r) { return { artifact: r[0], downloads: r[1] }; })
+        .catch(function () { return { artifact: null, downloads: null }; })
+    : Promise.resolve({ artifact: null, downloads: null });
+
+  function setSync(kind, text) {
+    var chip = document.getElementById("sync-chip");
+    chip.dataset.kind = kind;
+    document.getElementById("sync-text").textContent = text;
+  }
+
+  function persistLocal() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  function scheduleSave() {
+    state.savedAt = Date.now();
+    persistLocal();
+    if (cloudOff || readOnly) return;
+    clearTimeout(saveTimer);
+    setSync("saving", "Saving…");
+    saveTimer = setTimeout(cloudSave, 2200);
+  }
+
+  function cloudSave(isRetry) {
+    capsPromise.then(function (caps) {
+      if (!caps.artifact) { cloudOff = true; setSync("local", "Saved on this device"); return; }
+      if (readOnly) return;
+      try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(state)); } catch (e) {}
+      caps.artifact.publish({ "data/state.json": JSON.stringify(state) }).then(function () {
+        try { sessionStorage.removeItem(PENDING_KEY); } catch (e) {}
+        setSync("saved", "Saved to this page");
+      }).catch(function (err) {
+        var code = err && err.code;
+        if (code === "not_writer" || code === "not_granted" || code === "consent_required") {
+          readOnly = true;
+          setSync("local", "View-only — saves sirf is device pe");
+        } else if (code === "capability_disabled" || code === "capability_removed" || code === "not_declared" || code === "read_only_path") {
+          cloudOff = true;
+          setSync("local", "Saved on this device");
+        } else if (code === "conflict") {
+          /* Shell reloads to the winning version; pending state merges on boot. */
+          setSync("saving", "Naya version aa raha hai…");
+        } else if (code === "rate_limited") {
+          clearTimeout(retryTimer);
+          retryTimer = setTimeout(function () { cloudSave(true); }, 16000);
+        } else if (!isRetry) {
+          clearTimeout(retryTimer);
+          retryTimer = setTimeout(function () { cloudSave(true); }, 5000);
+        } else {
+          setSync("error", "Save atka — device pe safe hai");
+        }
+      });
+    });
+  }
+
+  function loadInitial(cb) {
+    var local = null, pending = null, cloud = null;
+    try { local = normalizeState(JSON.parse(localStorage.getItem(LS_KEY) || "null")); } catch (e) {}
+    try {
+      pending = normalizeState(JSON.parse(sessionStorage.getItem(PENDING_KEY) || "null"));
+      sessionStorage.removeItem(PENDING_KEY);
+    } catch (e) {}
+    var fetched = fetch("data/state.json", { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { cloud = normalizeState(j); })
+      .catch(function () {});
+    Promise.race([fetched, new Promise(function (res) { setTimeout(res, 2500); })]).then(function () {
+      var best = null;
+      [cloud, local, pending].forEach(function (c) {
+        if (c && (!best || c.savedAt > best.savedAt)) best = c;
+      });
+      if (best) state = best;
+      if (best && best !== cloud && (cloud === null || best.savedAt > cloud.savedAt)) {
+        /* Local copy is fresher than the page's saved copy — push it up. */
+        capsPromise.then(function (caps) { if (caps.artifact) { setSync("saving", "Saving…"); cloudSave(); } });
+      } else if (cloud) {
+        setSync("saved", "Saved to this page");
+      }
+      cb();
+    });
+  }
+
+  /* ============================== History / undo ============================== */
+
+  function snapshot() {
+    history.push(JSON.stringify(state));
+    if (history.length > 30) history.shift();
+    document.getElementById("btn-undo").hidden = false;
+  }
+  function undo() {
+    if (!history.length) return;
+    var prev = normalizeState(JSON.parse(history.pop()));
+    if (prev) { state = prev; scheduleSave(); render(); toast("↩ Undo ho gaya"); }
+    if (!history.length) document.getElementById("btn-undo").hidden = true;
+  }
+
+  /* ============================== Mutations ============================== */
+
+  function placeArc(id, tierId, index) {
+    snapshot();
+    TIER_DEFS.forEach(function (t) {
+      var i = state.placements[t.id].indexOf(id);
+      if (i !== -1) state.placements[t.id].splice(i, 1);
+    });
+    if (tierId && state.placements[tierId]) {
+      var list = state.placements[tierId];
+      var at = (typeof index === "number" && index >= 0 && index <= list.length) ? index : list.length;
+      list.splice(at, 0, id);
+    }
+    scheduleSave();
+    render();
+  }
+
+  function addArc(data) {
+    snapshot();
+    var id = "c-" + Math.random().toString(36).slice(2, 9);
+    state.customArcs.push({ id: id, title: data.title, era: data.era, category: data.category, summary: data.summary, custom: true });
+    scheduleSave();
+    render();
+    return id;
+  }
+
+  function editArc(id, data) {
+    snapshot();
+    var custom = state.customArcs.find(function (a) { return a.id === id; });
+    if (custom) Object.assign(custom, data);
+    else state.edits[id] = Object.assign({}, state.edits[id] || {}, data);
+    scheduleSave();
+    render();
+  }
+
+  function deleteArc(id) {
+    snapshot();
+    var idx = state.customArcs.findIndex(function (a) { return a.id === id; });
+    if (idx !== -1) state.customArcs.splice(idx, 1);
+    else if (state.removedSeeds.indexOf(id) === -1) state.removedSeeds.push(id);
+    TIER_DEFS.forEach(function (t) {
+      var i = state.placements[t.id].indexOf(id);
+      if (i !== -1) state.placements[t.id].splice(i, 1);
+    });
+    delete state.edits[id];
+    scheduleSave();
+    render();
+  }
+
+  /* ============================== Rendering ============================== */
+
+  var activeFilter = { text: "", cat: null };
+
+  function cardEl(arc) {
+    var cat = CATEGORIES[arc.category] || CATEGORIES.comedy;
+    var b = document.createElement("button");
+    b.className = "card";
+    b.dataset.id = arc.id;
+    b.setAttribute("aria-haspopup", "dialog");
+    b.title = (arc.summary || arc.title) + " — tap: tier chuno, drag: seedha rakho";
+    var em = document.createElement("span"); em.className = "emoji"; em.textContent = cat.emoji; em.setAttribute("aria-hidden", "true");
+    var ti = document.createElement("span"); ti.className = "card-title"; ti.textContent = arc.title;
+    b.appendChild(em); b.appendChild(ti);
+    if (arc.era) { var er = document.createElement("span"); er.className = "era"; er.textContent = arc.era; b.appendChild(er); }
+    return b;
+  }
+
+  function render() {
+    var arcs = allArcs();
+    var board = document.getElementById("board");
+    board.textContent = "";
+    TIER_DEFS.forEach(function (t) {
+      var row = document.createElement("div");
+      row.className = "tier-row";
+      row.style.setProperty("--tc", "var(--tier-" + t.id + ")");
+
+      var plate = document.createElement("div");
+      plate.className = "tier-plate";
+      if (t.id === "B") plate.style.color = "var(--tier-B-ink)";
+      var letter = document.createElement("span"); letter.className = "tier-letter"; letter.textContent = t.id;
+      var nameBtn = document.createElement("button");
+      nameBtn.className = "tier-name-btn";
+      nameBtn.textContent = state.tierNames[t.id];
+      nameBtn.title = "Tier ka naam badlo";
+      nameBtn.addEventListener("click", function () { startRenameTier(t.id, plate, nameBtn); });
+      plate.appendChild(letter); plate.appendChild(nameBtn);
+
+      var zone = document.createElement("div");
+      zone.className = "tier-zone";
+      zone.dataset.zone = t.id;
+      zone.style.setProperty("--tc", "var(--tier-" + t.id + ")");
+      var ids = state.placements[t.id];
+      if (!ids.length) {
+        var hint = document.createElement("span"); hint.className = "zone-hint";
+        hint.textContent = "Yahan drop karo";
+        zone.appendChild(hint);
+      } else {
+        ids.forEach(function (id) { if (arcs[id]) zone.appendChild(cardEl(arcs[id])); });
+      }
+      row.appendChild(plate); row.appendChild(zone);
+      board.appendChild(row);
+    });
+
+    // Pool
+    var pool = poolArcs();
+    var visible = pool.filter(function (a) {
+      if (activeFilter.cat && a.category !== activeFilter.cat) return false;
+      if (activeFilter.text && (a.title + " " + (a.summary || "")).toLowerCase().indexOf(activeFilter.text) === -1) return false;
+      return true;
+    });
+    var pz = document.getElementById("pool-zone");
+    pz.textContent = "";
+    if (!pool.length) {
+      var d = document.createElement("p"); d.className = "pool-empty";
+      d.innerHTML = "Wah! <b>Saare arcs rate ho gaye.</b> Naya arc dekha? Upar se add karo.";
+      pz.appendChild(d);
+    } else if (!visible.length) {
+      var d2 = document.createElement("p"); d2.className = "pool-empty";
+      d2.textContent = "Is filter me kuch nahi mila.";
+      pz.appendChild(d2);
+    } else {
+      visible.forEach(function (a) { pz.appendChild(cardEl(a)); });
+    }
+
+    // Counts
+    var total = Object.keys(arcs).length;
+    var done = placedIds().length;
+    document.getElementById("pool-count").textContent = pool.length ? (pool.length + " arcs baaki") : "sab ho gaya 🎉";
+    var pct = total ? Math.round((done / total) * 100) : 0;
+    document.getElementById("progress-fill").style.width = pct + "%";
+    var lbl = document.getElementById("progress-label");
+    lbl.textContent = "";
+    var strong = document.createElement("span"); strong.textContent = done + " / " + total + " rated";
+    lbl.appendChild(strong);
+
+    renderChips();
+  }
+
+  function renderChips() {
+    var holder = document.getElementById("cat-chips");
+    holder.textContent = "";
+    Object.keys(CATEGORIES).forEach(function (key) {
+      var c = CATEGORIES[key];
+      var b = document.createElement("button");
+      b.className = "chip";
+      b.textContent = c.emoji + " " + c.label;
+      b.setAttribute("aria-pressed", activeFilter.cat === key ? "true" : "false");
+      b.addEventListener("click", function () {
+        activeFilter.cat = activeFilter.cat === key ? null : key;
+        render();
+      });
+      holder.appendChild(b);
+    });
+  }
+
+  function startRenameTier(tierId, plate, nameBtn) {
+    var input = document.createElement("input");
+    input.className = "tier-name-input";
+    input.value = state.tierNames[tierId];
+    input.maxLength = 28;
+    input.setAttribute("aria-label", "Tier ka naam");
+    plate.replaceChild(input, nameBtn);
+    input.focus(); input.select();
+    function commit() {
+      var val = input.value.trim();
+      if (val && val !== state.tierNames[tierId]) {
+        snapshot();
+        state.tierNames[tierId] = val;
+        scheduleSave();
+      }
+      render();
+    }
+    input.addEventListener("blur", commit);
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); input.blur(); }
+      if (e.key === "Escape") { input.value = state.tierNames[tierId]; input.blur(); }
+    });
+  }
+
+  /* ============================== Toast & confetti ============================== */
+
+  function toast(msg) {
+    var holder = document.getElementById("toast-holder");
+    var t = document.createElement("div");
+    t.className = "toast";
+    t.textContent = msg;
+    holder.appendChild(t);
+    setTimeout(function () { t.style.opacity = "0"; t.style.transition = "opacity 0.3s"; }, 2200);
+    setTimeout(function () { t.remove(); }, 2600);
+  }
+
+  var reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function confettiAt(x, y) {
+    if (reducedMotion) return;
+    var cv = document.createElement("canvas");
+    cv.width = 320; cv.height = 320;
+    cv.style.cssText = "position:fixed;left:" + (x - 160) + "px;top:" + (y - 160) + "px;pointer-events:none;z-index:70;";
+    document.body.appendChild(cv);
+    var ctx = cv.getContext("2d");
+    var colors = ["#E4640F", "#F2A413", "#0E6E7E", "#C2185B", "#3B8C53"];
+    var parts = [];
+    for (var i = 0; i < 26; i++) {
+      var ang = Math.random() * Math.PI * 2;
+      var sp = 2 + Math.random() * 4.5;
+      parts.push({ x: 160, y: 160, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - 2.5,
+                   c: colors[i % colors.length], s: 3 + Math.random() * 4, r: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.3, life: 1 });
+    }
+    var frames = 0;
+    (function tick() {
+      ctx.clearRect(0, 0, 320, 320);
+      parts.forEach(function (p) {
+        p.x += p.vx; p.y += p.vy; p.vy += 0.16; p.r += p.vr; p.life -= 0.02;
+        if (p.life <= 0) return;
+        ctx.save(); ctx.globalAlpha = Math.max(p.life, 0); ctx.translate(p.x, p.y); ctx.rotate(p.r);
+        ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.6); ctx.restore();
+      });
+      if (++frames < 55) requestAnimationFrame(tick); else cv.remove();
+    })();
+  }
+
+  /* ============================== Drag & drop (pointer events) ============================== */
+
+  var drag = null; // {id, ghost, srcEl, started, sx, sy, pointerId, fromTouch, holdTimer}
+  var caretEl = document.createElement("div");
+  caretEl.className = "drop-caret";
+
+  function zones() { return Array.prototype.slice.call(document.querySelectorAll("[data-zone]")); }
+
+  document.addEventListener("pointerdown", function (e) {
+    var card = e.target.closest && e.target.closest(".card");
+    if (!card || drag) return;
+    if (e.button && e.button !== 0) return;
+    drag = { id: card.dataset.id, srcEl: card, started: false, sx: e.clientX, sy: e.clientY, pointerId: e.pointerId, fromTouch: e.pointerType === "touch" };
+    if (drag.fromTouch) {
+      /* Long-press to lift on touch, so the page can still scroll. */
+      drag.holdTimer = setTimeout(function () { if (drag && !drag.started) beginDrag(e.clientX, e.clientY); }, 260);
+    }
+  });
+
+  function beginDrag(x, y) {
+    if (!drag || drag.started) return;
+    drag.started = true;
+    var ghost = drag.srcEl.cloneNode(true);
+    ghost.classList.add("drag-ghost");
+    document.body.appendChild(ghost);
+    drag.ghost = ghost;
+    drag.srcEl.classList.add("dragging-src");
+    try { drag.srcEl.setPointerCapture(drag.pointerId); } catch (err) {}
+    moveGhost(x, y);
+    if (navigator.vibrate && drag.fromTouch) navigator.vibrate(8);
+  }
+
+  function moveGhost(x, y) {
+    drag.ghost.style.left = x + "px";
+    drag.ghost.style.top = y + "px";
+    var target = zoneAt(x, y);
+    zones().forEach(function (z) { z.classList.toggle("drag-over", z === target); });
+    if (caretEl.parentNode) caretEl.parentNode.removeChild(caretEl);
+    if (target) {
+      var pos = insertionIndex(target, x, y);
+      var cards = Array.prototype.filter.call(target.children, function (c) { return c.classList && c.classList.contains("card") && c !== drag.srcEl; });
+      if (pos.ref) target.insertBefore(caretEl, pos.ref);
+      else if (cards.length) target.appendChild(caretEl);
+    }
+  }
+
+  function zoneAt(x, y) {
+    var el = document.elementFromPoint(x, y);
+    return el ? (el.closest && el.closest("[data-zone]")) : null;
+  }
+
+  function insertionIndex(zone, x, y) {
+    var cards = Array.prototype.filter.call(zone.children, function (c) { return c.classList && c.classList.contains("card") && c !== drag.srcEl; });
+    for (var i = 0; i < cards.length; i++) {
+      var r = cards[i].getBoundingClientRect();
+      if (y < r.top - 4) return { index: i, ref: cards[i] };
+      if (y <= r.bottom + 4 && x < r.left + r.width / 2) return { index: i, ref: cards[i] };
+    }
+    return { index: cards.length, ref: null };
+  }
+
+  document.addEventListener("pointermove", function (e) {
+    if (!drag) return;
+    var dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+    if (!drag.started) {
+      if (drag.fromTouch) {
+        if (Math.abs(dx) > 10 || Math.abs(dy) > 10) { clearTimeout(drag.holdTimer); drag = null; }
+        return;
+      }
+      if (Math.abs(dx) > 6 || Math.abs(dy) > 6) beginDrag(e.clientX, e.clientY);
+      return;
+    }
+    e.preventDefault();
+    moveGhost(e.clientX, e.clientY);
+  }, { passive: false });
+
+  document.addEventListener("touchmove", function (e) {
+    if (drag && drag.started) e.preventDefault();
+  }, { passive: false });
+
+  var suppressNextClick = false;
+
+  function endDrag(e, cancelled) {
+    if (!drag) return;
+    clearTimeout(drag.holdTimer);
+    var id = drag.id;
+    if (drag.started) {
+      var target = cancelled ? null : zoneAt(e.clientX, e.clientY);
+      zones().forEach(function (z) { z.classList.remove("drag-over"); });
+      var pos = target ? insertionIndex(target, e.clientX, e.clientY) : null;
+      if (caretEl.parentNode) caretEl.parentNode.removeChild(caretEl);
+      if (drag.ghost) drag.ghost.remove();
+      drag.srcEl.classList.remove("dragging-src");
+      /* The browser fires a click on the source card right after the drop —
+         swallow it so it doesn't open the detail dialog. */
+      suppressNextClick = true;
+      setTimeout(function () { suppressNextClick = false; }, 400);
+      if (target) {
+        var zoneName = target.dataset.zone;
+        if (zoneName === "pool") {
+          if (placedIds().indexOf(id) !== -1) {
+            placeArc(id, null);
+            toast("Wapas pool me");
+          }
+        } else {
+          placeArc(id, zoneName, pos.index);
+          if (zoneName === "S") { confettiAt(e.clientX, e.clientY); toast("Ek number! 🔥"); }
+        }
+        var moved = document.querySelector('.card[data-id="' + id + '"]');
+        if (moved) moved.focus({ preventScroll: true });
+      }
+    }
+    drag = null;
+  }
+  document.addEventListener("pointerup", function (e) { endDrag(e, false); });
+  document.addEventListener("pointercancel", function (e) { endDrag(e, true); });
+
+  /* Taps and clicks open the detail dialog via the native click event, so the
+     synthesized post-touch click can never fall through onto the dialog. */
+  document.addEventListener("click", function (e) {
+    if (suppressNextClick) {
+      suppressNextClick = false;
+      e.stopPropagation();
+      e.preventDefault();
+      return;
+    }
+    var card = e.target.closest && e.target.closest(".card");
+    if (card) openDetail(card.dataset.id);
+  }, true);
+
+  /* Keyboard: letter shortcuts on focused card */
+  document.addEventListener("keydown", function (e) {
+    if (e.metaKey || e.ctrlKey) {
+      if (e.key.toLowerCase() === "z") { e.preventDefault(); undo(); }
+      return;
+    }
+    var card = document.activeElement;
+    if (!card || !card.classList || !card.classList.contains("card")) return;
+    var key = e.key.toUpperCase();
+    if (["S", "A", "B", "C", "D", "F"].indexOf(key) !== -1) {
+      e.preventDefault();
+      placeArc(card.dataset.id, key);
+      toast(key + " tier me rakh diya");
+      var moved = document.querySelector('.card[data-id="' + card.dataset.id + '"]');
+      if (moved) moved.focus({ preventScroll: true });
+    } else if (key === "P" || key === "BACKSPACE") {
+      e.preventDefault();
+      placeArc(card.dataset.id, null);
+      toast("Wapas pool me");
+    } else if (key === "ENTER" || e.key === " ") {
+      /* default button behaviour opens detail via click */
+    }
+  });
+
+  /* ============================== Detail dialog ============================== */
+
+  var detailId = null;
+
+  function openDetail(id) {
+    var arcs = allArcs();
+    var arc = arcs[id];
+    if (!arc) return;
+    detailId = id;
+    var cat = CATEGORIES[arc.category] || CATEGORIES.comedy;
+    document.getElementById("detail-title").textContent = arc.title;
+    var meta = document.getElementById("detail-meta");
+    meta.textContent = "";
+    var chips = [cat.emoji + " " + cat.label];
+    if (arc.era) chips.push("📅 " + arc.era);
+    var placedIn = null;
+    TIER_DEFS.forEach(function (t) { if (state.placements[t.id].indexOf(id) !== -1) placedIn = t.id; });
+    if (placedIn) chips.push("Tier " + placedIn + " me hai");
+    chips.forEach(function (c) {
+      var s = document.createElement("span"); s.className = "meta-chip"; s.textContent = c; meta.appendChild(s);
+    });
+    document.getElementById("detail-summary").textContent = arc.summary || "";
+    var grid = document.getElementById("detail-tiers");
+    grid.textContent = "";
+    TIER_DEFS.forEach(function (t) {
+      var b = document.createElement("button");
+      b.className = "tier-pick-btn";
+      b.style.setProperty("--tc", "var(--tier-" + t.id + ")");
+      if (t.id === "B") b.style.color = "var(--tier-B-ink)";
+      b.innerHTML = t.id + "<small></small>";
+      b.querySelector("small").textContent = state.tierNames[t.id];
+      b.addEventListener("click", function () {
+        placeArc(detailId, t.id);
+        if (t.id === "S") { confettiAt(window.innerWidth / 2, window.innerHeight / 2); toast("Ek number! 🔥"); }
+        else toast(t.id + " tier me rakh diya");
+        closeDlg("dlg-detail");
+      });
+      grid.appendChild(b);
+    });
+    document.getElementById("detail-remove").style.display = placedIn ? "" : "none";
+    document.getElementById("dlg-detail").showModal();
+  }
+
+  document.getElementById("detail-close").addEventListener("click", function () { closeDlg("dlg-detail"); });
+  document.getElementById("detail-remove").addEventListener("click", function () {
+    placeArc(detailId, null); toast("Wapas pool me"); closeDlg("dlg-detail");
+  });
+  document.getElementById("detail-delete").addEventListener("click", function () {
+    var arc = allArcs()[detailId];
+    if (!arc) return;
+    if (confirm('"' + arc.title + '" ko list se hatana hai?')) {
+      deleteArc(detailId); toast("Hata diya"); closeDlg("dlg-detail");
+    }
+  });
+  document.getElementById("detail-edit").addEventListener("click", function () {
+    closeDlg("dlg-detail");
+    openArcDialog(detailId);
+  });
+
+  /* ============================== Add / edit dialog ============================== */
+
+  var editingId = null;
+
+  function openArcDialog(id) {
+    editingId = id || null;
+    var sel = document.getElementById("arc-cat");
+    sel.textContent = "";
+    Object.keys(CATEGORIES).forEach(function (key) {
+      var o = document.createElement("option");
+      o.value = key; o.textContent = CATEGORIES[key].emoji + " " + CATEGORIES[key].label;
+      sel.appendChild(o);
+    });
+    var t = document.getElementById("arc-dlg-title");
+    var save = document.getElementById("arc-save");
+    if (editingId) {
+      var arc = allArcs()[editingId];
+      if (!arc) return;
+      t.textContent = "Arc edit karo";
+      save.textContent = "Save karo";
+      document.getElementById("arc-title").value = arc.title;
+      document.getElementById("arc-era").value = arc.era || "";
+      document.getElementById("arc-summary").value = arc.summary || "";
+      sel.value = arc.category || "comedy";
+    } else {
+      t.textContent = "Naya arc";
+      save.textContent = "Add karo";
+      document.getElementById("arc-form").reset();
+    }
+    document.getElementById("dlg-arc").showModal();
+    document.getElementById("arc-title").focus();
+  }
+
+  document.getElementById("btn-add").addEventListener("click", function () { openArcDialog(null); });
+  document.getElementById("arc-cancel").addEventListener("click", function () { closeDlg("dlg-arc"); });
+  document.getElementById("arc-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var data = {
+      title: document.getElementById("arc-title").value.trim().slice(0, 60),
+      era: document.getElementById("arc-era").value.trim().slice(0, 12),
+      category: document.getElementById("arc-cat").value,
+      summary: document.getElementById("arc-summary").value.trim().slice(0, 180)
+    };
+    if (!data.title) return;
+    if (editingId) { editArc(editingId, data); toast("Save ho gaya"); }
+    else {
+      var id = addArc(data);
+      toast("Arc add ho gaya — ab tier chuno");
+      closeDlg("dlg-arc");
+      setTimeout(function () { openDetail(id); }, 120);
+      return;
+    }
+    closeDlg("dlg-arc");
+  });
+
+  /* ============================== Search ============================== */
+
+  document.getElementById("search").addEventListener("input", function (e) {
+    activeFilter.text = e.target.value.trim().toLowerCase();
+    render();
+  });
+
+  /* ============================== Watch next ============================== */
+
+  document.getElementById("btn-watch-next").addEventListener("click", function () {
+    var pool = poolArcs();
+    if (!pool.length) { toast("Pool khali hai — sab dekh liya!"); return; }
+    var pick = pool[Math.floor(Math.random() * pool.length)];
+    activeFilter.text = ""; activeFilter.cat = null;
+    document.getElementById("search").value = "";
+    render();
+    var el = document.querySelector('#pool-zone .card[data-id="' + pick.id + '"]');
+    if (el) {
+      el.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "center" });
+      el.classList.add("pulse");
+      setTimeout(function () { el.classList.remove("pulse"); }, 2400);
+    }
+    toast("Aaj dekho: " + pick.title);
+  });
+
+  /* ============================== Undo button ============================== */
+
+  document.getElementById("btn-undo").addEventListener("click", undo);
+
+  /* ============================== Menu ============================== */
+
+  function closeDlg(id) { var d = document.getElementById(id); if (d.open) d.close(); }
+
+  document.getElementById("btn-menu").addEventListener("click", function () { document.getElementById("dlg-menu").showModal(); });
+  document.getElementById("menu-close").addEventListener("click", function () { closeDlg("dlg-menu"); });
+
+  document.getElementById("menu-theme").addEventListener("click", function () {
+    var root = document.documentElement;
+    var cur = root.getAttribute("data-theme");
+    var systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    var next = cur === "dark" ? "light" : cur === "light" ? "dark" : (systemDark ? "light" : "dark");
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem("tmkoc-theme", next); } catch (e) {}
+  });
+
+  document.getElementById("menu-backup").addEventListener("click", function () {
+    var json = JSON.stringify(state, null, 2);
+    capsPromise.then(function (caps) {
+      if (caps.downloads) {
+        caps.downloads.save({ filename: "tmkoc-tier-list-backup.json", data: json }).then(function () {
+          toast("Backup save ho gaya");
+        }).catch(function (err) {
+          if (err && err.code === "declined") return;
+          copyText(json);
+        });
+      } else {
+        copyText(json);
+      }
+    });
+  });
+  function copyText(txt) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(function () { toast("Backup clipboard me copy ho gaya"); },
+        function () { toast("Copy nahi hua — Import box me manually save karo"); });
+    } else { toast("Copy support nahi hai is browser me"); }
+  }
+
+  document.getElementById("menu-import").addEventListener("click", function () {
+    closeDlg("dlg-menu");
+    document.getElementById("import-text").value = "";
+    document.getElementById("dlg-import").showModal();
+  });
+  document.getElementById("import-cancel").addEventListener("click", function () { closeDlg("dlg-import"); });
+  document.getElementById("import-go").addEventListener("click", function () {
+    var txt = document.getElementById("import-text").value.trim();
+    try {
+      var parsed = normalizeState(JSON.parse(txt));
+      if (!parsed) throw new Error("bad");
+      snapshot();
+      state = parsed;
+      scheduleSave();
+      render();
+      closeDlg("dlg-import");
+      toast("Import ho gaya ✓");
+    } catch (e) {
+      toast("Ye JSON samajh nahi aaya — poora backup paste karo");
+    }
+  });
+
+  document.getElementById("menu-reset").addEventListener("click", function () {
+    if (!confirm("Poora board reset? Tier placements, custom arcs, sab hat jayega.")) return;
+    snapshot();
+    state = freshState();
+    scheduleSave();
+    render();
+    closeDlg("dlg-menu");
+    toast("Board reset ho gaya");
+  });
+
+  /* ============================== PNG poster export ============================== */
+
+  document.getElementById("btn-export").addEventListener("click", function () {
+    var btn = this;
+    btn.disabled = true;
+    renderPoster().then(function (blob) {
+      btn.disabled = false;
+      capsPromise.then(function (caps) {
+        if (caps.downloads) {
+          caps.downloads.save({ filename: "gokuldham-tier-list.png", data: blob }).then(function () {
+            toast("Poster save ho gaya 🖼");
+          }).catch(function (err) {
+            if (err && err.code === "declined") return;
+            showExportFallback(blob);
+          });
+        } else {
+          showExportFallback(blob);
+        }
+      });
+    }).catch(function () { btn.disabled = false; toast("Poster nahi bana — dobara try karo"); });
+  });
+
+  var exportBlob = null;
+  function showExportFallback(blob) {
+    exportBlob = blob;
+    var img = document.getElementById("export-img");
+    img.src = URL.createObjectURL(blob);
+    document.getElementById("dlg-export").showModal();
+  }
+  document.getElementById("export-close").addEventListener("click", function () { closeDlg("dlg-export"); });
+  document.getElementById("export-copy").addEventListener("click", function () {
+    if (!exportBlob) return;
+    if (navigator.clipboard && window.ClipboardItem) {
+      navigator.clipboard.write([new ClipboardItem({ "image/png": exportBlob })]).then(
+        function () { toast("Image copy ho gayi 📋"); },
+        function () { toast("Copy nahi hui — image ko press karke save karo"); });
+    } else { toast("Is browser me image copy support nahi hai"); }
+  });
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function renderPoster() {
+    return document.fonts.ready.then(function () {
+      var arcs = allArcs();
+      var W = 1500, PAD = 46, PLATE_W = 210;
+      var isDark = document.documentElement.getAttribute("data-theme") === "dark" ||
+        (!document.documentElement.getAttribute("data-theme") && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      var P = isDark
+        ? { bg: "#101A26", panel: "#182634", ink: "#F3E9D2", soft: "#9FB0BC", line: "#28394A", card: "#21313F", cardLine: "#31445A", accent: "#F27A2A" }
+        : { bg: "#F7EFDE", panel: "#FFFAEE", ink: "#22303A", soft: "#5D6E77", line: "#E2D3B4", card: "#FFFFFF", cardLine: "#E6D9BD", accent: "#E4640F" };
+      var TIER_COLORS = { S: "#CE3434", A: "#DD6511", B: "#E19C0C", C: "#3B8C53", D: "#2F74A8", F: "#6B5E93" };
+
+      // Measure pass
+      var mc = document.createElement("canvas").getContext("2d");
+      var chipFont = "600 26px 'Baloo 2', sans-serif";
+      var eraFont = "700 19px 'Baloo 2', sans-serif";
+      mc.font = chipFont;
+      var CH = 52, CHIP_GAP = 14, ROW_PAD = 22;
+      var zoneW = W - PAD * 2 - PLATE_W;
+
+      function chipW(arc) {
+        mc.font = chipFont;
+        var w = 30 + 36 + mc.measureText(arc.title).width + 20;
+        if (arc.era) { mc.font = eraFont; w += mc.measureText(arc.era).width + 30; }
+        return Math.min(w, zoneW - ROW_PAD * 2);
+      }
+      function layoutRow(ids) {
+        var lines = [[]], x = 0;
+        ids.forEach(function (id) {
+          var arc = arcs[id]; if (!arc) return;
+          var w = chipW(arc);
+          if (x + w > zoneW - ROW_PAD * 2 && lines[lines.length - 1].length) { lines.push([]); x = 0; }
+          lines[lines.length - 1].push({ arc: arc, w: w });
+          x += w + CHIP_GAP;
+        });
+        return lines;
+      }
+
+      var rowLayouts = TIER_DEFS.map(function (t) { return layoutRow(state.placements[t.id]); });
+      var headerH = 190;
+      var rowHs = rowLayouts.map(function (lines) {
+        return Math.max(104, ROW_PAD * 2 + lines.length * CH + (lines.length - 1) * CHIP_GAP);
+      });
+      var poolLeft = poolArcs().length;
+      var footerH = 96;
+      var H = headerH + rowHs.reduce(function (a, b) { return a + b + 16; }, 0) + footerH;
+
+      var dpr = 2;
+      var cv = document.createElement("canvas");
+      cv.width = W * dpr; cv.height = H * dpr;
+      var ctx = cv.getContext("2d");
+      ctx.scale(dpr, dpr);
+
+      // Ground
+      ctx.fillStyle = P.bg; ctx.fillRect(0, 0, W, H);
+
+      // Canopy scallops
+      var canopyColors = ["#E4640F", "#F2A413", "#0E6E7E", "#C2185B"];
+      for (var s = 0; s < Math.ceil(W / 52); s++) {
+        ctx.fillStyle = canopyColors[s % 4];
+        ctx.beginPath();
+        ctx.arc(s * 52 + 26, 0, 25, 0, Math.PI);
+        ctx.fill();
+      }
+
+      // Title
+      ctx.textBaseline = "alphabetic";
+      ctx.fillStyle = "#C2185B";
+      ctx.font = "24px 'Yatra One', sans-serif";
+      ctx.fillText("तारक मेहता का उल्टा चश्मा", PAD, 88);
+      ctx.fillStyle = P.ink;
+      ctx.font = "64px 'Yatra One', sans-serif";
+      ctx.fillText("Gokuldham ", PAD, 152);
+      var gw = ctx.measureText("Gokuldham ").width;
+      ctx.fillStyle = P.accent;
+      ctx.fillText("Tier List", PAD + gw, 152);
+      var placed = placedIds().length, total = Object.keys(arcs).length;
+      ctx.fillStyle = P.soft;
+      ctx.font = "600 24px 'Baloo 2', sans-serif";
+      var statTxt = placed + " / " + total + " arcs rated";
+      ctx.fillText(statTxt, W - PAD - ctx.measureText(statTxt).width, 150);
+
+      // Rows
+      var y = headerH;
+      TIER_DEFS.forEach(function (t, i) {
+        var rh = rowHs[i];
+        // panel
+        ctx.fillStyle = P.panel;
+        roundRect(ctx, PAD, y, W - PAD * 2, rh, 18); ctx.fill();
+        ctx.strokeStyle = P.line; ctx.lineWidth = 2; ctx.stroke();
+        // plate
+        ctx.fillStyle = TIER_COLORS[t.id];
+        roundRect(ctx, PAD, y, PLATE_W, rh, 18); ctx.fill();
+        ctx.fillRect(PAD + PLATE_W - 18, y, 18, rh);
+        ctx.fillStyle = t.id === "B" ? "#2E2205" : "#FFF7EA";
+        ctx.font = "56px 'Yatra One', sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(t.id, PAD + PLATE_W / 2, y + rh / 2 + 4);
+        ctx.font = "700 19px 'Baloo 2', sans-serif";
+        var nm = state.tierNames[t.id];
+        ctx.fillText(nm.length > 20 ? nm.slice(0, 19) + "…" : nm, PAD + PLATE_W / 2, y + rh / 2 + 34);
+        ctx.textAlign = "left";
+        // chips
+        var cy = y + ROW_PAD;
+        rowLayouts[i].forEach(function (line) {
+          var cx = PAD + PLATE_W + ROW_PAD;
+          line.forEach(function (item) {
+            ctx.fillStyle = P.card;
+            roundRect(ctx, cx, cy, item.w, CH, 13); ctx.fill();
+            ctx.strokeStyle = P.cardLine; ctx.lineWidth = 1.5; ctx.stroke();
+            var cat = CATEGORIES[item.arc.category] || CATEGORIES.comedy;
+            ctx.font = "26px 'Baloo 2', sans-serif";
+            ctx.fillText(cat.emoji, cx + 14, cy + 35);
+            ctx.fillStyle = P.ink;
+            ctx.font = chipFont;
+            var titleMax = item.w - 60 - (item.arc.era ? mcEraW(item.arc.era) + 24 : 14);
+            ctx.fillText(truncate(ctx, item.arc.title, titleMax), cx + 50, cy + 35);
+            if (item.arc.era) {
+              ctx.fillStyle = P.soft;
+              ctx.font = eraFont;
+              ctx.fillText(item.arc.era, cx + item.w - mcEraW(item.arc.era) - 16, cy + 33);
+            }
+            cx += item.w + CHIP_GAP;
+          });
+          cy += CH + CHIP_GAP;
+        });
+        y += rh + 16;
+      });
+
+      function mcEraW(era) { mc.font = eraFont; return mc.measureText(era).width; }
+      function truncate(c, txt, maxW) {
+        if (c.measureText(txt).width <= maxW) return txt;
+        while (txt.length > 1 && c.measureText(txt + "…").width > maxW) txt = txt.slice(0, -1);
+        return txt + "…";
+      }
+
+      // Footer
+      ctx.fillStyle = P.soft;
+      ctx.font = "600 21px 'Baloo 2', sans-serif";
+      var foot = poolLeft ? (poolLeft + " arcs abhi dekhna baaki") : "Saare arcs rate ho chuke — ek number!";
+      ctx.fillText(foot, PAD, H - 40);
+      var brand = "gokuldham tier list";
+      ctx.fillText(brand, W - PAD - ctx.measureText(brand).width, H - 40);
+
+      return new Promise(function (resolve, reject) {
+        cv.toBlob(function (b) { b ? resolve(b) : reject(new Error("blob")); }, "image/png");
+      });
+    });
+  }
+
+  /* ============================== Boot ============================== */
+
+  try {
+    var savedTheme = localStorage.getItem("tmkoc-theme");
+    if (savedTheme === "dark" || savedTheme === "light") document.documentElement.setAttribute("data-theme", savedTheme);
+  } catch (e) {}
+
+  render();
+  loadInitial(function () {
+    render();
+    if (!placedIds().length && !history.length) {
+      setTimeout(function () { toast("Card ko drag karo ya tap karke tier chuno 👆"); }, 900);
+    }
+  });
+})();
+</script>
