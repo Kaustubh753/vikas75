@@ -132,10 +132,11 @@ User text is cleaned before storage: `sanitizeName()` (length/trim) and `filterT
 - `src/app/admin/dashboard/page.tsx` — Admin dashboard.
 
 ### Host Components
-- `src/components/projector/HostOverlay.tsx` — Fixed bottom control bar rendered on the projector when `?h=[hostId]` is present. Accepts `hostId` as prop (from URL, not localStorage). Phase-appropriate advance button, error display, lobby settings panel (rounds/timer sliders), music toggle, end-game confirm, and a **players panel with per-player Kick** (`kick-player` action, host-gated). Sends `hostId` on every host action.
+- `src/components/projector/HostOverlay.tsx` — Fixed bottom control bar rendered on the projector when `?h=[hostId]` is present. Accepts `hostId` as prop (from URL, not localStorage). Phase-appropriate advance button, error display, lobby settings panel (rounds/timer sliders), end-game confirm, a **players panel with per-player Kick** (`kick-player` action, host-gated), and — on mobile hosts (≤768px, the same breakpoint at which `ProjectorView` hides the floating `MuteButton`) — a **music toggle** that sends the host-gated `music-toggle` action to remote-mute the projector. Sends `hostId` on every host action.
+- `src/components/projector/MobileHostContent.tsx` — Portrait-native, read-only game-state view rendered by `ProjectorView` instead of the 16:9 TV phase layouts when the host is on a phone (`isHost && isMobileHost`). Controls still come from `HostOverlay`, rendered alongside it.
 
 ### Player Components
-- `src/app/page.tsx` — Home page (join/create screen). Uses `<CodeInput>`. Stores `vikas75_playerId`, `vikas75_playerName`, `vikas75_avatarId` in localStorage on join. Host redirected to `/host/[code]?h=[hostId]`.
+- `src/app/page.tsx` — Home page (join/create screen). Stores `vikas75_playerId`, `vikas75_playerName`, `vikas75_avatarId` in localStorage on join. Host redirected to `/host/[code]?h=[hostId]`. The 4-box room-code input lives inline in `src/app/join/JoinClient.tsx` (it needs live slot measurements for the join "turn" animation — there is no shared CodeInput component).
 - `src/components/player/PlayerView.tsx` — Player state machine. Reads identity from localStorage in `useEffect` only (avoids hydration mismatch). Redirects to `/?code=${code}` if no identity found. Polls `/api/game` every 30 s as Pusher fallback.
 - `src/components/player/PlayerSubmit.tsx` — Card selection + explanation. Horizontal scroll tray; 160×214 card images; word counter (25-word cap).
 - `src/components/player/PlayerLobby.tsx` — Waiting in lobby, shows player list.
@@ -154,16 +155,15 @@ User text is cleaned before storage: `sanitizeName()` (length/trim) and `filterT
 
 ### UI Components
 Buttons are styled inline per-component — there is **no shared `Button` primitive**. App-wide visual concerns live in `globals.css` (focus-visible rings, `prefers-reduced-motion` collapse, iOS input-zoom guard, safe-area padding, keyframes/animation utilities). The `ui/` directory holds:
-- `CodeInput.tsx` — OTP-style 4-box room code input. `onChange` for mobile compatibility (IME-safe); `onKeyDown` for backspace navigation; `onPaste` fills all boxes; `onFocus` selects content; `caret-transparent` hides cursor.
 - `AvatarPicker.tsx`, `CardBack.tsx`, `Confetti.tsx`, `ConnectionBanner.tsx`, `CountUp.tsx`, `LogoLockup.tsx`, `MuteButton.tsx`, `SocialLinks.tsx`, `ToasterProvider.tsx`.
+- The OTP-style 4-box room-code input is **not** here — it lives inline in `src/app/join/JoinClient.tsx` (see Player Components above).
 
 Loading states are **not** generic skeletons: `ProjectorLoading.tsx` and `PlayerLoading.tsx` are low-fidelity ghosts of `ProjectorLobby`/`PlayerLobby` — same tile, seat and QR dimensions in the same positions — so the room resolving fills the layout in rather than replacing it. Their sizing expressions are duplicated from the lobby components; change one, change the other.
 
-### Cards and Cards Components
+### Cards
 - `context/cards_challenges.json` — 30 challenge cards (c001–c030). Fields: `id`, `en`, `hi`, `icon`.
 - `context/cards_schemes.json` — 75 scheme cards (s001–s075). Fields: `id`, `name`, `hi`, `desc`, `bullets[]`.
-- `src/components/cards/ChallengeCard.tsx` — Visual card component.
-- `src/components/cards/SchemeCard.tsx` — Visual card component.
+- There is **no shared card component** — cards render as pre-baked webp images (`public/cards/card-001..105.webp`) via `next/image`, with the id→image mapping in `src/lib/cards.ts` (`getChallengeCardImage`/`getSchemeCardImage`), inline in each consumer (`PlayerSubmit`, `PlayerChallengeReveal`, `ProjectorChallengeReveal`, `ProjectorReveal`, `ExplorePage`).
 
 ### Styles and Config
 - `src/app/layout.tsx` — Loads Bebas Neue, Inter, Noto Sans Devanagari from Google Fonts as CSS custom properties: `--font-bebas`, `--font-inter`, `--font-devanagari`.
