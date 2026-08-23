@@ -20,6 +20,23 @@ fact-checked from the web), and you can add your own as you go.
   devices when opened from the live link) plus a local copy in the browser.
   Backup/restore as JSON lives under the `⋯` menu.
 
+## Putting it on your Home Screen (daily use)
+
+The app is built to live on your home screen:
+
+- **iPhone / iPad** — open the live board in **Safari → Share → Add to Home
+  Screen**. It gets its own icon and opens full-screen like any app.
+- **Even better, once this branch is deployed**: open
+  `https://<your-vikas75-domain>/tierlist` and add *that* to your home screen.
+  It's a full PWA (`public/tierlist/`) — custom ooltah-chashmah icon,
+  standalone window, works offline via a service worker.
+- **Android** — open either URL in Chrome → menu → **Add to Home screen**
+  (Chrome offers "Install app" on the `/tierlist` URL).
+- **Mac** — Safari → **File → Add to Dock**, or use the DMG builder below.
+
+One note: the claude.ai link syncs your board across devices; the `/tierlist`
+PWA saves per device (use the `⋯` menu's JSON backup to move a board).
+
 ## Getting it on your Mac (app + DMG)
 
 A genuine `.dmg` has to be minted by macOS's own `hdiutil`, and an unsigned app
@@ -51,6 +68,7 @@ iPhone: Share → Add to Home Screen.
 | `mac/Make-Mac-App.command` | Builds the Mac app + DMG locally |
 | `mac/make-mac-app.template.sh` | Template the `.command` is generated from |
 | `mac/appicon-1024.png` | App icon |
+| `../public/tierlist/` | Installable PWA build (manifest, icons, service worker) |
 
 No frameworks, no build tools — one self-contained HTML file (vanilla JS),
 Google Fonts (Yatra One + Baloo 2) as the only external resource.
