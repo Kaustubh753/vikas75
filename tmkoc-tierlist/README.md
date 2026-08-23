@@ -5,7 +5,7 @@ you watch an arc, drag it into a tier — S ("Ek Number!") down to F ("Fire Brig
 Bulao!"). It comes pre-loaded with the show's famous arcs (researched and
 fact-checked from the web), and you can add your own as you go.
 
-> **Live board:** __APP_URL__
+> **Live board:** https://claude.ai/code/artifact/a1b2a212-4c4e-4a44-8169-f552f162f41b
 
 ## Using it
 

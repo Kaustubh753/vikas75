@@ -1,7 +1,7 @@
 <title>Gokuldham Tier List</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Yatra+One&family=Baloo+2:wght@400;500;600;700;800&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Modak&family=Baloo+2:wght@400;500;600;700;800&display=swap" />
 <style>
   :root {
     --bg: #F7EFDE;
@@ -31,6 +31,8 @@
     --danger: #C33B2E;
     --focus: #0E6E7E;
     --scrim: rgba(24, 18, 6, 0.45);
+    --keyline: #3B2B16;
+    --sunray: rgba(228, 100, 15, 0.16);
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -61,6 +63,8 @@
       --danger: #E06456;
       --focus: #2FA3B5;
       --scrim: rgba(2, 6, 10, 0.62);
+      --keyline: #0A101A;
+      --sunray: rgba(242, 122, 42, 0.10);
     }
   }
   :root[data-theme="dark"] {
@@ -91,6 +95,8 @@
     --danger: #E06456;
     --focus: #2FA3B5;
     --scrim: rgba(2, 6, 10, 0.62);
+    --keyline: #0A101A;
+    --sunray: rgba(242, 122, 42, 0.10);
   }
 
   * { box-sizing: border-box; }
@@ -128,22 +134,38 @@
     display: flex; align-items: flex-end; justify-content: space-between;
     gap: 16px; flex-wrap: wrap;
     padding: 26px 0 14px;
+    position: relative;
+    z-index: 0;
+  }
+  header.masthead::before {
+    content: "";
+    position: absolute;
+    inset: -30px -60px auto -60px;
+    height: 230px;
+    background: repeating-conic-gradient(from -6deg at 16% -10%, var(--sunray) 0 7deg, transparent 7deg 15deg);
+    -webkit-mask-image: radial-gradient(130% 110% at 16% -10%, #000 25%, transparent 68%);
+    mask-image: radial-gradient(130% 110% at 16% -10%, #000 25%, transparent 68%);
+    pointer-events: none;
+    z-index: -1;
   }
   .title-block .eyebrow {
-    font-family: "Yatra One", "Baloo 2", sans-serif;
+    font-family: "Modak", "Baloo 2", sans-serif;
     color: var(--pink);
     font-size: 18px;
     letter-spacing: 0.06em;
     margin: 0 0 -4px 2px;
   }
   h1 {
-    font-family: "Yatra One", "Baloo 2", sans-serif;
+    font-family: "Modak", "Baloo 2", sans-serif;
     font-weight: 400;
-    font-size: clamp(34px, 6vw, 54px);
-    line-height: 1.02;
+    font-size: clamp(32px, 5.6vw, 50px);
+    line-height: 1.08;
     margin: 0;
     text-wrap: balance;
     color: var(--ink);
+    transform: rotate(-1.2deg);
+    transform-origin: left bottom;
+    text-shadow: 2.5px 2.5px 0 color-mix(in srgb, var(--keyline) 28%, transparent);
   }
   h1 .brush { color: var(--accent); }
   .tagline { margin: 6px 0 0 2px; color: var(--ink-soft); font-size: 15px; max-width: 56ch; }
@@ -201,9 +223,10 @@
     display: grid;
     grid-template-columns: 148px 1fr;
     gap: 0;
-    border-radius: 16px;
+    border-radius: 15px;
     overflow: hidden;
-    border: 1.5px solid var(--line);
+    border: 2px solid var(--keyline);
+    box-shadow: 3px 3px 0 color-mix(in srgb, var(--keyline) 30%, transparent);
     background: var(--panel);
     background-image: radial-gradient(var(--dot) 1px, transparent 1.3px);
     background-size: 16px 16px;
@@ -223,14 +246,16 @@
   .tier-plate::after {
     content: "";
     position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(0,0,0,0.08));
+    background: linear-gradient(180deg, rgba(255,255,255,0.16), rgba(0,0,0,0.10));
+    box-shadow: inset 0 0 0 4px rgba(255,255,255,0.30);
     pointer-events: none;
   }
   .tier-letter {
-    font-family: "Yatra One", sans-serif;
-    font-size: 36px;
+    font-family: "Modak", "Baloo 2", sans-serif;
+    font-size: 40px;
     line-height: 1;
-    text-shadow: 0 2px 0 rgba(0,0,0,0.18);
+    transform: rotate(-3deg);
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.22);
   }
   .tier-name-btn {
     appearance: none; border: none; background: none;
@@ -263,20 +288,32 @@
     appearance: none;
     display: inline-flex; align-items: center; gap: 8px;
     max-width: 100%;
-    border: 1.5px solid var(--card-line);
+    border: 2px solid var(--keyline);
     background: var(--card-bg);
-    border-radius: 12px;
-    padding: 7px 12px 8px 9px;
+    border-radius: 11px;
+    padding: 6px 11px 7px 8px;
     font-size: 14.5px; font-weight: 600;
     color: var(--ink);
-    box-shadow: var(--card-shadow);
+    box-shadow: 2.5px 2.5px 0 color-mix(in srgb, var(--keyline) 55%, transparent);
     cursor: grab;
     text-align: left;
     touch-action: pan-y;
     user-select: none;
     -webkit-user-select: none;
+    -webkit-user-drag: none;
+    -webkit-touch-callout: none;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
   }
-  .card:hover { border-color: var(--accent); }
+  .card:hover {
+    border-color: var(--keyline);
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 color-mix(in srgb, var(--keyline) 55%, transparent);
+  }
+  body.is-dragging [data-zone] {
+    outline: 2px dashed color-mix(in srgb, var(--accent) 55%, transparent);
+    outline-offset: -6px;
+  }
+  body.is-dragging { cursor: grabbing; }
   .card .emoji { font-size: 17px; flex: none; }
   .card .card-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 30ch; }
   .card .era {
@@ -295,8 +332,8 @@
   }
 
   .drag-ghost {
-    position: fixed; z-index: 60; pointer-events: none;
-    transform: translate(-50%, -50%) rotate(2.5deg) scale(1.06);
+    position: fixed; left: 0; top: 0; z-index: 60; pointer-events: none;
+    will-change: transform;
     filter: drop-shadow(0 10px 16px rgba(20, 10, 0, 0.3));
   }
   .drop-caret {
@@ -311,11 +348,12 @@
   .pool-section { margin-top: 30px; }
   .pool-head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 4px; }
   h2 {
-    font-family: "Yatra One", sans-serif;
+    font-family: "Modak", "Baloo 2", sans-serif;
     font-weight: 400;
     font-size: 26px;
     margin: 0;
     color: var(--teal);
+    text-shadow: 2px 2px 0 color-mix(in srgb, var(--pink) 45%, transparent);
   }
   .pool-sub { color: var(--ink-soft); font-size: 14px; margin: 0; }
   .pool-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 10px 0 12px; }
@@ -366,7 +404,7 @@
   }
   dialog::backdrop { background: var(--scrim); }
   .dlg-pad { padding: 20px 22px 22px; }
-  .dlg-title { font-family: "Yatra One", sans-serif; font-size: 24px; margin: 0 0 4px; color: var(--accent); }
+  .dlg-title { font-family: "Modak", "Baloo 2", sans-serif; font-size: 24px; margin: 0 0 4px; color: var(--accent); }
   .dlg-sub { margin: 0 0 14px; color: var(--ink-soft); font-size: 14px; }
   .field { margin-bottom: 12px; }
   .field label { display: block; font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 4px; }
@@ -387,7 +425,7 @@
   .tier-pick-btn {
     border: none; border-radius: 12px;
     padding: 12px 6px 13px;
-    font-family: "Yatra One", sans-serif;
+    font-family: "Modak", "Baloo 2", sans-serif;
     font-size: 22px;
     color: var(--plate-text);
     background: var(--tc);
@@ -610,14 +648,43 @@
 
   /* __SEED_ARCS__ — curated & web-verified list is injected here */
   var SEED_ARCS = [
-    { id: "gpl", title: "GPL — Gokuldham Premier League", era: "2012", category: "sports", summary: "Society ka apna cricket tournament — sabse yaadgaar arcs me se ek." },
-    { id: "gada-robbery", title: "Gada Electronics Robbery", era: "2013", category: "drama", summary: "Dukaan me chori — Jethalal pe pahad toot padta hai." },
-    { id: "secretary-election", title: "Society Secretary Election", era: "recurring", category: "comedy", summary: "Bhide ki kursi ke liye Gokuldham me chunavi mahaul." },
-    { id: "uttarayan", title: "Uttarayan Kite Special", era: "yearly", category: "festival", summary: "Makar Sankranti pe patang-baazi aur kata hua pech." },
-    { id: "navratri-garba", title: "Navratri Garba Nights", era: "yearly", category: "festival", summary: "Society ke garba raat — Daya ka signature garba." },
-    { id: "popatlal-rishta", title: "Popatlal ki Shaadi Attempts", era: "recurring", category: "romance", summary: "Har baar rishta aata hai, har baar chhatri reh jaati hai." },
-    { id: "natu-strike", title: "Natu Kaka & Bagha ki Strike", era: "recurring", category: "comedy", summary: "Pagaar badhao andolan — dukaan thap." },
-    { id: "ahmedabad-trip", title: "Ahmedabad Trip", era: "2010s", category: "trip", summary: "Gada parivaar apne des — Ahmedabad me dhamaal." }
+    { id: "gpl", title: "GPL — Gokuldham Premier League", era: "2009–14", category: "sports", fame: 5, summary: "Society splits into rival night-cricket teams; Jethalal's batting bravado fuels comic chaos across floodlit seasons." },
+    { id: "daya-kidnap", title: "Daya's Kidnapping", era: "2011", category: "drama", fame: 5, summary: "Daya testifies against robbers and is kidnapped by Don Rana; Gokuldham unites for a daring rescue." },
+    { id: "water-tanker", title: "Water Tanker Episode", era: "2009", category: "comedy", fame: 5, summary: "Water shortage sends the society scrambling for one tanker — a meme goldmine with 100M+ views." },
+    { id: "babita-ji", title: "Jethalal's Babita Ji Crush", era: "running", category: "comedy", fame: 5, summary: "Jethalal's starry-eyed 'Babita ji' devotion and rivalry with Iyer — the show's longest gag." },
+    { id: "popatlal-shaadi", title: "Popatlal Ki Shaadi", era: "running", category: "romance", fame: 5, summary: "Reporter Popatlal's forever-doomed groom quest, from first rishta to the Madhubala track." },
+    { id: "bhootni", title: "Bhootni", era: "2010 / 2025", category: "mystery", fame: 5, summary: "A mysterious lady ghost spooks Gokuldham; the 2025 Chakori revival topped the TRP charts again." },
+    { id: "navratri", title: "Navratri Garba Nights", era: "annual", category: "festival", fame: 5, summary: "Annual garba specials where 'Garba Queen' Daya leads dandiya face-offs in the compound." },
+    { id: "ganesh-chaturthi", title: "Ganesh Chaturthi at Gokuldham", era: "annual", category: "festival", fame: 5, summary: "Yearly Ganpati specials with aartis, visarjan and Bollywood guests joining the society." },
+    { id: "daya-leaves", title: "Daya Leaves for Ahmedabad", era: "2017", category: "milestone", fame: 5, summary: "Daya departs in episode 2437 — and the show has never been quite the same since." },
+    { id: "daya-comeback", title: "Daya's Navratri Comeback", era: "2019", category: "festival", fame: 5, summary: "Garba Queen Daya briefly returns after two years away for a special Navratri appearance." },
+    { id: "goa", title: "Go Goa Gokuldham", era: "2021", category: "trip", fame: 4, summary: "The society's long-awaited Goa vacation: beaches, hotel mix-ups and holiday hijinks." },
+    { id: "disneyland", title: "Hong Kong Disneyland Trip", era: "2014", category: "trip", fame: 4, summary: "Tapu Sena wins a Disney contest, sending Gokuldham on its first big foreign adventure." },
+    { id: "ahmedabad", title: "Ahmedabad Trip", era: "2008", category: "trip", fame: 4, summary: "The Gadas travel to Daya's hometown for Navratri while Tapu schemes to stay behind." },
+    { id: "singapore", title: "Singapore Trip", era: "2019", category: "trip", fame: 4, summary: "A mystery benefactor's tickets whisk the whole society to Singapore, shot on location." },
+    { id: "uttarayan", title: "Uttarayan Kite Festival", era: "annual", category: "festival", fame: 4, summary: "Makar Sankranti specials with rooftop kite battles and society-wide patang rivalries." },
+    { id: "holi", title: "Holi Hungama", era: "annual", category: "festival", fame: 4, summary: "Colour-war specials — bhang-drunk Jethalal blabbering secrets is the all-time Holi moment." },
+    { id: "diwali", title: "Diwali With Gokuldham", era: "annual", category: "festival", fame: 4, summary: "Festival-of-lights specials with guests up to Shah Rukh Khan and Kajol dropping by." },
+    { id: "gulabo", title: "Gulabo", era: "2012", category: "drama", fame: 4, summary: "A woman from Jethalal's old Kashmir film-shoot past claims to be his wife, rattling Daya." },
+    { id: "demonetisation", title: "Demonetisation Special", era: "2016", category: "drama", fame: 4, summary: "Note-ban night leaves Jethalal holding lakhs in suddenly banned ₹500/1000 notes." },
+    { id: "crore-scam", title: "Jethalal's 100 Crore Scam", era: "2018", category: "drama", fame: 4, summary: "Police seal Gada Electronics over a fake ₹100-crore loan; Jethalal fights to clear his name." },
+    { id: "hostage", title: "Gada Electronics Hostage", era: "2018", category: "drama", fame: 4, summary: "Armed robbers hold Natu Kaka hostage at the shop while Bagha keeps Jethalal away." },
+    { id: "madhubala", title: "Popatlal–Madhubala Wedding", era: "2024", category: "romance", fame: 4, summary: "Popatlal finally reaches an engagement — only for fate to intervene one more time." },
+    { id: "sundar", title: "Sundar's Schemes", era: "recurring", category: "comedy", fame: 4, summary: "Daya's brother Sundar arrives with get-rich schemes that always end up fleecing Jethalal." },
+    { id: "natu-salary", title: "Natu Kaka's Salary Hike", era: "recurring", category: "comedy", fame: 4, summary: "Natu Kaka and Bagha's perennial pay-raise demands that Jethalal cunningly dodges." },
+    { id: "corona", title: "Corona Comes to Gokuldham", era: "2020", category: "comedy", fame: 4, summary: "Post-lockdown episodes: namaste greetings, Tapu Sena's corona rap, Bhide's society lockdown." },
+    { id: "tapu-sena", title: "Tapu Sena Adventures", era: "running", category: "comedy", fame: 4, summary: "The kids' gang's mischief and capers, from exam scrapes to schemes that rattle the elders." },
+    { id: "chaddi-gang", title: "Chaddi Gang Scare", era: "2011", category: "mystery", fame: 3, summary: "Chaddi-baniyan gang robberies panic the society into night patrols — the kidnapping saga begins." },
+    { id: "bapuji-kidnap", title: "Bapuji's Kidnapping", era: "2019", category: "drama", fame: 3, summary: "Bapuji is abducted in a red van; Jethalal and Inspector Pandey lead a frantic rescue." },
+    { id: "kutch", title: "Kutch Trip", era: "2011–12", category: "trip", fame: 3, summary: "Gokuldhamites holiday in Kutch, soaking in the white desert and Gujarati culture." },
+    { id: "tikujiniwadi", title: "Tikujiniwadi Picnic", era: "2009", category: "trip", fame: 3, summary: "The society's first big picnic turns chaotic when Gogi goes missing at the resort." },
+    { id: "dahi-handi", title: "Janmashtami Dahi Handi", era: "recurring", category: "festival", fame: 3, summary: "Gokuldham's human-pyramid matki-phod celebrations — a high-energy society tradition." },
+    { id: "khel-mahotsav", title: "Gokuldham Khel Mahotsav", era: "2011", category: "sports", fame: 3, summary: "Two-night games carnival: Purush Mandal vs Mahila Mandal vs Tapu Sena." },
+    { id: "tapu-result", title: "Tapu Sena Ka Result", era: "recurring", category: "drama", fame: 3, summary: "Exam results day keeps Tapu Sena's parents and the whole society on edge." },
+    { id: "tiranga", title: "Har Ghar Tiranga Special", era: "2022", category: "festival", fame: 3, summary: "Gokuldham marks India's 75th Independence Day with flag-hoisting and anthem tributes." },
+    { id: "bhide-resign", title: "Bhide's Resignation", era: "2025", category: "drama", fame: 3, summary: "Popatlal's complaint over a terrace leak drives long-serving secretary Bhide to resign." },
+    { id: "happysode-2000", title: "2000th Happysode", era: "2016", category: "milestone", fame: 3, summary: "Landmark 2,000th episode celebration, cementing the record-breaking run." },
+    { id: "happysode-3000", title: "3000th Happysode", era: "2020", category: "milestone", fame: 3, summary: "The show crosses 3,000 episodes right after returning from the COVID break." }
   ];
 
   /* ============================== State ============================== */
@@ -792,16 +859,27 @@
 
   /* ============================== History / undo ============================== */
 
+  var redoStack = [];
+
   function snapshot() {
     history.push(JSON.stringify(state));
     if (history.length > 30) history.shift();
+    redoStack = [];
     document.getElementById("btn-undo").hidden = false;
   }
   function undo() {
     if (!history.length) return;
+    redoStack.push(JSON.stringify(state));
     var prev = normalizeState(JSON.parse(history.pop()));
     if (prev) { state = prev; scheduleSave(); render(); toast("↩ Undo ho gaya"); }
     if (!history.length) document.getElementById("btn-undo").hidden = true;
+  }
+  function redo() {
+    if (!redoStack.length) return;
+    history.push(JSON.stringify(state));
+    var next = normalizeState(JSON.parse(redoStack.pop()));
+    if (next) { state = next; scheduleSave(); render(); toast("↪ Redo ho gaya"); }
+    document.getElementById("btn-undo").hidden = false;
   }
 
   /* ============================== Mutations ============================== */
@@ -1037,6 +1115,7 @@
     var card = e.target.closest && e.target.closest(".card");
     if (!card || drag) return;
     if (e.button && e.button !== 0) return;
+    if (e.isPrimary === false) return;
     drag = { id: card.dataset.id, srcEl: card, started: false, sx: e.clientX, sy: e.clientY, pointerId: e.pointerId, fromTouch: e.pointerType === "touch" };
     if (drag.fromTouch) {
       /* Long-press to lift on touch, so the page can still scroll. */
@@ -1047,6 +1126,7 @@
   function beginDrag(x, y) {
     if (!drag || drag.started) return;
     drag.started = true;
+    document.body.classList.add("is-dragging");
     var ghost = drag.srcEl.cloneNode(true);
     ghost.classList.add("drag-ghost");
     document.body.appendChild(ghost);
@@ -1058,8 +1138,7 @@
   }
 
   function moveGhost(x, y) {
-    drag.ghost.style.left = x + "px";
-    drag.ghost.style.top = y + "px";
+    drag.ghost.style.transform = "translate3d(" + x + "px," + y + "px,0) translate(-50%, -50%) rotate(2.5deg) scale(1.06)";
     var target = zoneAt(x, y);
     zones().forEach(function (z) { z.classList.toggle("drag-over", z === target); });
     if (caretEl.parentNode) caretEl.parentNode.removeChild(caretEl);
@@ -1112,6 +1191,7 @@
     clearTimeout(drag.holdTimer);
     var id = drag.id;
     if (drag.started) {
+      document.body.classList.remove("is-dragging");
       var target = cancelled ? null : zoneAt(e.clientX, e.clientY);
       zones().forEach(function (z) { z.classList.remove("drag-over"); });
       var pos = target ? insertionIndex(target, e.clientX, e.clientY) : null;
@@ -1141,6 +1221,7 @@
   }
   document.addEventListener("pointerup", function (e) { endDrag(e, false); });
   document.addEventListener("pointercancel", function (e) { endDrag(e, true); });
+  document.addEventListener("contextmenu", function (e) { if (drag) e.preventDefault(); });
 
   /* Taps and clicks open the detail dialog via the native click event, so the
      synthesized post-touch click can never fall through onto the dialog. */
@@ -1158,7 +1239,14 @@
   /* Keyboard: letter shortcuts on focused card */
   document.addEventListener("keydown", function (e) {
     if (e.metaKey || e.ctrlKey) {
-      if (e.key.toLowerCase() === "z") { e.preventDefault(); undo(); }
+      if (e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        if (e.shiftKey) redo(); else undo();
+      }
+      return;
+    }
+    if (e.key === "Escape" && drag && drag.started) {
+      endDrag({}, true);
       return;
     }
     var card = document.activeElement;
@@ -1508,10 +1596,10 @@
       // Title
       ctx.textBaseline = "alphabetic";
       ctx.fillStyle = "#C2185B";
-      ctx.font = "24px 'Yatra One', sans-serif";
+      ctx.font = "24px 'Modak', 'Baloo 2', sans-serif";
       ctx.fillText("तारक मेहता का उल्टा चश्मा", PAD, 88);
       ctx.fillStyle = P.ink;
-      ctx.font = "64px 'Yatra One', sans-serif";
+      ctx.font = "64px 'Modak', 'Baloo 2', sans-serif";
       ctx.fillText("Gokuldham ", PAD, 152);
       var gw = ctx.measureText("Gokuldham ").width;
       ctx.fillStyle = P.accent;
@@ -1535,7 +1623,7 @@
         roundRect(ctx, PAD, y, PLATE_W, rh, 18); ctx.fill();
         ctx.fillRect(PAD + PLATE_W - 18, y, 18, rh);
         ctx.fillStyle = t.id === "B" ? "#2E2205" : "#FFF7EA";
-        ctx.font = "56px 'Yatra One', sans-serif";
+        ctx.font = "56px 'Modak', 'Baloo 2', sans-serif";
         ctx.textAlign = "center";
         ctx.fillText(t.id, PAD + PLATE_W / 2, y + rh / 2 + 4);
         ctx.font = "700 19px 'Baloo 2', sans-serif";

@@ -50,9 +50,12 @@ PLIST
 
 # ── App icon (embedded below as base64) ──
 ICON_PNG="$WORK/icon-1024.png"
-base64 -D -o "$ICON_PNG" <<'ICON_B64'
+ICON_B64=$(cat <<'ICON_DATA'
 __ICON_BASE64__
-ICON_B64
+ICON_DATA
+)
+printf '%s' "$ICON_B64" | base64 -D > "$ICON_PNG" 2>/dev/null \
+  || printf '%s' "$ICON_B64" | base64 -d > "$ICON_PNG"
 
 ICONSET="$WORK/AppIcon.iconset"
 mkdir -p "$ICONSET"
