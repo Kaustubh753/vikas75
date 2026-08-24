@@ -187,7 +187,10 @@ export default function MobileHostContent({ room }: { room: GameRoom }) {
   }
 
   return (
-    <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column', gap: 16, padding: '16px 16px 88px', color: '#fff', fontFamily: 'var(--font-inter),sans-serif' }}>
+    // Bottom padding clears the fixed HostOverlay bar (≤72px) plus the device safe area, so the
+    // last card never hides behind it. Single source of clearance — the ProjectorView scroller
+    // that wraps this adds none.
+    <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column', gap: 16, padding: '16px 16px calc(96px + env(safe-area-inset-bottom))', color: '#fff', fontFamily: 'var(--font-inter),sans-serif' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <p style={label}>{PHASE_LABEL[room.phase] ?? room.phase}</p>

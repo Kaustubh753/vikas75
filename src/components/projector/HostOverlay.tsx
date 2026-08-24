@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import type { GameRoom } from '@/types/game';
 import Avatar from '@/lib/avatars';
 import { getLobbyMusic } from '@/lib/music-manager';
+import { getMusicManager } from '@/lib/music';
 
 interface Props {
   room: GameRoom;
@@ -175,9 +176,12 @@ export default function HostOverlay({ room, code, hostId }: Props) {
   function handleMusicToggle() {
     const next = !remoteMuted;
     setRemoteMuted(next);
-    // This device follows immediately; the music-toggle broadcast reaches the projector
-    // (and any other screen on the room channel) via the music:toggle Pusher event.
+    // The audible mute lands on the projector (the venue's speaker) via the music:toggle event,
+    // whose handler mutes the lobby track and the phase SFX together. Mirror that on this
+    // device's own audio managers so its flags track what it broadcast — the phone itself plays
+    // neither track behind MobileHostContent, so this is state-consistency, not sound.
     getLobbyMusic().forceMute(next);
+    getMusicManager().setMuted(next);
     fetch('/api/game', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

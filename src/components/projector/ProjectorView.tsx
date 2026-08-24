@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getPusherClient, getRoomChannel } from '@/lib/pusher-client';
 import { getLobbyMusic } from '@/lib/music-manager';
+import { getMusicManager } from '@/lib/music';
 import EmoteOverlay from '@/components/projector/EmoteOverlay';
 import HostOverlay from '@/components/projector/HostOverlay';
 import MuteButton from '@/components/ui/MuteButton';
@@ -132,7 +133,14 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
     if (!pusher) return; // realtime unconfigured — the GET poll below keeps the screen live
     const channel = pusher.subscribe(getRoomChannel(code));
     const onRoomUpdated = (updated: GameRoom) => setRoom(prev => staleRoom(prev, updated) ? prev : updated);
-    const onMusicToggle = (payload: { muted: boolean }) => getLobbyMusic().forceMute(payload.muted);
+    // Host remote-mute: silence BOTH the lobby background track (forceMute, a transient lever
+    // that doesn't clobber the stored preference) AND the phase SFX stings — the ticking clock,
+    // drumroll and winner fanfare that play during gameplay, when the lobby track is silent. A
+    // mute that left those going wouldn't read as a working mute button at the venue.
+    const onMusicToggle = (payload: { muted: boolean }) => {
+      getLobbyMusic().forceMute(payload.muted);
+      getMusicManager().setMuted(payload.muted);
+    };
     channel.bind('game:room-updated', onRoomUpdated);
     channel.bind('music:toggle', onMusicToggle);
     return () => {
@@ -284,7 +292,7 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
       {isHost && isMobileHost ? (
         // Host running the game from a phone — portrait-native game state; controls come from
         // <HostOverlay> (the fixed bar below). The TV phase layouts are 16:9-first and cramped here.
-        <div className="w-full overflow-y-auto" style={{ height: '100dvh', paddingBottom: 'calc(76px + env(safe-area-inset-bottom))', boxSizing: 'border-box' }}>
+        <div className="w-full overflow-y-auto" style={{ height: '100dvh' }}>
           <MobileHostContent room={room} />
         </div>
       ) : (
