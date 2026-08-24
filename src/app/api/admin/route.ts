@@ -21,13 +21,12 @@ function scrubRoom(room: GameRoom) {
 }
 
 function timingSafeStringEqual(a: string, b: string): boolean {
-  // Pad to same length to avoid length-based timing leak
-  const maxLen = Math.max(a.length, b.length);
-  const bufA = Buffer.alloc(maxLen);
-  const bufB = Buffer.alloc(maxLen);
-  bufA.write(a);
-  bufB.write(b);
-  return crypto.timingSafeEqual(bufA, bufB);
+  // Compare fixed-length SHA-256 digests: constant-time and length-independent for any UTF-8
+  // input. The previous length-padded-buffer approach sized by string length (UTF-16 units) while
+  // Buffer.write emits UTF-8 bytes, so a multibyte credential was silently truncated and a
+  // wrong-but-same-byte-prefix value could authenticate.
+  const digest = (s: string) => crypto.createHash('sha256').update(s, 'utf8').digest();
+  return crypto.timingSafeEqual(digest(a), digest(b));
 }
 
 function checkAuth(req: NextRequest): boolean {

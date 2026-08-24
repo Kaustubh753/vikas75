@@ -113,7 +113,12 @@ export async function checkRateLimit(key: string, max: number, windowSec: number
   try {
     const redis = getRedis();
     const count: number = await redis.incr(key);
-    if (count === 1) await redis.expire(key, windowSec);
+    // Assert the TTL with NX on every hit rather than only when count === 1. If the process died
+    // (or EXPIRE threw) between INCR and EXPIRE on the first hit, the key would persist with no
+    // TTL and keep counting up forever, permanently pinning the bucket at "exceeded". NX sets the
+    // TTL only when the key has none, so an in-progress window is never extended (still a fixed,
+    // not sliding, window) while a TTL-less key self-heals on its next hit.
+    await redis.expire(key, windowSec, 'NX');
     return count <= max;
   } catch {
     return true; // fail open — don't block on Redis errors

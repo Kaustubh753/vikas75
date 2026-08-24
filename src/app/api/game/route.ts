@@ -103,6 +103,14 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { action } = body;
 
+    // Every code-bearing action eventually calls code.toUpperCase() (directly or via
+    // withRoomLock). A non-string code (e.g. a client bug sending `code: 123`) would throw a
+    // TypeError and surface as a generic 500; reject it once, here, with a clean 400.
+    // create-room carries no code, so this never fires for it.
+    if ('code' in body && body.code !== undefined && typeof body.code !== 'string') {
+      return NextResponse.json({ error: 'Invalid room code' }, { status: 400 });
+    }
+
     switch (action) {
       case 'create-room': {
         const { hostId, hostName, totalRounds, timerDuration } = body;
@@ -218,6 +226,12 @@ export async function POST(req: NextRequest) {
           const updated = addPlayer(room, playerId, safeName, resolveAvatar(room, avatarId));
           const token = crypto.randomUUID();
           updated.tokens = { ...(updated.tokens ?? {}), [playerId]: token };
+          // A new arrival means the room is alive — cancel any idle-reap armed while the lobby sat
+          // empty. Without this, a lobby whose shutdownAt has already elapsed could be deleted by
+          // the very next GET poll (the reap check there) before this player's first heartbeat
+          // clears it, so they'd join and immediately get "Room closed". The existing-seat and
+          // reclaim branches already do this; the new-player branch was the one that didn't.
+          updated.shutdownAt = undefined;
           await setRoom(updated);
           await broadcastRoom(updated);
           return NextResponse.json({ room: scrubRoomFor(updated, playerId), token });
@@ -610,15 +624,19 @@ export async function GET(req: NextRequest) {
       // Under the room lock, re-reading and re-checking, so a concurrent locked mutation (a late
       // heartbeat/advance) can't setRoom right after the delete and resurrect a zombie room —
       // and so a game that started between the two reads is not deleted out from under itself.
-      const deleted = await withRoomLock(code.toUpperCase(), async () => {
+      const gone = await withRoomLock(code.toUpperCase(), async () => {
         const fresh = await getRoom(code.toUpperCase());
-        if (fresh?.shutdownAt && Date.now() > fresh.shutdownAt && isReapable(fresh.phase)) {
+        // Already deleted by a concurrent reaper between our first read and this lock: the room is
+        // gone, so 404 rather than falling through and serving the stale pre-delete snapshot we
+        // read a moment ago.
+        if (!fresh) return true;
+        if (fresh.shutdownAt && Date.now() > fresh.shutdownAt && isReapable(fresh.phase)) {
           await deleteRoom(code.toUpperCase());
           return true;
         }
         return false;
       });
-      if (deleted) {
+      if (gone) {
         return NextResponse.json({ error: 'Room closed — it was idle for too long' }, { status: 404 });
       }
     }
@@ -722,12 +740,14 @@ function checkAdminAuth(req: NextRequest): boolean {
   if (colonIdx === -1) return false;
   const user = decoded.slice(0, colonIdx);
   const pass = decoded.slice(colonIdx + 1);
-  const maxLen = Math.max(user.length, expectedUser.length, pass.length, expectedPass.length);
-  const bufU1 = Buffer.alloc(maxLen); bufU1.write(user);
-  const bufU2 = Buffer.alloc(maxLen); bufU2.write(expectedUser);
-  const bufP1 = Buffer.alloc(maxLen); bufP1.write(pass);
-  const bufP2 = Buffer.alloc(maxLen); bufP2.write(expectedPass);
-  return crypto.timingSafeEqual(bufU1, bufU2) && crypto.timingSafeEqual(bufP1, bufP2);
+  // Compare fixed-length SHA-256 digests rather than length-padded buffers. Buffer.alloc sizes by
+  // string length (UTF-16 units) while Buffer.write emits UTF-8 bytes, so a multibyte credential
+  // was silently truncated and a wrong-but-same-byte-prefix value could authenticate. Hashing is
+  // constant-time on the 32-byte digests and length-independent for any UTF-8 input.
+  const digest = (s: string) => crypto.createHash('sha256').update(s, 'utf8').digest();
+  const userOk = crypto.timingSafeEqual(digest(user), digest(expectedUser));
+  const passOk = crypto.timingSafeEqual(digest(pass), digest(expectedPass));
+  return userOk && passOk;
 }
 
 export async function DELETE(req: NextRequest) {
