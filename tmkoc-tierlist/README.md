@@ -71,4 +71,4 @@ iPhone: Share → Add to Home Screen.
 | `../public/tierlist/` | Installable PWA build (manifest, icons, service worker) |
 
 No frameworks, no build tools — one self-contained HTML file (vanilla JS),
-Google Fonts (Yatra One + Baloo 2) as the only external resource.
+Google Fonts (Modak + Baloo 2) as the only external resource.
