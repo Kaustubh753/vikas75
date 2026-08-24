@@ -103,7 +103,12 @@ async function claudeJudge(challenge: ChallengeCard, submissions: Submission[]):
   // Collapse whitespace and wrap untrusted player text in markers so a crafted name/explanation
   // can't forge prompt structure or smuggle instructions (see the SECURITY line in the system
   // prompt). buildVerdict still structurally validates whatever the model returns.
-  const clean = (t: string) => (t ?? '').replace(/\s+/g, ' ').trim();
+  // Strip angle brackets as well as collapsing whitespace: player names are already <>-stripped
+  // at storage (sanitizeName), but explanations are only profanity-filtered, so a crafted answer
+  // could otherwise smuggle a literal `>>>` to close the untrusted-input markers and land injected
+  // text in trusted-looking prompt structure. Defend both here, at the point the prompt is built.
+  // This only affects the text sent to the judge — never what is stored or shown on screen.
+  const clean = (t: string) => (t ?? '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim();
   // The scheme's own description and benefits travel with the submission. Without them the
   // judge had only the scheme's *name* to decide whether it addresses the problem, which works
   // for the famous ones and not at all for the rest of this deck — "Atal Beemit Vyakti Kalyan
@@ -165,7 +170,10 @@ async function claudeJudge(challenge: ChallengeCard, submissions: Submission[]):
     throw new Error(`Verdict truncated at max_tokens=${maxTokens} for ${submissions.length} players`);
   }
   console.log(`[ai-judge] Live verdict via ${JUDGE_MODEL} — ${submissions.length} players, ${text.length} chars, stop=${response.stop_reason}`);
-  const json = text.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim();
+  // `json?` matched "jso" + optional "n", so it only stripped a ```json fence — a bare ``` fence
+  // survived, JSON.parse threw, and the round silently fell through to the random fallback judge.
+  // `(?:json)?` makes the whole language tag optional, covering both ``` and ```json.
+  const json = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
   const parsed = JSON.parse(json) as {
     rankings: Array<{ playerId: string; judgeScore: number; judgeComment: string }>;
     reasoning: string;
@@ -213,7 +221,10 @@ function buildVerdict(
       schemeCard: sub.schemeCard,
       explanation: sub.explanation,
       judgeScore: r.judgeScore,
-      judgeComment: r.judgeComment,
+      // Coerce to a string: validation checks the score but not the comment, so a reply that
+      // omits judgeComment for a player would otherwise store `undefined` in a field typed as a
+      // required string and render a blank line on the winner screen.
+      judgeComment: typeof r.judgeComment === 'string' ? r.judgeComment : '',
       gamePoints,
     };
   });
@@ -224,7 +235,9 @@ function buildVerdict(
     winnerName: winner.playerName,
     schemeCard: winner.schemeCard,
     explanation: winner.explanation,
-    reasoning,
+    // Same defence as judgeComment: a reply missing `reasoning` shouldn't put `undefined` into a
+    // required-string field and blank the winner-screen narrative.
+    reasoning: typeof reasoning === 'string' ? reasoning : '',
     rankings,
   };
 }
