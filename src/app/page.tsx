@@ -409,6 +409,11 @@ function LandingPage() {
             <a href="/explore" style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 11, letterSpacing: '0.08em', color: 'rgba(250,248,240,0.4)', textDecoration: 'none' }}>
               Curious what&apos;s in the deck? →
             </a>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font-inter),sans-serif', fontSize: 11, letterSpacing: '0.04em' }}>
+              <a href="/privacy" style={{ color: 'rgba(250,248,240,0.4)', textDecoration: 'none' }}>Privacy</a>
+              <span style={{ color: 'rgba(250,248,240,0.22)' }}>·</span>
+              <a href="/terms" style={{ color: 'rgba(250,248,240,0.4)', textDecoration: 'none' }}>Terms</a>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               <button
                 onClick={() => { const next = getLobbyMusic().toggle(); setMusicOn(next); }}
@@ -526,6 +531,15 @@ function LandingPage() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            {/* Legal links */}
+            <a href="/privacy" style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 'clamp(9px, 0.76vw, 11px)', letterSpacing: '0.08em', color: 'rgba(250,248,240,0.35)', textDecoration: 'none', whiteSpace: 'nowrap', transition: 'color .15s' }}
+              onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = '#FF9933'}
+              onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(250,248,240,0.35)'}
+            >Privacy</a>
+            <a href="/terms" style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 'clamp(9px, 0.76vw, 11px)', letterSpacing: '0.08em', color: 'rgba(250,248,240,0.35)', textDecoration: 'none', whiteSpace: 'nowrap', transition: 'color .15s' }}
+              onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = '#FF9933'}
+              onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(250,248,240,0.35)'}
+            >Terms</a>
             {/* Music toggle — sits in bottom strip, never overlaps content */}
             <button
               onClick={() => { const next = getLobbyMusic().toggle(); setMusicOn(next); }}

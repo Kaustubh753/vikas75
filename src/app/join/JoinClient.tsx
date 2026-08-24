@@ -381,6 +381,18 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
             {waiting ? 'Waiting for round…' : loading ? 'Joining…' : 'Join'}
           </button>
 
+          {/* Consent notice at the point of data entry (the name field above). */}
+          <p style={{
+            textAlign: 'center', margin: 0,
+            fontFamily: 'var(--font-inter),sans-serif', fontSize: 11, lineHeight: 1.5,
+            color: 'rgba(250,248,240,.4)',
+          }}>
+            By joining, you agree to our{' '}
+            <a href="/terms" style={{ color: 'rgba(250,248,240,.7)', textDecoration: 'underline', textUnderlineOffset: 2 }}>Terms</a>
+            {' '}and{' '}
+            <a href="/privacy" style={{ color: 'rgba(250,248,240,.7)', textDecoration: 'underline', textUnderlineOffset: 2 }}>Privacy Policy</a>.
+          </p>
+
           <button
             type="button" onClick={() => router.push('/')}
             style={{
