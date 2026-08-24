@@ -121,17 +121,17 @@
   :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
 
   .canopy {
-    height: 26px;
+    height: 16px;
     background: repeating-linear-gradient(90deg,
       var(--accent) 0 52px,
       var(--gold) 52px 104px,
       var(--teal) 104px 156px,
       var(--pink) 156px 208px);
-    -webkit-mask-image: radial-gradient(26px at 26px 0, #000 24px, transparent 25px);
-    -webkit-mask-size: 52px 26px;
+    -webkit-mask-image: radial-gradient(20px at 20px 0, #000 18px, transparent 19px);
+    -webkit-mask-size: 40px 16px;
     -webkit-mask-repeat: repeat-x;
-    mask-image: radial-gradient(26px at 26px 0, #000 24px, transparent 25px);
-    mask-size: 52px 26px;
+    mask-image: radial-gradient(20px at 20px 0, #000 18px, transparent 19px);
+    mask-size: 40px 16px;
     mask-repeat: repeat-x;
   }
 
@@ -144,35 +144,22 @@
     position: relative;
     z-index: 0;
   }
-  header.masthead::before {
-    content: "";
-    position: absolute;
-    inset: -30px -60px auto -60px;
-    height: 230px;
-    background: repeating-conic-gradient(from -6deg at 16% -10%, var(--sunray) 0 7deg, transparent 7deg 15deg);
-    -webkit-mask-image: radial-gradient(130% 110% at 16% -10%, #000 25%, transparent 68%);
-    mask-image: radial-gradient(130% 110% at 16% -10%, #000 25%, transparent 68%);
-    pointer-events: none;
-    z-index: -1;
-  }
   .title-block .eyebrow {
-    font-family: "Modak", "Baloo 2", sans-serif;
+    font-family: "Baloo 2", sans-serif;
+    font-weight: 700;
     color: var(--pink);
-    font-size: 18px;
-    letter-spacing: 0.06em;
-    margin: 0 0 -4px 2px;
+    font-size: 14px;
+    letter-spacing: 0.05em;
+    margin: 0 0 -2px 2px;
   }
   h1 {
     font-family: "Modak", "Baloo 2", sans-serif;
     font-weight: 400;
-    font-size: clamp(32px, 5.6vw, 50px);
-    line-height: 1.08;
+    font-size: clamp(30px, 5vw, 44px);
+    line-height: 1.1;
     margin: 0;
     text-wrap: balance;
     color: var(--ink);
-    transform: rotate(-1.2deg);
-    transform-origin: left bottom;
-    text-shadow: 2.5px 2.5px 0 color-mix(in srgb, var(--keyline) 28%, transparent);
   }
   h1 .brush { color: var(--accent); }
   .tagline { margin: 6px 0 0 2px; color: var(--ink-soft); font-size: 15px; max-width: 56ch; }
@@ -180,7 +167,7 @@
   .head-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 
   .btn {
-    border: 2px solid var(--ink);
+    border: 1.5px solid var(--line);
     background: var(--panel);
     color: var(--ink);
     border-radius: 12px;
@@ -188,13 +175,14 @@
     font-size: 15px;
     font-weight: 700;
     cursor: pointer;
-    box-shadow: 0 2px 0 var(--ink);
-    transition: transform 0.08s ease, box-shadow 0.08s ease;
+    box-shadow: 0 1px 2px rgba(30, 18, 4, 0.06);
+    transition: transform 0.08s ease, box-shadow 0.08s ease, border-color 0.08s ease;
     display: inline-flex; align-items: center; gap: 8px;
   }
-  .btn:active { transform: translateY(2px); box-shadow: 0 0 0 var(--ink); }
-  .btn.primary { background: var(--accent); border-color: color-mix(in srgb, var(--accent) 60%, var(--ink)); color: var(--accent-ink); box-shadow: 0 2px 0 color-mix(in srgb, var(--accent) 55%, var(--ink)); }
-  .btn.ghost { border-color: var(--line); box-shadow: 0 2px 0 var(--line); background: transparent; }
+  .btn:hover { border-color: var(--accent); }
+  .btn:active { transform: translateY(1px); box-shadow: none; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .btn.ghost { border-color: transparent; box-shadow: none; background: transparent; }
   .btn.small { padding: 5px 12px 6px; font-size: 13.5px; border-radius: 10px; }
   .btn[disabled] { opacity: 0.5; cursor: default; }
 
@@ -230,13 +218,11 @@
     display: grid;
     grid-template-columns: 148px 1fr;
     gap: 0;
-    border-radius: 15px;
+    border-radius: 14px;
     overflow: hidden;
-    border: 2px solid var(--keyline);
-    box-shadow: 3px 3px 0 color-mix(in srgb, var(--keyline) 30%, transparent);
+    border: 1.5px solid var(--line);
+    box-shadow: 0 1px 3px rgba(30, 18, 4, 0.05);
     background: var(--panel);
-    background-image: radial-gradient(var(--dot) 1px, transparent 1.3px);
-    background-size: 16px 16px;
   }
   .tier-plate {
     background: var(--tc);
@@ -250,19 +236,11 @@
     position: relative;
     text-align: center;
   }
-  .tier-plate::after {
-    content: "";
-    position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(255,255,255,0.16), rgba(0,0,0,0.10));
-    box-shadow: inset 0 0 0 4px rgba(255,255,255,0.30);
-    pointer-events: none;
-  }
   .tier-letter {
-    font-family: "Modak", "Baloo 2", sans-serif;
-    font-size: 40px;
+    font-family: "Baloo 2", sans-serif;
+    font-weight: 800;
+    font-size: 30px;
     line-height: 1;
-    transform: rotate(-3deg);
-    text-shadow: 2px 2px 0 rgba(0,0,0,0.22);
   }
   .tier-name-btn {
     appearance: none; border: none; background: none;
@@ -295,13 +273,13 @@
     appearance: none;
     display: inline-flex; align-items: center; gap: 8px;
     max-width: 100%;
-    border: 2px solid var(--keyline);
+    border: 1.5px solid var(--card-line);
     background: var(--card-bg);
     border-radius: 11px;
     padding: 6px 11px 7px 8px;
     font-size: 14.5px; font-weight: 600;
     color: var(--ink);
-    box-shadow: 2.5px 2.5px 0 color-mix(in srgb, var(--keyline) 55%, transparent);
+    box-shadow: var(--card-shadow);
     cursor: grab;
     text-align: left;
     touch-action: pan-y;
@@ -312,12 +290,11 @@
     transition: transform 0.1s ease, box-shadow 0.1s ease;
   }
   .card:hover {
-    border-color: var(--keyline);
-    transform: translate(-1px, -1px);
-    box-shadow: 4px 4px 0 color-mix(in srgb, var(--keyline) 55%, transparent);
+    border-color: var(--accent);
+    box-shadow: 0 3px 8px rgba(30, 18, 4, 0.12);
   }
   body.is-dragging [data-zone] {
-    outline: 2px dashed color-mix(in srgb, var(--accent) 55%, transparent);
+    outline: 1.5px dashed color-mix(in srgb, var(--accent) 50%, transparent);
     outline-offset: -6px;
   }
   body.is-dragging { cursor: grabbing; }
@@ -355,12 +332,11 @@
   .pool-section { margin-top: 30px; }
   .pool-head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 4px; }
   h2 {
-    font-family: "Modak", "Baloo 2", sans-serif;
-    font-weight: 400;
-    font-size: 26px;
+    font-family: "Baloo 2", sans-serif;
+    font-weight: 800;
+    font-size: 21px;
     margin: 0;
     color: var(--teal);
-    text-shadow: 2px 2px 0 color-mix(in srgb, var(--pink) 45%, transparent);
   }
   .pool-sub { color: var(--ink-soft); font-size: 14px; margin: 0; }
   .pool-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 10px 0 12px; }
@@ -411,7 +387,7 @@
   }
   dialog::backdrop { background: var(--scrim); }
   .dlg-pad { padding: 20px 22px 22px; }
-  .dlg-title { font-family: "Modak", "Baloo 2", sans-serif; font-size: 24px; margin: 0 0 4px; color: var(--accent); }
+  .dlg-title { font-family: "Baloo 2", sans-serif; font-weight: 800; font-size: 20px; margin: 0 0 4px; color: var(--accent); }
   .dlg-sub { margin: 0 0 14px; color: var(--ink-soft); font-size: 14px; }
   .field { margin-bottom: 12px; }
   .field label { display: block; font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 4px; }
@@ -432,16 +408,17 @@
   .tier-pick-btn {
     border: none; border-radius: 12px;
     padding: 12px 6px 13px;
-    font-family: "Modak", "Baloo 2", sans-serif;
-    font-size: 22px;
+    font-family: "Baloo 2", sans-serif;
+    font-weight: 800;
+    font-size: 19px;
     color: var(--plate-text);
     background: var(--tc);
     cursor: pointer;
     display: flex; flex-direction: column; align-items: center; gap: 0;
-    box-shadow: 0 2px 0 rgba(0,0,0,0.25);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.18);
   }
   .tier-pick-btn small { font-family: "Baloo 2", sans-serif; font-size: 11px; font-weight: 700; opacity: 0.9; line-height: 1.1; }
-  .tier-pick-btn:active { transform: translateY(2px); box-shadow: none; }
+  .tier-pick-btn:active { transform: translateY(1px); box-shadow: none; }
   .detail-meta { display: flex; gap: 8px; flex-wrap: wrap; margin: 2px 0 8px; }
   .meta-chip { font-size: 12.5px; font-weight: 700; color: var(--ink-soft); background: var(--panel-2); border: 1px solid var(--line); border-radius: 99px; padding: 2px 10px 3px; }
   .detail-summary { margin: 0 0 4px; font-size: 15px; }
@@ -478,7 +455,7 @@
     .wrap { padding: 0 12px 80px; }
     .tier-row { grid-template-columns: 1fr; }
     .tier-plate { flex-direction: row; justify-content: flex-start; gap: 10px; padding: 8px 14px; }
-    .tier-letter { font-size: 26px; }
+    .tier-letter { font-size: 22px; }
     .tier-name-btn { font-size: 14px; }
     .card .card-title { max-width: 20ch; }
     .head-actions { width: 100%; }
@@ -523,7 +500,8 @@
       <p class="pool-sub" id="pool-count"></p>
     </div>
     <div class="pool-tools">
-      <input class="search" id="search" type="text" placeholder="Arc dhundo…" aria-label="Search arcs" />
+      <input class="search" id="search" type="text" placeholder="Arc dhundo… (bald, garba, kidnap…)" aria-label="Search arcs" />
+    <select class="search" id="sort-select" aria-label="Sort arcs" style="flex: 0 1 auto; min-width: 0; cursor: pointer;"></select>
       <div class="chips" id="cat-chips" role="group" aria-label="Filter by category"></div>
     </div>
     <div class="pool-zone" id="pool-zone" data-zone="pool"></div>
@@ -655,75 +633,75 @@
 
   /* __SEED_ARCS__ — curated & web-verified list is injected here */
   var SEED_ARCS = [
-    { id: "gpl", title: "GPL — Gokuldham Premier League", era: "2009–14", category: "sports", fame: 5, summary: "Society splits into rival night-cricket teams; Jethalal's batting bravado fuels comic chaos across floodlit seasons." },
-    { id: "daya-kidnap", title: "Daya's Kidnapping", era: "2011", category: "drama", fame: 5, summary: "Daya testifies against robbers and is kidnapped by Don Rana; Gokuldham unites for a daring rescue." },
-    { id: "water-tanker", title: "Water Tanker Episode", era: "2009", category: "comedy", fame: 5, summary: "Water shortage sends the society scrambling for one tanker — a meme goldmine with 100M+ views." },
-    { id: "babita-ji", title: "Jethalal's Babita Ji Crush", era: "running", category: "comedy", fame: 5, summary: "Jethalal's starry-eyed 'Babita ji' devotion and rivalry with Iyer — the show's longest gag." },
-    { id: "popatlal-shaadi", title: "Popatlal Ki Shaadi", era: "running", category: "romance", fame: 5, summary: "Reporter Popatlal's forever-doomed groom quest, from first rishta to the Madhubala track." },
-    { id: "bhootni", title: "Bhootni", era: "2010 / 2025", category: "mystery", fame: 5, summary: "A mysterious lady ghost spooks Gokuldham; the 2025 Chakori revival topped the TRP charts again." },
-    { id: "navratri", title: "Navratri Garba Nights", era: "annual", category: "festival", fame: 5, summary: "Annual garba specials where 'Garba Queen' Daya leads dandiya face-offs in the compound." },
-    { id: "ganesh-chaturthi", title: "Ganesh Chaturthi at Gokuldham", era: "annual", category: "festival", fame: 5, summary: "Yearly Ganpati specials with aartis, visarjan and Bollywood guests joining the society." },
-    { id: "daya-leaves", title: "Daya Leaves for Ahmedabad", era: "2017", category: "milestone", fame: 5, summary: "Daya departs in episode 2437 — and the show has never been quite the same since." },
-    { id: "daya-comeback", title: "Daya's Navratri Comeback", era: "2019", category: "festival", fame: 5, summary: "Garba Queen Daya briefly returns after two years away for a special Navratri appearance." },
-    { id: "jethalal-in-pakistan-jai", title: "Jethalal in Pakistan Jail", era: "2012", category: "drama", fame: 5, summary: "Lost on a Kutch camel ride, Jethalal crosses the border and is jailed as a suspected spy." },
-    { id: "goa", title: "Go Goa Gokuldham", era: "2021", category: "trip", fame: 4, summary: "The society's long-awaited Goa vacation: beaches, hotel mix-ups and holiday hijinks." },
-    { id: "disneyland", title: "Hong Kong Disneyland Trip", era: "2014", category: "trip", fame: 4, summary: "Tapu Sena wins a Disney contest, sending Gokuldham on its first big foreign adventure." },
-    { id: "ahmedabad", title: "Ahmedabad Trip", era: "2008", category: "trip", fame: 4, summary: "The Gadas travel to Daya's hometown for Navratri while Tapu schemes to stay behind." },
-    { id: "singapore", title: "Singapore Trip", era: "2019", category: "trip", fame: 4, summary: "A mystery benefactor's tickets whisk the whole society to Singapore, shot on location." },
-    { id: "uttarayan", title: "Uttarayan Kite Festival", era: "annual", category: "festival", fame: 4, summary: "Makar Sankranti specials with rooftop kite battles and society-wide patang rivalries." },
-    { id: "holi", title: "Holi Hungama", era: "annual", category: "festival", fame: 4, summary: "Colour-war specials — bhang-drunk Jethalal blabbering secrets is the all-time Holi moment." },
-    { id: "diwali", title: "Diwali With Gokuldham", era: "annual", category: "festival", fame: 4, summary: "Festival-of-lights specials with guests up to Shah Rukh Khan and Kajol dropping by." },
-    { id: "gulabo", title: "Gulabo", era: "2012", category: "drama", fame: 4, summary: "A woman from Jethalal's old Kashmir film-shoot past claims to be his wife, rattling Daya." },
-    { id: "black-money", title: "Black Money", era: "2010", category: "drama", fame: 4, summary: "Black money lands in Gokuldham and sets off a moral tug-of-war, with Taarak as conscience-keeper." },
-    { id: "bhide-scam", title: "Bhide Ka Computer Scam", era: "2010–11", category: "drama", fame: 4, summary: "Bhide finally buys a computer — and an email lottery scam takes him for a painful ride." },
-    { id: "hichki", title: "Bapuji Ki Hichki", era: "2013", category: "comedy", fame: 4, summary: "Champaklal's hiccups just won't stop; every totka fails until one scream-worthy plan works." },
-    { id: "tapu-bald", title: "Tapu Hua Ganja", era: "2011", category: "drama", fame: 4, summary: "Tapu shaves his head to stand with a bald classmate fighting cancer — a rare tearjerker." },
-    { id: "demonetisation", title: "Demonetisation Special", era: "2016", category: "drama", fame: 4, summary: "Note-ban night leaves Jethalal holding lakhs in suddenly banned ₹500/1000 notes." },
-    { id: "crore-scam", title: "Jethalal's 100 Crore Scam", era: "2018", category: "drama", fame: 4, summary: "Police seal Gada Electronics over a fake ₹100-crore loan; Jethalal fights to clear his name." },
-    { id: "hostage", title: "Gada Electronics Hostage", era: "2018", category: "drama", fame: 4, summary: "Armed robbers hold Natu Kaka hostage at the shop while Bagha keeps Jethalal away." },
-    { id: "madhubala", title: "Popatlal–Madhubala Wedding", era: "2024", category: "romance", fame: 4, summary: "Popatlal finally reaches an engagement — only for fate to intervene one more time." },
-    { id: "sundar", title: "Sundar's Schemes", era: "recurring", category: "comedy", fame: 4, summary: "Daya's brother Sundar arrives with get-rich schemes that always end up fleecing Jethalal." },
-    { id: "natu-salary", title: "Natu Kaka's Salary Hike", era: "recurring", category: "comedy", fame: 4, summary: "Natu Kaka and Bagha's perennial pay-raise demands that Jethalal cunningly dodges." },
-    { id: "corona", title: "Corona Comes to Gokuldham", era: "2020", category: "comedy", fame: 4, summary: "Post-lockdown episodes: namaste greetings, Tapu Sena's corona rap, Bhide's society lockdown." },
-    { id: "tapu-sena", title: "Tapu Sena Adventures", era: "running", category: "comedy", fame: 4, summary: "The kids' gang's mischief and capers, from exam scrapes to schemes that rattle the elders." },
-    { id: "bhide-ki-whistle", title: "Bhide Ki Whistle", era: "2009", category: "comedy", fame: 4, summary: "A swallowed whistle makes secretary Bhide toot mid-sentence; Gokuldham scrambles for a cure." },
-    { id: "bhide-ka-scooter-chori", title: "Bhide Ka Scooter Chori", era: "2019", category: "comedy", fame: 4, summary: "Bhide's beloved scooter Sakharam goes missing; the whole society hunts for his pride and joy." },
-    { id: "dussehra-ravan-dahan", title: "Dussehra Ravan Dahan", era: "annual", category: "festival", fame: 4, summary: "Gokuldham's yearly Dussehra bash: Ravan effigy burning and Jethalal's fafda-jalebi feast." },
-    { id: "naya-tapu-tapu-grows-up", title: "Naya Tapu — Tapu Grows Up", era: "2017", category: "milestone", fame: 4, summary: "Raj Anadkat debuts as college-age Tapu in the birthday special, after nine years of Bhavya Gandhi." },
-    { id: "bhoothnath-in-gokuldham", title: "Bhoothnath in Gokuldham", era: "2014", category: "milestone", fame: 4, summary: "Amitabh Bachchan's Bhoothnath spooks then delights the society in the famous crossover special." },
-    { id: "society-renovation", title: "Society Renovation", era: "2022", category: "drama", fame: 4, summary: "A BMC notice forces Gokuldhamites out of their homes while the society gets rebuilt." },
-    { id: "chaddi-gang", title: "Chaddi Gang Scare", era: "2011", category: "mystery", fame: 3, summary: "Chaddi-baniyan gang robberies panic the society into night patrols — the kidnapping saga begins." },
-    { id: "bapuji-kidnap", title: "Bapuji's Kidnapping", era: "2019", category: "drama", fame: 3, summary: "Bapuji is abducted in a red van; Jethalal and Inspector Pandey lead a frantic rescue." },
-    { id: "kutch", title: "Kutch Trip", era: "2011–12", category: "trip", fame: 3, summary: "Gokuldhamites holiday in Kutch, soaking in the white desert and Gujarati culture." },
-    { id: "tikujiniwadi", title: "Tikujiniwadi Picnic", era: "2009", category: "trip", fame: 3, summary: "The society's first big picnic turns chaotic when Gogi goes missing at the resort." },
-    { id: "dahi-handi", title: "Janmashtami Dahi Handi", era: "recurring", category: "festival", fame: 3, summary: "Gokuldham's human-pyramid matki-phod celebrations — a high-energy society tradition." },
-    { id: "khel-mahotsav", title: "Gokuldham Khel Mahotsav", era: "2011", category: "sports", fame: 3, summary: "Two-night games carnival: Purush Mandal vs Mahila Mandal vs Tapu Sena." },
-    { id: "tempo", title: "Tempo At The Gate", era: "2021", category: "mystery", fame: 3, summary: "A driverless tempo blocks Gokuldham's gate and even Republic Day waits while the mystery unravels." },
-    { id: "tapu-result", title: "Tapu Sena Ka Result", era: "recurring", category: "drama", fame: 3, summary: "Exam results day keeps Tapu Sena's parents and the whole society on edge." },
-    { id: "tiranga", title: "Har Ghar Tiranga Special", era: "2022", category: "festival", fame: 3, summary: "Gokuldham marks India's 75th Independence Day with flag-hoisting and anthem tributes." },
-    { id: "bhide-resign", title: "Bhide's Resignation", era: "2025", category: "drama", fame: 3, summary: "Popatlal's complaint over a terrace leak drives long-serving secretary Bhide to resign." },
-    { id: "happysode-2000", title: "2000th Happysode", era: "2016", category: "milestone", fame: 3, summary: "Landmark 2,000th episode celebration, cementing the record-breaking run." },
-    { id: "happysode-3000", title: "3000th Happysode", era: "2020", category: "milestone", fame: 3, summary: "The show crosses 3,000 episodes right after returning from the COVID break." },
-    { id: "sweety-ka-chakkar", title: "Sweety Ka Chakkar", era: "2008", category: "drama", fame: 3, summary: "Daya and Tapu find 'proof' of Jethalal's affair with showroom girl Sweety; chaos follows." },
-    { id: "bagha-bawri-ki-love-stor", title: "Bagha–Bawri Ki Love Story", era: "2013–19", category: "romance", fame: 3, summary: "Bagha's rustic romance with Bawri, from goofy courtship to a month-long engagement celebration." },
-    { id: "daya-ki-mummy-aayi", title: "Daya Ki Mummy Aayi", era: "2014–15", category: "comedy", fame: 3, summary: "Daya's mother visits Gokuldham — face famously never shown, calling Jethalal 'Khaman Dhokla'." },
-    { id: "madhavi-ka-achar-papad-b", title: "Madhavi Ka Achar-Papad Business", era: "2016–", category: "drama", fame: 3, summary: "Madhavi's home achar-papad venture, from proud launch to a licence-raid crisis years later." },
-    { id: "popatlal-ki-gayi-naukri", title: "Popatlal Ki Gayi Naukri", era: "2020", category: "drama", fame: 3, summary: "Popatlal loses his Toofan Express reporter job and the society rallies behind him." },
-    { id: "sodhi-hua-kidnap", title: "Sodhi Hua Kidnap", era: "2014", category: "drama", fame: 3, summary: "Sodhi goes missing and the men of Gokuldham mount a rescue against his kidnappers." },
-    { id: "lady-chor-in-gokuldham", title: "Lady Chor In Gokuldham", era: "2015", category: "mystery", fame: 3, summary: "A cunning female con artist charms Gokuldham while quietly robbing its residents blind." },
-    { id: "gokuldham-me-chori", title: "Gokuldham Me Chori", era: "2009", category: "mystery", fame: 3, summary: "A theft inside the society puts every resident under suspicion until the culprit is unmasked." },
-    { id: "vote-for-sundarlal", title: "Vote For Sundarlal", era: "2014", category: "comedy", fame: 3, summary: "Daya's brother Sundar contests an election, dragging Jethalal onto the campaign trail." },
-    { id: "statue-of-unity-yatra", title: "Statue Of Unity Yatra", era: "2019", category: "trip", fame: 3, summary: "Gokuldham travels to Kevadia's Statue of Unity for a kite-festival getaway." },
-    { id: "gada-electronics-for-sal", title: "Gada Electronics For Sale", era: "2021–22", category: "drama", fame: 3, summary: "A cash crunch pushes Jethalal toward selling his beloved shop, shaking Natu Kaka and Bagha." },
-    { id: "bhoot-bangla-picnic", title: "Bhoot Bangla Picnic", era: "2025", category: "mystery", fame: 3, summary: "A society picnic lands everyone in a spooky bungalow where strange things start happening." },
-    { id: "hasya-kavi-sammelan", title: "Hasya Kavi Sammelan", era: "recurring", category: "comedy", fame: 3, summary: "Taarak hosts a comic poetry night where residents' shayari performances steal the show." },
-    { id: "4000th-happysode", title: "4000th Happysode", era: "2024", category: "milestone", fame: 3, summary: "Landmark 4,000-episode celebration with charity pledges — the record-breaking run rolls on." },
-    { id: "treasure-in-gokuldham", title: "Treasure In Gokuldham", era: "2017", category: "mystery", fame: 2, summary: "Rumours of hidden treasure under the society send residents on a comic digging spree." },
-    { id: "sodhi-ki-anniversary", title: "Sodhi Ki Anniversary", era: "2024", category: "comedy", fame: 2, summary: "Gokuldham plots a grand surprise for Sodhi and Roshan's wedding anniversary, chaos included." },
-    { id: "tooti-murti-kaand", title: "Tooti Murti Kaand", era: "2009", category: "comedy", fame: 2, summary: "Every Gokuldham family secretly breaks, and hides breaking, the very same statue." },
-    { id: "naye-saal-ki-party", title: "Naye Saal Ki Party", era: "annual", category: "festival", fame: 2, summary: "Gokuldham rings in the new year with a society bash, dances and midnight mishaps." },
-    { id: "chikubhai-ni-vaadi-picni", title: "Chikubhai Ni Vaadi Picnic", era: "2010s", category: "trip", fame: 2, summary: "The society heads out for a full-day picnic at Chikubhai's farm orchard." },
-    { id: "mahila-mandal-saree-scam", title: "Mahila Mandal Saree Scam", era: "2010s", category: "drama", fame: 2, summary: "A saree-sale fraud dupes the Gokuldham Mahila Mandal, who then fight back." }
+    { id: "gpl", title: "GPL — Gokuldham Premier League", era: "2009–14", category: "sports", fame: 5, summary: "Society splits into rival night-cricket teams; Jethalal's batting bravado fuels comic chaos across floodlit seasons.", tags: ["cricket", "match", "tournament", "kheladi", "tapu sena", "league"] },
+    { id: "daya-kidnap", title: "Daya's Kidnapping", era: "2011", category: "drama", fame: 5, summary: "Daya testifies against robbers and is kidnapped by Don Rana; Gokuldham unites for a daring rescue.", tags: ["kidnap", "don rana", "rescue", "police", "apharan"] },
+    { id: "water-tanker", title: "Water Tanker Episode", era: "2009", category: "comedy", fame: 5, summary: "Water shortage sends the society scrambling for one tanker — a meme goldmine with 100M+ views.", tags: ["pani", "water", "tanker", "shortage", "meme", "paani"] },
+    { id: "babita-ji", title: "Jethalal's Babita Ji Crush", era: "running", category: "comedy", fame: 5, summary: "Jethalal's starry-eyed 'Babita ji' devotion and rivalry with Iyer — the show's longest gag.", tags: ["babita", "iyer", "chai", "romance", "one sided", "mehta"] },
+    { id: "popatlal-shaadi", title: "Popatlal Ki Shaadi", era: "running", category: "romance", fame: 5, summary: "Reporter Popatlal's forever-doomed groom quest, from first rishta to the Madhubala track.", tags: ["rishta", "chhatri", "umbrella", "marriage", "dulha", "single"] },
+    { id: "bhootni", title: "Bhootni", era: "2010 / 2025", category: "mystery", fame: 5, summary: "A mysterious lady ghost spooks Gokuldham; the 2025 Chakori revival topped the TRP charts again.", tags: ["ghost", "bhoot", "chakori", "horror", "chudail", "spooky", "atma"] },
+    { id: "navratri", title: "Navratri Garba Nights", era: "annual", category: "festival", fame: 5, summary: "Annual garba specials where 'Garba Queen' Daya leads dandiya face-offs in the compound.", tags: ["garba", "dandiya", "raas", "festival", "gujarat"] },
+    { id: "ganesh-chaturthi", title: "Ganesh Chaturthi at Gokuldham", era: "annual", category: "festival", fame: 5, summary: "Yearly Ganpati specials with aartis, visarjan and Bollywood guests joining the society.", tags: ["ganpati", "bappa", "visarjan", "aarti", "morya"] },
+    { id: "daya-leaves", title: "Daya Leaves for Ahmedabad", era: "2017", category: "milestone", fame: 5, summary: "Daya departs in episode 2437 — and the show has never been quite the same since.", tags: ["disha vakani", "exit", "chali gayi", "ahmedabad", "bhai"] },
+    { id: "daya-comeback", title: "Daya's Navratri Comeback", era: "2019", category: "festival", fame: 5, summary: "Garba Queen Daya briefly returns after two years away for a special Navratri appearance.", tags: ["garba", "wapsi", "return", "navratri", "disha"] },
+    { id: "jethalal-in-pakistan-jai", title: "Jethalal in Pakistan Jail", era: "2012", category: "drama", fame: 5, summary: "Lost on a Kutch camel ride, Jethalal crosses the border and is jailed as a suspected spy.", tags: ["jail", "border", "kutch", "camel", "spy", "jasoos", "qaidi", "pakistan"] },
+    { id: "goa", title: "Go Goa Gokuldham", era: "2021", category: "trip", fame: 4, summary: "The society's long-awaited Goa vacation: beaches, hotel mix-ups and holiday hijinks.", tags: ["beach", "vacation", "holiday", "samundar", "trip"] },
+    { id: "disneyland", title: "Hong Kong Disneyland Trip", era: "2014", category: "trip", fame: 4, summary: "Tapu Sena wins a Disney contest, sending Gokuldham on its first big foreign adventure.", tags: ["hong kong", "disney", "foreign", "videsh", "abroad", "mickey"] },
+    { id: "ahmedabad", title: "Ahmedabad Trip", era: "2008", category: "trip", fame: 4, summary: "The Gadas travel to Daya's hometown for Navratri while Tapu schemes to stay behind.", tags: ["gujarat", "navratri", "hometown", "gada", "des"] },
+    { id: "singapore", title: "Singapore Trip", era: "2019", category: "trip", fame: 4, summary: "A mystery benefactor's tickets whisk the whole society to Singapore, shot on location.", tags: ["foreign", "videsh", "abroad", "plane", "tickets"] },
+    { id: "uttarayan", title: "Uttarayan Kite Festival", era: "annual", category: "festival", fame: 4, summary: "Makar Sankranti specials with rooftop kite battles and society-wide patang rivalries.", tags: ["kite", "patang", "makar sankranti", "kai po che", "manja", "pech"] },
+    { id: "holi", title: "Holi Hungama", era: "annual", category: "festival", fame: 4, summary: "Colour-war specials — bhang-drunk Jethalal blabbering secrets is the all-time Holi moment.", tags: ["colours", "rang", "bhang", "thandai", "pichkari"] },
+    { id: "diwali", title: "Diwali With Gokuldham", era: "annual", category: "festival", fame: 4, summary: "Festival-of-lights specials with guests up to Shah Rukh Khan and Kajol dropping by.", tags: ["lights", "diya", "patakhe", "shahrukh", "srk", "lakshmi puja"] },
+    { id: "gulabo", title: "Gulabo", era: "2012", category: "drama", fame: 4, summary: "A woman from Jethalal's old Kashmir film-shoot past claims to be his wife, rattling Daya.", tags: ["kashmir", "wife", "film shooting", "shak", "dusri biwi"] },
+    { id: "black-money", title: "Black Money", era: "2010", category: "drama", fame: 4, summary: "Black money lands in Gokuldham and sets off a moral tug-of-war, with Taarak as conscience-keeper.", tags: ["kala dhan", "cash", "paisa", "imandari", "note"] },
+    { id: "bhide-scam", title: "Bhide Ka Computer Scam", era: "2010–11", category: "drama", fame: 4, summary: "Bhide finally buys a computer — and an email lottery scam takes him for a painful ride.", tags: ["computer", "email", "lottery", "internet", "fraud", "thagi", "online"] },
+    { id: "hichki", title: "Bapuji Ki Hichki", era: "2013", category: "comedy", fame: 4, summary: "Champaklal's hiccups just won't stop; every totka fails until one scream-worthy plan works.", tags: ["hiccups", "bapuji", "champaklal", "totka", "ilaj", "hichki"] },
+    { id: "tapu-bald", title: "Tapu Hua Ganja", era: "2011", category: "drama", fame: 4, summary: "Tapu shaves his head to stand with a bald classmate fighting cancer — a rare tearjerker.", tags: ["bald", "takla", "ganja", "cancer", "mundan", "shaved head", "school", "gutthi"] },
+    { id: "demonetisation", title: "Demonetisation Special", era: "2016", category: "drama", fame: 4, summary: "Note-ban night leaves Jethalal holding lakhs in suddenly banned ₹500/1000 notes.", tags: ["notebandi", "500", "1000", "bank", "atm", "modi", "cash"] },
+    { id: "crore-scam", title: "Jethalal's 100 Crore Scam", era: "2018", category: "drama", fame: 4, summary: "Police seal Gada Electronics over a fake ₹100-crore loan; Jethalal fights to clear his name.", tags: ["loan", "fraud", "police", "seal", "crore", "bank", "gada electronics"] },
+    { id: "hostage", title: "Gada Electronics Hostage", era: "2018", category: "drama", fame: 4, summary: "Armed robbers hold Natu Kaka hostage at the shop while Bagha keeps Jethalal away.", tags: ["robbery", "natu kaka", "gun", "bandook", "chori", "shop", "loot"] },
+    { id: "madhubala", title: "Popatlal–Madhubala Wedding", era: "2024", category: "romance", fame: 4, summary: "Popatlal finally reaches an engagement — only for fate to intervene one more time.", tags: ["popatlal", "sagai", "engagement", "shaadi", "bride"] },
+    { id: "sundar", title: "Sundar's Schemes", era: "recurring", category: "comedy", fame: 4, summary: "Daya's brother Sundar arrives with get-rich schemes that always end up fleecing Jethalal.", tags: ["saala", "brother", "scheme", "con", "paisa", "thug"] },
+    { id: "natu-salary", title: "Natu Kaka's Salary Hike", era: "recurring", category: "comedy", fame: 4, summary: "Natu Kaka and Bagha's perennial pay-raise demands that Jethalal cunningly dodges.", tags: ["pagaar", "strike", "hadtal", "bagha", "raise", "salary"] },
+    { id: "corona", title: "Corona Comes to Gokuldham", era: "2020", category: "comedy", fame: 4, summary: "Post-lockdown episodes: namaste greetings, Tapu Sena's corona rap, Bhide's society lockdown.", tags: ["covid", "lockdown", "pandemic", "mask", "namaste", "rap", "quarantine"] },
+    { id: "tapu-sena", title: "Tapu Sena Adventures", era: "running", category: "comedy", fame: 4, summary: "The kids' gang's mischief and capers, from exam scrapes to schemes that rattle the elders.", tags: ["kids", "bachche", "gang", "masti", "sonu", "goli", "gogi", "pinku"] },
+    { id: "bhide-ki-whistle", title: "Bhide Ki Whistle", era: "2009", category: "comedy", fame: 4, summary: "A swallowed whistle makes secretary Bhide toot mid-sentence; Gokuldham scrambles for a cure.", tags: ["seeti", "whistle", "swallow", "nigal", "doctor", "toot"] },
+    { id: "bhide-ka-scooter-chori", title: "Bhide Ka Scooter Chori", era: "2019", category: "comedy", fame: 4, summary: "Bhide's beloved scooter Sakharam goes missing; the whole society hunts for his pride and joy.", tags: ["sakharam", "scooter", "chori", "stolen", "gaadi", "secretary"] },
+    { id: "dussehra-ravan-dahan", title: "Dussehra Ravan Dahan", era: "annual", category: "festival", fame: 4, summary: "Gokuldham's yearly Dussehra bash: Ravan effigy burning and Jethalal's fafda-jalebi feast.", tags: ["ravan", "fafda", "jalebi", "effigy", "vijayadashami", "dashera"] },
+    { id: "naya-tapu-tapu-grows-up", title: "Naya Tapu — Tapu Grows Up", era: "2017", category: "milestone", fame: 4, summary: "Raj Anadkat debuts as college-age Tapu in the birthday special, after nine years of Bhavya Gandhi.", tags: ["raj anadkat", "actor change", "college", "birthday", "bada tapu"] },
+    { id: "bhoothnath-in-gokuldham", title: "Bhoothnath in Gokuldham", era: "2014", category: "milestone", fame: 4, summary: "Amitabh Bachchan's Bhoothnath spooks then delights the society in the famous crossover special.", tags: ["amitabh", "bachchan", "big b", "cameo", "crossover", "movie"] },
+    { id: "society-renovation", title: "Society Renovation", era: "2022", category: "drama", fame: 4, summary: "A BMC notice forces Gokuldhamites out of their homes while the society gets rebuilt.", tags: ["bmc", "notice", "repair", "construction", "ghar khali", "tudwana"] },
+    { id: "chaddi-gang", title: "Chaddi Gang Scare", era: "2011", category: "mystery", fame: 3, summary: "Chaddi-baniyan gang robberies panic the society into night patrols — the kidnapping saga begins.", tags: ["chor", "robbery", "patrol", "underwear", "raat", "gang"] },
+    { id: "bapuji-kidnap", title: "Bapuji's Kidnapping", era: "2019", category: "drama", fame: 3, summary: "Bapuji is abducted in a red van; Jethalal and Inspector Pandey lead a frantic rescue.", tags: ["champaklal", "kidnap", "red van", "pandey", "rescue", "apharan"] },
+    { id: "kutch", title: "Kutch Trip", era: "2011–12", category: "trip", fame: 3, summary: "Gokuldhamites holiday in Kutch, soaking in the white desert and Gujarati culture.", tags: ["gujarat", "rann", "desert", "white desert", "camel", "runn"] },
+    { id: "tikujiniwadi", title: "Tikujiniwadi Picnic", era: "2009", category: "trip", fame: 3, summary: "The society's first big picnic turns chaotic when Gogi goes missing at the resort.", tags: ["picnic", "resort", "gogi", "lost", "waterpark"] },
+    { id: "dahi-handi", title: "Janmashtami Dahi Handi", era: "recurring", category: "festival", fame: 3, summary: "Gokuldham's human-pyramid matki-phod celebrations — a high-energy society tradition.", tags: ["janmashtami", "matki", "krishna", "pyramid", "govinda", "makhan"] },
+    { id: "khel-mahotsav", title: "Gokuldham Khel Mahotsav", era: "2011", category: "sports", fame: 3, summary: "Two-night games carnival: Purush Mandal vs Mahila Mandal vs Tapu Sena.", tags: ["games", "sports day", "mahila mandal", "competition", "race"] },
+    { id: "tempo", title: "Tempo At The Gate", era: "2021", category: "mystery", fame: 3, summary: "A driverless tempo blocks Gokuldham's gate and even Republic Day waits while the mystery unravels.", tags: ["gate", "block", "republic day", "truck", "driver", "26 january"] },
+    { id: "tapu-result", title: "Tapu Sena Ka Result", era: "recurring", category: "drama", fame: 3, summary: "Exam results day keeps Tapu Sena's parents and the whole society on edge.", tags: ["exam", "school", "marks", "report card", "pass", "fail", "padhai"] },
+    { id: "tiranga", title: "Har Ghar Tiranga Special", era: "2022", category: "festival", fame: 3, summary: "Gokuldham marks India's 75th Independence Day with flag-hoisting and anthem tributes.", tags: ["independence day", "15 august", "flag", "jhanda", "patriotic", "azadi"] },
+    { id: "bhide-resign", title: "Bhide's Resignation", era: "2025", category: "drama", fame: 3, summary: "Popatlal's complaint over a terrace leak drives long-serving secretary Bhide to resign.", tags: ["secretary", "istifa", "terrace", "leak", "complaint", "resign"] },
+    { id: "happysode-2000", title: "2000th Happysode", era: "2016", category: "milestone", fame: 3, summary: "Landmark 2,000th episode celebration, cementing the record-breaking run.", tags: ["milestone", "2000", "celebration", "landmark"] },
+    { id: "happysode-3000", title: "3000th Happysode", era: "2020", category: "milestone", fame: 3, summary: "The show crosses 3,000 episodes right after returning from the COVID break.", tags: ["milestone", "3000", "celebration", "landmark"] },
+    { id: "sweety-ka-chakkar", title: "Sweety Ka Chakkar", era: "2008", category: "drama", fame: 3, summary: "Daya and Tapu find 'proof' of Jethalal's affair with showroom girl Sweety; chaos follows.", tags: ["affair", "shak", "showroom", "suspicion", "shaq", "doubt"] },
+    { id: "bagha-bawri-ki-love-stor", title: "Bagha–Bawri Ki Love Story", era: "2013–19", category: "romance", fame: 3, summary: "Bagha's rustic romance with Bawri, from goofy courtship to a month-long engagement celebration.", tags: ["romance", "sagai", "engagement", "gada electronics", "pyaar", "shaadi"] },
+    { id: "daya-ki-mummy-aayi", title: "Daya Ki Mummy Aayi", era: "2014–15", category: "comedy", fame: 3, summary: "Daya's mother visits Gokuldham — face famously never shown, calling Jethalal 'Khaman Dhokla'.", tags: ["saas", "mummy", "khaman dhokla", "mother in law", "jeevdayaben"] },
+    { id: "madhavi-ka-achar-papad-b", title: "Madhavi Ka Achar-Papad Business", era: "2016–", category: "drama", fame: 3, summary: "Madhavi's home achar-papad venture, from proud launch to a licence-raid crisis years later.", tags: ["business", "fda", "raid", "licence", "pickle", "papad", "achar"] },
+    { id: "popatlal-ki-gayi-naukri", title: "Popatlal Ki Gayi Naukri", era: "2020", category: "drama", fame: 3, summary: "Popatlal loses his Toofan Express reporter job and the society rallies behind him.", tags: ["job", "toofan express", "reporter", "berozgar", "naukri", "editor"] },
+    { id: "sodhi-hua-kidnap", title: "Sodhi Hua Kidnap", era: "2014", category: "drama", fame: 3, summary: "Sodhi goes missing and the men of Gokuldham mount a rescue against his kidnappers.", tags: ["kidnap", "garage", "roshan", "rescue", "punjabi"] },
+    { id: "lady-chor-in-gokuldham", title: "Lady Chor In Gokuldham", era: "2015", category: "mystery", fame: 3, summary: "A cunning female con artist charms Gokuldham while quietly robbing its residents blind.", tags: ["thief", "chorni", "con woman", "fraud", "loot"] },
+    { id: "gokuldham-me-chori", title: "Gokuldham Me Chori", era: "2009", category: "mystery", fame: 3, summary: "A theft inside the society puts every resident under suspicion until the culprit is unmasked.", tags: ["theft", "chor", "suspicion", "robbery", "shak"] },
+    { id: "vote-for-sundarlal", title: "Vote For Sundarlal", era: "2014", category: "comedy", fame: 3, summary: "Daya's brother Sundar contests an election, dragging Jethalal onto the campaign trail.", tags: ["election", "chunav", "campaign", "vote", "neta", "sundar"] },
+    { id: "statue-of-unity-yatra", title: "Statue Of Unity Yatra", era: "2019", category: "trip", fame: 3, summary: "Gokuldham travels to Kevadia's Statue of Unity for a kite-festival getaway.", tags: ["kevadia", "sardar patel", "gujarat", "kite", "statue"] },
+    { id: "gada-electronics-for-sal", title: "Gada Electronics For Sale", era: "2021–22", category: "drama", fame: 3, summary: "A cash crunch pushes Jethalal toward selling his beloved shop, shaking Natu Kaka and Bagha.", tags: ["shop", "bechna", "sale", "crisis", "dukan", "natu kaka"] },
+    { id: "bhoot-bangla-picnic", title: "Bhoot Bangla Picnic", era: "2025", category: "mystery", fame: 3, summary: "A society picnic lands everyone in a spooky bungalow where strange things start happening.", tags: ["haunted", "ghost", "bungalow", "darr", "bhoot", "picnic"] },
+    { id: "hasya-kavi-sammelan", title: "Hasya Kavi Sammelan", era: "recurring", category: "comedy", fame: 3, summary: "Taarak hosts a comic poetry night where residents' shayari performances steal the show.", tags: ["poetry", "shayari", "kavita", "stage", "comedy night"] },
+    { id: "4000th-happysode", title: "4000th Happysode", era: "2024", category: "milestone", fame: 3, summary: "Landmark 4,000-episode celebration with charity pledges — the record-breaking run rolls on.", tags: ["milestone", "4000", "celebration", "landmark", "charity"] },
+    { id: "treasure-in-gokuldham", title: "Treasure In Gokuldham", era: "2017", category: "mystery", fame: 2, summary: "Rumours of hidden treasure under the society send residents on a comic digging spree.", tags: ["khazana", "digging", "gold", "hidden", "khudai"] },
+    { id: "sodhi-ki-anniversary", title: "Sodhi Ki Anniversary", era: "2024", category: "comedy", fame: 2, summary: "Gokuldham plots a grand surprise for Sodhi and Roshan's wedding anniversary, chaos included.", tags: ["roshan", "surprise", "party", "shaadi ki salgirah"] },
+    { id: "tooti-murti-kaand", title: "Tooti Murti Kaand", era: "2009", category: "comedy", fame: 2, summary: "Every Gokuldham family secretly breaks, and hides breaking, the very same statue.", tags: ["statue", "broken", "idol", "murti", "toota"] },
+    { id: "naye-saal-ki-party", title: "Naye Saal Ki Party", era: "annual", category: "festival", fame: 2, summary: "Gokuldham rings in the new year with a society bash, dances and midnight mishaps.", tags: ["new year", "party", "31 december", "celebration", "jashn"] },
+    { id: "chikubhai-ni-vaadi-picni", title: "Chikubhai Ni Vaadi Picnic", era: "2010s", category: "trip", fame: 2, summary: "The society heads out for a full-day picnic at Chikubhai's farm orchard.", tags: ["picnic", "farm", "wadi", "orchard", "kheti"] },
+    { id: "mahila-mandal-saree-scam", title: "Mahila Mandal Saree Scam", era: "2010s", category: "drama", fame: 2, summary: "A saree-sale fraud dupes the Gokuldham Mahila Mandal, who then fight back.", tags: ["fraud", "sari", "saree", "thagi", "mahila mandal", "scam"] }
   ];
 
   /* ============================== State ============================== */
@@ -974,6 +952,34 @@
 
   var activeFilter = { text: "", cat: null };
 
+  var SORTS = [
+    { id: "fame", label: "Sort: Famous" },
+    { id: "year", label: "Sort: Saal" },
+    { id: "az", label: "Sort: A–Z" },
+    { id: "cat", label: "Sort: Type" }
+  ];
+  var sortMode = "fame";
+  try {
+    var sm = localStorage.getItem("tmkoc-sort");
+    if (SORTS.some(function (s) { return s.id === sm; })) sortMode = sm;
+  } catch (e) {}
+
+  function arcYear(a) {
+    var m = /\d{4}/.exec(a.era || "");
+    return m ? parseInt(m[0], 10) : 9999;
+  }
+  function sortPool(list) {
+    var l = list.slice();
+    if (sortMode === "year") l.sort(function (a, b) { return arcYear(a) - arcYear(b) || (b.fame || 3) - (a.fame || 3); });
+    else if (sortMode === "az") l.sort(function (a, b) { return a.title.localeCompare(b.title); });
+    else if (sortMode === "cat") {
+      var order = Object.keys(CATEGORIES);
+      l.sort(function (a, b) { return order.indexOf(a.category) - order.indexOf(b.category) || (b.fame || 3) - (a.fame || 3); });
+    }
+    else l.sort(function (a, b) { return (b.fame || 3) - (a.fame || 3); });
+    return l;
+  }
+
   function cardEl(arc) {
     var cat = CATEGORIES[arc.category] || CATEGORIES.comedy;
     var b = document.createElement("button");
@@ -1026,11 +1032,15 @@
 
     // Pool
     var pool = poolArcs();
-    var visible = pool.filter(function (a) {
+    var visible = sortPool(pool.filter(function (a) {
       if (activeFilter.cat && a.category !== activeFilter.cat) return false;
-      if (activeFilter.text && (a.title + " " + (a.summary || "")).toLowerCase().indexOf(activeFilter.text) === -1) return false;
+      if (activeFilter.text) {
+        var cat = CATEGORIES[a.category] || {};
+        var hay = [a.title, a.summary || "", a.era || "", cat.label || "", (a.tags || []).join(" ")].join(" ").toLowerCase();
+        if (hay.indexOf(activeFilter.text) === -1) return false;
+      }
       return true;
-    });
+    }));
     var pz = document.getElementById("pool-zone");
     pz.textContent = "";
     if (!pool.length) {
@@ -1327,6 +1337,9 @@
     chips.forEach(function (c) {
       var s = document.createElement("span"); s.className = "meta-chip"; s.textContent = c; meta.appendChild(s);
     });
+    (arc.tags || []).slice(0, 5).forEach(function (t) {
+      var s = document.createElement("span"); s.className = "meta-chip"; s.style.opacity = "0.65"; s.textContent = "#" + t; meta.appendChild(s);
+    });
     document.getElementById("detail-summary").textContent = arc.summary || "";
     var grid = document.getElementById("detail-tiers");
     grid.textContent = "";
@@ -1426,6 +1439,21 @@
     activeFilter.text = e.target.value.trim().toLowerCase();
     render();
   });
+
+  (function initSort() {
+    var sel = document.getElementById("sort-select");
+    SORTS.forEach(function (s) {
+      var o = document.createElement("option");
+      o.value = s.id; o.textContent = s.label;
+      sel.appendChild(o);
+    });
+    sel.value = sortMode;
+    sel.addEventListener("change", function () {
+      sortMode = sel.value;
+      try { localStorage.setItem("tmkoc-sort", sortMode); } catch (e) {}
+      render();
+    });
+  })();
 
   /* ============================== Watch next ============================== */
 
@@ -1635,7 +1663,7 @@
       // Title
       ctx.textBaseline = "alphabetic";
       ctx.fillStyle = "#C2185B";
-      ctx.font = "24px 'Modak', 'Baloo 2', sans-serif";
+      ctx.font = "700 22px 'Baloo 2', sans-serif";
       ctx.fillText("तारक मेहता का उल्टा चश्मा", PAD, 88);
       ctx.fillStyle = P.ink;
       ctx.font = "64px 'Modak', 'Baloo 2', sans-serif";
@@ -1662,7 +1690,7 @@
         roundRect(ctx, PAD, y, PLATE_W, rh, 18); ctx.fill();
         ctx.fillRect(PAD + PLATE_W - 18, y, 18, rh);
         ctx.fillStyle = t.id === "B" ? "#2E2205" : "#FFF7EA";
-        ctx.font = "56px 'Modak', 'Baloo 2', sans-serif";
+        ctx.font = "800 46px 'Baloo 2', sans-serif";
         ctx.textAlign = "center";
         ctx.fillText(t.id, PAD + PLATE_W / 2, y + rh / 2 + 4);
         ctx.font = "700 19px 'Baloo 2', sans-serif";
