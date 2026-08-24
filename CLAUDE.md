@@ -122,6 +122,10 @@ User text is cleaned before storage: `sanitizeName()` (length/trim) and `filterT
   - `GET ?code=XXXX` — returns current room state
 
 - `src/app/api/admin/route.ts` — Basic Auth (env vars `ADMIN_USERNAME`/`ADMIN_PASSWORD`). `GET ?action=rooms` lists active room codes.
+- `src/app/api/assetlinks/route.ts` — Serves the Android TWA's Digital Asset Links JSON, driven by `TWA_PACKAGE_NAME` + `TWA_SHA256_CERT_FINGERPRINTS` env. `next.config.ts` rewrites `/.well-known/assetlinks.json` here. Empty array (valid) until configured. See `apk/`.
+
+### Android app (TWA wrapper)
+- `apk/twa-manifest.json` + `apk/README.md` — Bubblewrap config and build guide that wrap the **deployed** site as an installable Android app (Trusted Web Activity). The app is server-rendered, so the APK is a thin Chrome shell pointing at the live host, not a bundle. `.github/workflows/android-apk.yml` builds/signs the APK in CI. Generated project files and keystores are git-ignored; only the manifest and README are tracked.
 
 ### Pages (all async, all await params/searchParams)
 - `src/app/page.tsx` — Home. Passes `initialCode` from `searchParams.code` to `<HomePage>`.
