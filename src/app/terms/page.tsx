@@ -153,17 +153,16 @@ export default function TermsPage() {
 
       <Section n={14} title="Governing law">
         <p>
-          These terms are governed by the laws of India, and the courts of{' '}
-          <Term>[add your city/jurisdiction]</Term> will have jurisdiction over any dispute, subject
-          to applicable law.
+          These terms are governed by the laws of India, and the competent courts in India will
+          have jurisdiction over any dispute, subject to applicable law.
         </p>
       </Section>
 
       <Section n={15} title="Contact">
         <p>
-          Questions about these terms? Reach the Office of Sujeet Kumar via{' '}
-          <Ext href="https://www.sujeetkofficial.com/">sujeetkofficial.com</Ext> or by email at{' '}
-          <Term>[add your contact email]</Term>.
+          Questions about these terms? Reach the Office of Sujeet Kumar at{' '}
+          <Ext href="mailto:contact@sujeetkofficial.com">contact@sujeetkofficial.com</Ext> or through{' '}
+          <Ext href="https://www.sujeetkofficial.com/">sujeetkofficial.com</Ext>.
         </p>
       </Section>
     </LegalPage>

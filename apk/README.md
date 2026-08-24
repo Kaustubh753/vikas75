@@ -81,7 +81,7 @@ The signed `app-release-signed.apk` and `app-release-bundle.aab` land in this fo
 `bubblewrap install` to push the APK to a connected device.
 
 If `bubblewrap update` says there's no project to update on your CLI version, scaffold it once
-with `bubblewrap init --manifest https://<your-host>/manifest.webmanifest` (interactive — the
+with `bubblewrap init --manifest https://vikas75.vercel.app/manifest.webmanifest` (interactive — the
 prompts default to your manifest values), then `bubblewrap build --skipPwaValidation`.
 
 ---
@@ -98,8 +98,8 @@ purpose — never commit it.
 ## Digital Asset Links (removes the URL bar)
 
 A TWA shows a thin browser URL bar until Android can prove the app and the site belong together.
-That proof is a file at `https://<your-host>/.well-known/assetlinks.json` listing the SHA-256
-fingerprint of the key that signed the APK.
+That proof is a file at `https://vikas75.vercel.app/.well-known/assetlinks.json` listing the
+SHA-256 fingerprint of the key that signed the APK.
 
 This repo serves that file already — from the env-driven route `src/app/api/assetlinks/route.ts`
 via a rewrite in `next.config.ts`. You just set two environment variables on your deploy host:
@@ -109,7 +109,7 @@ via a rewrite in `next.config.ts`. You just set two environment variables on you
 | `TWA_PACKAGE_NAME` | `com.sujeetkofficial.vikas75` (must match `twa-manifest.json`) |
 | `TWA_SHA256_CERT_FINGERPRINTS` | the `AA:BB:...` SHA-256 from your build (comma-separate multiple) |
 
-Then verify: open `https://<your-host>/.well-known/assetlinks.json` — it should list your
+Then verify: open `https://vikas75.vercel.app/.well-known/assetlinks.json` — it should list your
 fingerprint. Reinstall the APK; the URL bar should be gone.
 
 **Using Play App Signing?** Google re-signs your app with its own key. Add the SHA-256 that Play

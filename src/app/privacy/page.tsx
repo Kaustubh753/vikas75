@@ -165,9 +165,9 @@ export default function PrivacyPolicyPage() {
       <Section n={12} title="Contact">
         <p>
           For any privacy question or request, or to reach our grievance officer under the DPDP Act,
-          contact the Office of Sujeet Kumar via{' '}
-          <Ext href="https://www.sujeetkofficial.com/">sujeetkofficial.com</Ext>. You can reach the
-          team by email at <Term>[add your contact email]</Term>.
+          email the Office of Sujeet Kumar at{' '}
+          <Ext href="mailto:contact@sujeetkofficial.com">contact@sujeetkofficial.com</Ext> or reach
+          us through <Ext href="https://www.sujeetkofficial.com/">sujeetkofficial.com</Ext>.
         </p>
       </Section>
     </LegalPage>
