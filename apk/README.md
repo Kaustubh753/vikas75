@@ -48,10 +48,14 @@ The workflow at `.github/workflows/android-apk.yml` builds and signs the APK on 
    keytool -genkeypair -v -keystore android.keystore -alias vikas75 \
      -keyalg RSA -keysize 2048 -validity 3650
    ```
-2. Add these repo secrets (Settings → Secrets and variables → Actions):
+2. Add these repo secrets (Settings → Secrets and variables → Actions) — set **all three**, or
+   none (the job then builds with a throwaway key):
    - `ANDROID_KEYSTORE_BASE64` — `base64 -w0 android.keystore`
    - `ANDROID_KEYSTORE_PASSWORD` — the store password you chose
    - `ANDROID_KEY_PASSWORD` — the key password you chose
+
+   The keystore's key alias must be `vikas75`. If yours differs, add a repo **variable**
+   `ANDROID_KEY_ALIAS` with your alias — the workflow syncs `twa-manifest.json` to it.
 3. Run **Actions → Build Android APK (TWA) → Run workflow** (or push a tag like `apk-v1.0.0`).
 4. Download the `vikas75-android` artifact, and copy the **SHA-256** the "fingerprint" step prints
    into `TWA_SHA256_CERT_FINGERPRINTS` on your host.
@@ -68,11 +72,17 @@ Needs JDK 17 and the Android SDK. Bubblewrap can install its own on first run.
 ```bash
 npm install -g @bubblewrap/cli
 cd apk
-bubblewrap build --skipPwaValidation   # generates the Android project from twa-manifest.json, then builds
+# `build` only compiles an existing project, so generate it from twa-manifest.json first:
+bubblewrap update
+bubblewrap build --skipPwaValidation
 ```
 
 The signed `app-release-signed.apk` and `app-release-bundle.aab` land in this folder. Run
 `bubblewrap install` to push the APK to a connected device.
+
+If `bubblewrap update` says there's no project to update on your CLI version, scaffold it once
+with `bubblewrap init --manifest https://<your-host>/manifest.webmanifest` (interactive — the
+prompts default to your manifest values), then `bubblewrap build --skipPwaValidation`.
 
 ---
 

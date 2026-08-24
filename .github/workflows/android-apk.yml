@@ -43,7 +43,8 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install Bubblewrap
-        run: npm install -g @bubblewrap/cli
+        # Pinned for reproducibility — bump deliberately after testing a new release.
+        run: npm install -g @bubblewrap/cli@1.25.0
 
       - name: Point Bubblewrap at the runner's JDK and Android SDK
         run: |
@@ -56,38 +57,58 @@ jobs:
       - name: Prepare signing keystore
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PW: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          # Alias defaults to vikas75; override with an ANDROID_KEY_ALIAS repo variable if your
+          # keystore uses a different one — twa-manifest.json is patched to match below.
+          KEY_ALIAS: ${{ vars.ANDROID_KEY_ALIAS || 'vikas75' }}
         run: |
           cd apk
+          echo "ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+          # Keep twa-manifest.json's signingKey.alias in step with the alias we actually sign with,
+          # so Bubblewrap (which reads the alias from the manifest) and keytool never disagree.
+          node -e "const f='twa-manifest.json',m=require('./'+f);m.signingKey.alias=process.env.KEY_ALIAS;require('fs').writeFileSync(f,JSON.stringify(m,null,2))"
           if [ -n "$KEYSTORE_B64" ]; then
+            # A release keystore was supplied — its passwords MUST be supplied too, or signing fails
+            # with a confusing error. Fail early and clearly instead.
+            if [ -z "$STORE_PW" ] || [ -z "$KEY_PW" ]; then
+              echo "::error::ANDROID_KEYSTORE_BASE64 is set but ANDROID_KEYSTORE_PASSWORD and/or ANDROID_KEY_PASSWORD are missing. Set all three, and make sure the keystore's key alias is '$KEY_ALIAS' (matching twa-manifest.json / the ANDROID_KEY_ALIAS variable)."
+              exit 1
+            fi
             echo "$KEYSTORE_B64" | base64 -d > android.keystore
-            echo "Using provided release keystore."
+            echo "STOREPASS=$STORE_PW" >> "$GITHUB_ENV"
+            echo "KEYPASS=$KEY_PW" >> "$GITHUB_ENV"
+            echo "Using provided release keystore (alias '$KEY_ALIAS')."
           else
             echo "::warning::No ANDROID_KEYSTORE_BASE64 secret set — generating a throwaway keystore. The APK installs and runs, but its fingerprint won't match your production assetlinks (the TWA will show a URL bar). Add the secret for a release build."
-            keytool -genkeypair -v -keystore android.keystore -alias vikas75 \
+            keytool -genkeypair -v -keystore android.keystore -alias "$KEY_ALIAS" \
               -keyalg RSA -keysize 2048 -validity 3650 \
               -storepass changeit -keypass changeit \
               -dname "CN=Vikas 75, O=Office of Sujeet Kumar, C=IN"
+            echo "STOREPASS=changeit" >> "$GITHUB_ENV"
+            echo "KEYPASS=changeit" >> "$GITHUB_ENV"
           fi
 
       - name: Build and sign
         env:
-          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'changeit' }}
-          BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || 'changeit' }}
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ env.STOREPASS }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ env.KEYPASS }}
         run: |
           cd apk
-          # Regenerate the Android project from twa-manifest.json, then compile + sign. Bubblewrap
-          # downloads iconUrl/maskableIconUrl from the LIVE site during generation, so the `host`
-          # in twa-manifest.json must be deployed and reachable before this runs.
-          bubblewrap update --skipVersionUpgrade || bubblewrap update || true
+          # `bubblewrap build` compiles an EXISTING project — it does not scaffold — so `update`
+          # first to (re)generate the Android project from twa-manifest.json. Bubblewrap downloads
+          # iconUrl/maskableIconUrl from the LIVE site here, so `host` must be deployed and
+          # reachable. Errors are not swallowed: if generation genuinely fails we want it to fail
+          # loudly at the real cause. (If a Bubblewrap version can't scaffold via update, use
+          # PWABuilder — see apk/README.md Option A.)
+          bubblewrap update
           bubblewrap build --skipPwaValidation
 
       - name: Show signing-key SHA-256 fingerprint (for assetlinks)
-        env:
-          STOREPASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'changeit' }}
         run: |
           cd apk
           echo "── Set TWA_SHA256_CERT_FINGERPRINTS on your deploy host to this SHA-256 value ──"
-          keytool -list -v -keystore android.keystore -alias vikas75 -storepass "$STOREPASS" \
+          keytool -list -v -keystore android.keystore -alias "$ALIAS" -storepass "$STOREPASS" \
             | grep -i 'SHA256:' || echo "(could not read fingerprint — check the keystore alias/password)"
 
       - name: Upload APK / AAB
