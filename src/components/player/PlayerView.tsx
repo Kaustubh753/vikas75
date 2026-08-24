@@ -62,9 +62,21 @@ export default function PlayerView({ code }: Props) {
   const timerFiredForRef = useRef<number>(0);
 
   useEffect(() => {
-    const pid = localStorage.getItem('vikas75_playerId') ?? '';
-    const pname = localStorage.getItem('vikas75_playerName') ?? '';
-    const avid = (localStorage.getItem('vikas75_avatarId') as AvatarId) ?? 'a1';
+    let pid = '', pname = '', avid: AvatarId = 'a1', soundOn = false;
+    try {
+      pid = localStorage.getItem('vikas75_playerId') ?? '';
+      pname = localStorage.getItem('vikas75_playerName') ?? '';
+      avid = (localStorage.getItem('vikas75_avatarId') as AvatarId) ?? 'a1';
+      // Single shared "sound on" preference drives both lobby music and SFX.
+      soundOn = localStorage.getItem('vikas75-sound-on') === 'true';
+    } catch {
+      // Storage access throws (not just returns null) when a device blocks site data — private
+      // mode, enterprise policy. We can't recover an identity, so send the player to the join
+      // screen rather than aborting the effect before setHydrated and hanging on the loading
+      // ghost forever.
+      router.replace(`/join?code=${code}`);
+      return;
+    }
     if (!pid || !pname) {
       router.replace(`/join?code=${code}`);
       return;
@@ -72,8 +84,6 @@ export default function PlayerView({ code }: Props) {
     setPlayerId(pid);
     setPlayerName(pname);
     setAvatarId(avid);
-    // Single shared "sound on" preference drives both lobby music and SFX.
-    const soundOn = localStorage.getItem('vikas75-sound-on') === 'true';
     setMusicOn(soundOn);
     getMusicManager().setMuted(!soundOn);
     // Restore cached hand from previous session (survives page refresh mid-game)
@@ -85,12 +95,14 @@ export default function PlayerView({ code }: Props) {
   }, [code, router]);
 
   const clearSessionAndGoHome = useCallback((message?: string) => {
-    localStorage.removeItem('vikas75_playerId');
-    localStorage.removeItem('vikas75_token');
-    localStorage.removeItem('vikas75_playerName');
-    localStorage.removeItem('vikas75_avatarId');
-    localStorage.removeItem('vikas75_roomCode');
-    localStorage.removeItem(`vikas75_hand_${code}`);
+    try {
+      localStorage.removeItem('vikas75_playerId');
+      localStorage.removeItem('vikas75_token');
+      localStorage.removeItem('vikas75_playerName');
+      localStorage.removeItem('vikas75_avatarId');
+      localStorage.removeItem('vikas75_roomCode');
+      localStorage.removeItem(`vikas75_hand_${code}`);
+    } catch { /* storage blocked — nothing persisted to clear */ }
     if (message) toast(message, { icon: '🏁' });
     router.replace('/');
   }, [router, code]);
@@ -102,11 +114,13 @@ export default function PlayerView({ code }: Props) {
       const res = await fetch(`/api/game?code=${code}${pid ? `&me=${encodeURIComponent(pid)}` : ''}`,
         tok ? { headers: { 'x-player-token': tok } } : undefined);
       if (!res.ok) {
-        // 404 = the room is genuinely gone (closed, expired, deleted). Always clear identity
-        // and return home cleanly — no error, no dead end — even for an already-joined player.
-        // Other errors (e.g. 503 storage blip) are ignored so a transient hiccup doesn't eject
-        // an active player; during initial restore any failure still sends them home.
-        if (res.status === 404 || !toastedJoin.current) clearSessionAndGoHome();
+        // 404 = the room is genuinely gone (closed, expired, deleted): clear identity and return
+        // home cleanly, even for an already-joined player. Every other status is transient — a
+        // 503 storage blip, a 429 from a refresh storm, a 500 — and must NOT wipe a valid identity
+        // or eject an active player; we stay put and let the next poll retry. (This used to also
+        // eject on any non-ok response during the initial restore, which meant a single transient
+        // failure on load erased a live player's seat mid-round.)
+        if (res.status === 404) clearSessionAndGoHome();
         return;
       }
       const data = await res.json();

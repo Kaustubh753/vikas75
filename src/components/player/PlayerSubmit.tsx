@@ -59,6 +59,20 @@ function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
+// sessionStorage access throws (not just fails) in privacy-locked contexts — iOS "Block All
+// Cookies", strict Firefox, some in-app webviews. Unguarded, that exception propagates out of
+// the draft effects below to the error boundary and takes the whole submission screen down, so
+// the player can't pick a card or submit. The draft is a convenience; never let it crash the game.
+function readDraft(key: string): string | null {
+  try { return sessionStorage.getItem(key); } catch { return null; }
+}
+function writeDraft(key: string, value: string): void {
+  try { sessionStorage.setItem(key, value); } catch { /* storage blocked — draft just won't persist */ }
+}
+function clearDraft(key: string): void {
+  try { sessionStorage.removeItem(key); } catch { /* storage blocked */ }
+}
+
 export default function PlayerSubmit({
   hand,
   challenge,
@@ -126,16 +140,16 @@ export default function PlayerSubmit({
   useEffect(() => {
     if (didRestoreDraft.current || submittedRef.current || submittedExplanationRef.current) return;
     didRestoreDraft.current = true;
-    const draft = sessionStorage.getItem(draftKey);
+    const draft = readDraft(draftKey);
     if (draft) setExplanation(draft);
   }, [draftKey]);
 
   useEffect(() => {
-    if (!submitted) sessionStorage.setItem(draftKey, explanation);
+    if (!submitted) writeDraft(draftKey, explanation);
   }, [explanation, submitted, draftKey]);
 
   useEffect(() => {
-    if (submitted) sessionStorage.removeItem(draftKey);
+    if (submitted) clearDraft(draftKey);
   }, [submitted, draftKey]);
 
   // Auto-submit on timeout: shortly before the timer hits zero, flush whatever the player

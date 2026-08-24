@@ -132,7 +132,14 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
     const pusher = getPusherClient();
     if (!pusher) return; // realtime unconfigured — the GET poll below keeps the screen live
     const channel = pusher.subscribe(getRoomChannel(code));
-    const onRoomUpdated = (updated: GameRoom) => setRoom(prev => staleRoom(prev, updated) ? prev : updated);
+    const onRoomUpdated = (updated: GameRoom) => {
+      // A live room event proves the room exists — clear any "Room Closed" state a single
+      // transient poll 404 may have latched, which only the GET paths reset otherwise (so the
+      // projector could sit on "Room Closed" for up to a poll interval while Pusher kept
+      // delivering valid updates).
+      setRoomMissing(false);
+      setRoom(prev => staleRoom(prev, updated) ? prev : updated);
+    };
     // Host remote-mute: silence BOTH the lobby background track (forceMute, a transient lever
     // that doesn't clobber the stored preference) AND the phase SFX stings — the ticking clock,
     // drumroll and winner fanfare that play during gameplay, when the lobby track is silent. A
