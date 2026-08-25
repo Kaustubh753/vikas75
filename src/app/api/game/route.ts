@@ -105,9 +105,10 @@ export async function POST(req: NextRequest) {
 
     // Every code-bearing action eventually calls code.toUpperCase() (directly or via
     // withRoomLock). A non-string code (e.g. a client bug sending `code: 123`) would throw a
-    // TypeError and surface as a generic 500; reject it once, here, with a clean 400.
-    // create-room carries no code, so this never fires for it.
-    if ('code' in body && body.code !== undefined && typeof body.code !== 'string') {
+    // TypeError and surface as a generic 500; reject it once, here, with a clean 400. Guard the
+    // `in` check with an object test — `'code' in <primitive>` itself throws — so a bare-primitive
+    // body still falls through to the default "Unknown action" 400. create-room carries no code.
+    if (body !== null && typeof body === 'object' && 'code' in body && body.code !== undefined && typeof body.code !== 'string') {
       return NextResponse.json({ error: 'Invalid room code' }, { status: 400 });
     }
 

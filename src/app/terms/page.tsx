@@ -74,9 +74,9 @@ export default function TermsPage() {
         <Bullets
           items={[
             'Harass, threaten, demean, or discriminate against other players.',
-            'Submit content that is unlawful, hateful, obscene, or infringes someone&apos;s rights.',
-            'Impersonate another person, or enter other people&apos;s personal data.',
-            'Cheat, disrupt a game, abuse the AI judge, or interfere with other players&apos; experience.',
+            'Submit content that is unlawful, hateful, obscene, or infringes someone’s rights.',
+            'Impersonate another person, or enter other people’s personal data.',
+            'Cheat, disrupt a game, abuse the AI judge, or interfere with other players’ experience.',
             'Attempt to break, overload, scrape, reverse-engineer, or gain unauthorised access to the game or its systems.',
           ]}
         />
