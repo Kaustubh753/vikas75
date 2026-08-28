@@ -121,7 +121,7 @@ export default function ProjectorLoading() {
         <div className="flex justify-center items-center" style={{ paddingBottom: 'clamp(8px, 1vh, 14px)' }}>
           <div className="font-[family-name:var(--font-inter)] uppercase text-center"
                style={{ fontSize: 'clamp(9px, 0.76vw, 11px)', letterSpacing: '0.12em', color: `${CREAM}0.4)` }}>
-            An initiative of the Office of Shri Sujeet Kumar
+            An initiative of the Office of Sujeet Kumar
           </div>
         </div>
 

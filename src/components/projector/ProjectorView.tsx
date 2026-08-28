@@ -38,7 +38,7 @@ const PHASE_BG: Record<string, string> = {
 const PHASE_TRANSITIONS: Partial<Record<string, string>> = {
   'challenge-reveal': 'GET READY',
   reveal: "LET'S SEE WHAT\nYOU PLAYED",
-  winner: 'AND THE\nWINNER IS...',
+  winner: 'AND THE\nWINNER IS…',
 };
 
 type OverlayInfo = { text: string; color: string; initial: { y?: number; x?: number; scale?: number } };

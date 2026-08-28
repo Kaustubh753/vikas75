@@ -62,7 +62,7 @@ export default function PrivacyPolicyPage() {
       <Section n={3} title="How we use it">
         <Bullets
           items={[
-            'To run the game — show players in the lobby, sync the round across every screen, keep score, and display the judge’s verdict.',
+            "To run the game — show players in the lobby, sync the round across every screen, keep score, and display the judge's verdict.",
             'To keep games fair and safe — filter obvious profanity from names and chat, and rate-limit requests to prevent abuse.',
             'To let you rejoin your seat after a disconnect without losing your score or cards.',
           ]}

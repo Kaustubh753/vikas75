@@ -29,11 +29,8 @@ const C = {
   w06:     'rgba(250,248,240,0.06)',
 };
 
-type Tab = 'deck' | 'team';
-
 // ── Main component ────────────────────────────────────────────
 export default function ExplorePage({ schemes }: Props) {
-  const [tab, setTab]       = useState<Tab>('deck');
   const [query, setQuery]   = useState('');
   const [active, setActive] = useState<SchemeCard | null>(null);
 
@@ -93,29 +90,10 @@ export default function ExplorePage({ schemes }: Props) {
         <div style={{
           display: 'flex', alignItems: 'center',
           fontFamily: 'var(--font-bebas),sans-serif',
-          fontSize: 22, color: C.white, letterSpacing: '0.02em', paddingRight: 32,
+          fontSize: 22, color: C.white, letterSpacing: '0.02em',
         }}>
           Explore
         </div>
-
-        <nav style={{ display: 'flex', alignItems: 'stretch' }}>
-          {(['deck', 'team'] as Tab[]).map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              padding: '0 20px', height: '100%',
-              color: tab === t ? C.saffron : C.w40,
-              fontSize: 13, fontWeight: 600,
-              letterSpacing: '0.08em', textTransform: 'uppercase',
-              borderBottom: tab === t ? `2px solid ${C.saffron}` : '2px solid transparent',
-              marginBottom: -1, transition: 'color .15s, border-color .15s',
-            }}
-              onMouseEnter={e => { if (tab !== t) (e.currentTarget as HTMLButtonElement).style.color = C.w70; }}
-              onMouseLeave={e => { if (tab !== t) (e.currentTarget as HTMLButtonElement).style.color = C.w40; }}
-            >
-              {t === 'deck' ? 'The Deck' : 'The Team'}
-            </button>
-          ))}
-        </nav>
       </header>
 
       {/* ── Body ─────────────────────────────────────────────── */}
@@ -124,16 +102,13 @@ export default function ExplorePage({ schemes }: Props) {
         maxWidth: 1400, margin: '0 auto',
         padding: 'clamp(28px,4vh,52px) clamp(20px,4vw,64px)',
       }}>
-        {tab === 'deck' && (
-          <DeckTab
-            schemes={filtered}
-            query={query}
-            onQuery={setQuery}
-            total={schemes.length}
-            onOpen={setActive}
-          />
-        )}
-        {tab === 'team' && <TeamTab />}
+        <DeckTab
+          schemes={filtered}
+          query={query}
+          onQuery={setQuery}
+          total={schemes.length}
+          onOpen={setActive}
+        />
       </main>
 
       {/* ── Detail modal ─────────────────────────────────────── */}
@@ -192,7 +167,7 @@ function DeckTab({ schemes, query, onQuery, total, onOpen }: {
             onBlur={e => (e.target as HTMLInputElement).style.borderColor = C.w14}
           />
           {query && (
-            <button onClick={() => onQuery('')} style={{
+            <button onClick={() => onQuery('')} aria-label="Clear search" style={{
               position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
               background: 'none', border: 'none', cursor: 'pointer',
               color: C.w40, fontSize: 16, lineHeight: 1, padding: 2,
@@ -392,6 +367,7 @@ function CardModal({ card, onClose }: { card: SchemeCard; onClose: () => void })
           {/* Close */}
           <button
             onClick={onClose}
+            aria-label="Close"
             style={{
               position: 'absolute', top: 14, right: 14,
               width: 28, height: 28, borderRadius: '50%',
@@ -457,16 +433,5 @@ function CardModal({ card, onClose }: { card: SchemeCard; onClose: () => void })
         </div>
       </motion.div>
     </motion.div>
-  );
-}
-
-// ── Team tab ──────────────────────────────────────────────────
-function TeamTab() {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 240 }}>
-      <p style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 14, color: C.w40, margin: 0 }}>
-        Coming soon.
-      </p>
-    </div>
   );
 }

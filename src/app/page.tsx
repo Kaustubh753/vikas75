@@ -3,11 +3,11 @@
 import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { FaGlobe, FaInstagram, FaXTwitter, FaLinkedin, FaFacebook, FaYoutube } from 'react-icons/fa6';
 import { getLobbyMusic } from '@/lib/music-manager';
 import IntroAnimation from '@/components/intro/IntroAnimation';
 import LogoLockup from '@/components/ui/LogoLockup';
 import HowToPlayPanel from '@/components/landing/HowToPlayPanel';
+import { SOCIAL_LINKS } from '@/components/ui/SocialLinks';
 
 // ─────────────────────────────────────────────────────────────
 // Card data — real game card images
@@ -19,18 +19,6 @@ const CARDS = [
   { src: '/cards/card-032.webp', kind: 'scheme'    as const, id: 'skill-india' },  // s002
   { src: '/cards/card-034.webp', kind: 'scheme'    as const, id: 'swachh-bharat' }, // s004
   { src: '/cards/card-037.webp', kind: 'scheme'    as const, id: 'indradhanush' }, // s007
-];
-
-// ─────────────────────────────────────────────────────────────
-// Social links
-// ─────────────────────────────────────────────────────────────
-const SOCIAL_LINKS = [
-  { label: 'Website',   href: 'https://www.sujeetkofficial.com/',                                    Icon: FaGlobe     },
-  { label: 'Instagram', href: 'https://www.instagram.com/sujeetkofficial/',                          Icon: FaInstagram  },
-  { label: 'X',         href: 'https://x.com/SujeetKOfficial',                                       Icon: FaXTwitter   },
-  { label: 'LinkedIn',  href: 'https://www.linkedin.com/in/sujeet--kumar/',                          Icon: FaLinkedin   },
-  { label: 'Facebook',  href: 'https://www.facebook.com/SujeetKOfficial/',                           Icon: FaFacebook   },
-  { label: 'YouTube',   href: 'https://www.youtube.com/channel/UC6yGMDZkljNPgX8vGUcBTbA/playlists', Icon: FaYoutube    },
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -377,7 +365,7 @@ function LandingPage() {
           {/* CTAs */}
           <div style={{ width: '100%', maxWidth: 340, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <button
-              style={{ ...btnBase, height: 52, fontSize: 13, width: '100%', background: '#FF9933', color: '#1a1208', borderColor: '#FF9933' }}
+              style={{ ...btnBase, height: 52, fontSize: 13, width: '100%', background: '#FF9933', color: '#08070f', borderColor: '#FF9933' }}
               onClick={handleHostGame}
             >
               {hosting ? 'Creating…' : 'Host a Game'}
@@ -464,8 +452,8 @@ function LandingPage() {
           {/* CTA buttons — width: 100% stretches to match logo above */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button
-              style={{ ...btnBase, width: '100%', background: '#FF9933', color: '#1a1208', borderColor: '#FF9933' }}
-              onMouseEnter={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = '#e6862b'; b.style.transform = 'translateY(-1px)'; b.style.boxShadow = '0 6px 24px rgba(255,153,51,.32)'; }}
+              style={{ ...btnBase, width: '100%', background: '#FF9933', color: '#08070f', borderColor: '#FF9933' }}
+              onMouseEnter={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = '#e8872a'; b.style.transform = 'translateY(-1px)'; b.style.boxShadow = '0 6px 24px rgba(255,153,51,.32)'; }}
               onMouseLeave={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = '#FF9933'; b.style.transform = ''; b.style.boxShadow = ''; }}
               onClick={handleHostGame}
             >

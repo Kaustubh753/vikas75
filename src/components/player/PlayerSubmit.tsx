@@ -286,8 +286,8 @@ export default function PlayerSubmit({
                  style={{ fontSize: 15 }}>
                 {challenge.en}
               </p>
-              <p className="text-blue-200/70 font-[family-name:var(--font-devanagari)] mt-1 leading-relaxed"
-                 style={{ fontSize: 15, lineHeight: 1.55 }}>
+              <p className="font-[family-name:var(--font-devanagari)] mt-1 leading-relaxed"
+                 style={{ fontSize: 15, lineHeight: 1.55, color: 'rgba(173,200,255,0.92)' }}>
                 {challenge.hi}
               </p>
             </div>
@@ -402,7 +402,7 @@ export default function PlayerSubmit({
           <motion.button
             onClick={() => selected && setStep('justify')}
             disabled={!selected}
-            className="w-full disabled:opacity-40 disabled:cursor-not-allowed text-white font-[family-name:var(--font-bebas)] tracking-widest rounded-xl"
+            className="w-full disabled:opacity-40 disabled:cursor-not-allowed text-[#08070f] font-[family-name:var(--font-bebas)] tracking-widest rounded-xl"
             style={{
               height: 56,
               backgroundColor: '#FF9933',
@@ -494,7 +494,7 @@ export default function PlayerSubmit({
       <motion.button
         onClick={handleThrow}
         disabled={!explanation.trim() || loading || throwing}
-        className="w-full disabled:opacity-40 disabled:cursor-not-allowed text-white font-[family-name:var(--font-inter)] uppercase tracking-widest rounded-xl"
+        className="w-full disabled:opacity-40 disabled:cursor-not-allowed text-[#08070f] font-[family-name:var(--font-inter)] uppercase tracking-widest rounded-xl"
         style={{
           height: 48,
           backgroundColor: '#FF9933',

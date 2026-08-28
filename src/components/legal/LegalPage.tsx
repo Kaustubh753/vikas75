@@ -54,7 +54,7 @@ export function LegalPage({
           {/* Tricolour rule */}
           <div className="flex h-[3px] w-full max-w-[220px] overflow-hidden rounded-full">
             <div className="flex-1" style={{ background: '#FF9933' }} />
-            <div className="flex-1" style={{ background: '#faf8f0' }} />
+            <div className="flex-1" style={{ background: '#ffffff' }} />
             <div className="flex-1" style={{ background: '#138808' }} />
           </div>
         </header>

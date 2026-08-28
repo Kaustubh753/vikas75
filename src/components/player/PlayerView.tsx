@@ -234,7 +234,7 @@ export default function PlayerView({ code }: Props) {
     prevPhaseRef.current = room.phase;
     if (prev !== null && prev !== room.phase) {
       if (room.phase === 'challenge-reveal') {
-        toast('Round starting...', { icon: '🎯' });
+        toast('Round starting…', { icon: '🎯' });
       }
       // Brief overlay text
       const ov = getOverlay(room.phase, room.round);
@@ -526,14 +526,14 @@ export default function PlayerView({ code }: Props) {
           <div className="flex flex-col items-center justify-center gap-4 min-h-[50vh] px-4">
             <p className="text-4xl">🎉</p>
             <p className="text-white font-[family-name:var(--font-bebas)] text-3xl tracking-wide text-center">
-              Game Over!
+              Khel Khatam!
             </p>
             <p className="text-white/50 text-sm text-center font-[family-name:var(--font-inter)]">
               Thanks for playing Vikas 75!
             </p>
             <button
               onClick={() => clearSessionAndGoHome()}
-              className="mt-4 px-8 h-14 bg-[#FF9933] hover:bg-[#e8872a] text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95"
+              className="mt-4 px-8 h-14 bg-[#FF9933] hover:bg-[#e8872a] text-[#08070f] font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95"
             >
               Play Again →
             </button>

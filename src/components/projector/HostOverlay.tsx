@@ -225,13 +225,19 @@ export default function HostOverlay({ room, code, hostId }: Props) {
   const isJudging = room.phase === 'judging';
   const isDisabled = loading || isJudging;
 
+  // Bar height plus the device safe-area inset — the body's global safe-area padding doesn't
+  // reach fixed elements, so without this the bar sits under the home indicator on notched phones.
+  const barBaseH = isNarrow ? 60 : 72;
+  const barH = `calc(${barBaseH}px + env(safe-area-inset-bottom))`;
+
   const barStyle: React.CSSProperties = {
     position: 'fixed',
     bottom: 0,
     left: 0,
     right: 0,
     width: '100%',
-    height: isNarrow ? 60 : 72,
+    height: barH,
+    paddingBottom: 'env(safe-area-inset-bottom)',
     zIndex: 200,
     background: 'rgba(7,16,31,0.92)',
     backdropFilter: 'blur(24px)',
@@ -259,7 +265,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
 
   const settingsPanelStyle: React.CSSProperties = {
     position: 'fixed',
-    bottom: isNarrow ? 60 : 72, // sit flush on top of the bar, whose height tracks isNarrow
+    bottom: barH, // sit flush on top of the bar (tracks its height + safe-area inset)
     left: 0,
     right: 0,
     zIndex: 199,
@@ -282,7 +288,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
 
   const playersPanelStyle: React.CSSProperties = {
     position: 'fixed',
-    bottom: isNarrow ? 60 : 72, // sit flush on top of the bar, whose height tracks isNarrow
+    bottom: barH, // sit flush on top of the bar (tracks its height + safe-area inset)
     left: 0,
     right: 0,
     zIndex: 199,
@@ -456,7 +462,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
       {/* Narrow error strip — sits on top of the bar so the message never clips inside it */}
       {error && isNarrow && !collapsed && (
         <div style={{
-          position: 'fixed', bottom: 60, left: 0, right: 0, zIndex: 199,
+          position: 'fixed', bottom: barH, left: 0, right: 0, zIndex: 199,
           background: 'rgba(127,29,29,0.95)', padding: '6px 12px',
           fontFamily: 'var(--font-inter)', fontSize: 11, color: '#fecaca',
           textAlign: 'center', lineHeight: 1.3,
@@ -590,7 +596,6 @@ export default function HostOverlay({ room, code, hostId }: Props) {
                 cursor: isDisabled ? 'not-allowed' : 'pointer',
                 opacity: isDisabled ? 0.4 : 1,
                 transition: 'background 0.15s, opacity 0.15s',
-                outline: 'none',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -690,7 +695,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
         aria-label="Expand host controls"
         style={{
           position: 'fixed',
-          bottom: 16,
+          bottom: 'calc(16px + env(safe-area-inset-bottom))',
           right: 20,
           zIndex: 201,
           height: 36,

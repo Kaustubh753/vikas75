@@ -370,7 +370,7 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
             disabled={loading || !name.trim() || code.length !== 4}
             style={{
               height: 52, padding: '0 18px',
-              background: '#FF9933', color: '#1a1208',
+              background: '#FF9933', color: '#08070f',
               border: '1.5px solid #FF9933', borderRadius: 6,
               fontFamily: 'var(--font-inter),sans-serif', fontWeight: 600,
               fontSize: 13, letterSpacing: '0.18em', textTransform: 'uppercase',
