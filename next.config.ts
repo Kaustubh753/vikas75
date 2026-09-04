@@ -9,10 +9,6 @@ const nextConfig: NextConfig = {
     // Serve AVIF first (better compression), fall back to WebP — cards are already WebP
     formats: ['image/avif', 'image/webp'],
   },
-  async rewrites() {
-    // The tier-list mini app is a static PWA in public/tierlist; give it a clean URL
-    return [{ source: '/tierlist', destination: '/tierlist/index.html' }];
-  },
 };
 
 export default nextConfig;
