@@ -21,6 +21,11 @@ import { EMOTE_IDS } from '@/lib/emotes';
 import { filterText } from '@/lib/word-filter';
 import type { Submission, AvatarId, ChatMessage, GameRoom } from '@/types/game';
 
+// The judge fans out up to three parallel Claude calls under a 22 s deadline (see ai-judge.ts)
+// inside after(); that background work runs in this function's lifetime, so the route must
+// outlive it. 60 s is within every Vercel plan's ceiling and is far more than any handler needs.
+export const maxDuration = 60;
+
 // ── Secret handling ──────────────────────────────────────────────────────────
 // hostId and per-player tokens are credentials and must never reach a client other
 // than as the freshly-issued token in a join response.
@@ -678,9 +683,10 @@ async function triggerJudge(code: string) {
   if (!room || room.phase !== 'judging') return;
 
   // Distributed lock — prevent double-judging if after() fires more than once. TTL is kept
-  // comfortably above the judge's own timeout (up to 18s at a full table) but short enough
-  // that, if the function is killed mid-judge, the lock clears quickly so the kick-judge
-  // watchdog can recover.
+  // comfortably above the judge's own deadline (22 s at a full table, shared with the ~1 s retry if the
+  // API rejects structured outputs — see JUDGING_LOCK_TTL_MS in judge-core.ts) but short
+  // enough that, if the function is killed mid-judge, the lock clears quickly so the
+  // kick-judge watchdog can recover.
   const lockKey = `lock:judging:${code}:${room.round}`;
   const acquired = await acquireLock(lockKey, 30);
   if (!acquired) return; // Another instance already handling this round
@@ -713,7 +719,7 @@ async function triggerJudge(code: string) {
     return;
   }
 
-  const verdict = await judgeRound(room.currentChallenge, submissions);
+  const verdict = await judgeRound(room.currentChallenge, submissions, { tag: `${code}:${room.round}` });
 
   // Apply the verdict under the room lock (and re-read fresh) so a concurrent heartbeat or
   // chat write can't clobber the winner phase back to judging and freeze the game. The

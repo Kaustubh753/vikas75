@@ -23,7 +23,7 @@ const STEPS = [
   { num: '02', title: 'See the problem',  label: 'See the problem',  body: 'A problem statement goes up on the big screen. Everyone answers the same one.' },
   { num: '03', title: 'Play your scheme', label: 'Play your scheme', body: 'You hold real government schemes. Pick the one that answers the problem.' },
   { num: '04', title: 'Make your case',   label: 'Make your case',   body: 'The clock runs while you argue it. Say what your scheme does and why it fits.' },
-  { num: '05', title: 'Best answer wins', label: 'Best answer wins', body: 'The AI judge scores fit first, then how well you argued it. Win the most rounds to take the game.' },
+  { num: '05', title: 'Best answer wins', label: 'Best answer wins', body: 'The AI judge scores fit first, then how well you explain the fix — the obvious card with no argument won\'t win. Win the most rounds to take the game.' },
 ];
 
 /* The bodies differ in length — step 05 runs to four lines where step 03 takes two. Left to

@@ -228,10 +228,11 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
     return () => clearTimeout(t);
   }, [room?.timerEndsAt, room?.phase, timerExpire]);
 
-  // Watchdog: a verdict normally lands within the judge's 8s timeout. If we're still in the
-  // judging phase well past that, the server-side judge likely never ran (e.g. a serverless
-  // after() callback that was dropped) — re-kick it. The action is idempotent and awaited
-  // server-side, so it resolves the round even if the original scheduling mechanism failed.
+  // Watchdog: the judge's deadline scales with the table — min(22 s, 9 s + 0.65 s per answer),
+  // see deadlineMsFor in judge-core.ts — so a verdict normally lands well inside the 30 s
+  // judging lock. If we're still in the judging phase after that, the original after()-scheduled
+  // judge may never have run (serverless drop). Kicks fire every 12 s; while the lock is held
+  // they are no-ops, so they only matter once the original judge is genuinely dead.
   useEffect(() => {
     if (room?.phase !== 'judging') return;
     const kick = () => {
