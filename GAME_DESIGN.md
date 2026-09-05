@@ -100,6 +100,11 @@ This is critical to the game feel. The judge must:
 - Have a witty personality in its verdict text, not dry or formal
 - Explain the reasoning in 2 to 3 sentences maximum
 - Occasionally call out a particularly clever answer with extra flavour text
+- Be blind to who answered and when: answers reach the model under anonymous random labels, in a
+  different order for each of three parallel calls, and the model must reason about each answer
+  (fit, then argument) before scoring it. The winner is the answer most calls crowned, then mean
+  score — never the first-listed or fastest submission. An on-brief card with a generic
+  explanation caps at 5–6, below a stretch argued well; a blank explanation is never a right answer
 
 The judge prompt should explicitly instruct Claude to think like a sharp, witty commentator who appreciates jugaad thinking and rewards players who make the crowd laugh or think.
 
@@ -198,7 +203,7 @@ The judge prompt should explicitly instruct Claude to think like a sharp, witty 
 - Framework: Next.js (hosted on Vercel, free tier)
 - Real-time sync: Pusher (free tier, ap2 Mumbai cluster)
 - Game state storage: Upstash Redis (free tier, ap-south-1 Mumbai)
-- AI Judge: Anthropic Claude (claude-sonnet-4-20250514, called server-side only)
+- AI Judge: Anthropic Claude (claude-sonnet-4-6, called server-side only)
 - PDF parsing: pdf-parse npm package + Claude API for extraction
 - Styling: Tailwind CSS
 

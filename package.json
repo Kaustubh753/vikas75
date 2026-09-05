@@ -9,6 +9,9 @@
     "lint": "eslint .",
     "test:judge": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/test-judge-core.mjs"
   },
+  "engines": {
+    "node": ">=22.18"
+  },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.97.1",
     "@upstash/redis": "^1.38.0",

@@ -118,7 +118,10 @@ export function seededShuffle<T>(items: readonly T[], rand: () => number): T[] {
  * catches every way the model could echo one on screen without touching "Plan B" or "Vitamin C".
  */
 export const LABEL_POOL_SIZE = 90;
-export const LABEL_RE_SOURCE = 'ANS-\\d\\d';
+/** Matches a label however the model might write it back: ANS-42, ans-42, ANS 42, ANS–42, ANS_42. */
+export const LABEL_RE_SOURCE = 'ANS[\\s\\-\\u2010-\\u2015_]?\\d\\d';
+/** Canonical form of any LABEL_RE_SOURCE match. */
+const canonLabel = (raw: string) => `ANS-${raw.slice(-2)}`;
 
 export function drawLabels(n: number, rand: () => number): string[] {
   if (n > LABEL_POOL_SIZE) throw new Error(`${n} answers exceed the ${LABEL_POOL_SIZE}-label pool`);
@@ -169,13 +172,14 @@ export function makeCallOrders(labels: readonly string[], seed: number): string[
 // ── Prompt assembly ───────────────────────────────────────────────────────────
 
 /**
- * Text that goes to the model: strip angle brackets (a crafted explanation could otherwise
- * smuggle a literal `>>>` to close the untrusted-input markers), runs of `=` (so it cannot
- * forge an `=== ANS-nn ===` block separator) and collapse whitespace. Only affects the
- * prompt — never what is stored or shown on screen.
+ * Text that goes to the model: strip control characters, angle brackets (a crafted
+ * explanation could otherwise smuggle a literal `>>>` to close the untrusted-input markers),
+ * runs of `=` (so it cannot forge an `=== ANS-nn ===` block separator) and collapse
+ * whitespace. Only affects the prompt — never what is stored or shown on screen.
  */
 export function clean(text: string | undefined | null): string {
   return (text ?? '')
+    .replace(/\p{Cc}/gu, ' ')
     .replace(/[<>]/g, '')
     .replace(/={2,}/g, '')
     .replace(/\s+/g, ' ')
@@ -260,8 +264,17 @@ function fitFromScore(score: number): Fit {
  * repeated; a score that is not an integer 1–10) reject the whole call — a confused reply is
  * dropped, never repaired into a ranking. Soft ones (bad fit, missing strings, an invalid
  * winner) are repaired and reported in `notes` so they show up in the logs.
+ *
+ * Two rubric rules are also enforced here rather than trusted to the prose: an answer whose
+ * explanation was blank (`blankLabels`) can score at most 2 — nothing written is never a right
+ * answer, however obvious the card — and a stated winner the same call scored below its own
+ * top answer is discarded in favour of that top score.
  */
-export function parseCallResult(raw: unknown, order: readonly string[]): { result: CallResult; notes: string[] } {
+export function parseCallResult(
+  raw: unknown,
+  order: readonly string[],
+  blankLabels: ReadonlySet<string> = new Set(),
+): { result: CallResult; notes: string[] } {
   const notes: string[] = [];
   if (!raw || typeof raw !== 'object') throw new Error('reply is not an object');
   const obj = raw as { answers?: unknown; decider?: unknown; winner?: unknown; reasoning?: unknown };
@@ -286,9 +299,15 @@ export function parseCallResult(raw: unknown, order: readonly string[]): { resul
       notes.push(`fit for ${label} coerced from score`);
     }
     const why = typeof a.why === 'string' ? a.why : '';
+    if (!why) notes.push(`empty why for ${label}`);
     const judgeComment = typeof a.judgeComment === 'string' ? a.judgeComment : '';
     if (!judgeComment) notes.push(`empty comment for ${label}`);
-    answers.set(label, { label, fit, why, judgeComment, judgeScore: score });
+    let judgeScore = score;
+    if (blankLabels.has(label) && judgeScore > 2) {
+      notes.push(`blank explanation for ${label} scored ${judgeScore}; clamped to 2`);
+      judgeScore = 2;
+    }
+    answers.set(label, { label, fit, why, judgeComment, judgeScore });
   }
   if (answers.size < order.length) {
     const missing = order.filter((l) => !answers.has(l));
@@ -298,10 +317,17 @@ export function parseCallResult(raw: unknown, order: readonly string[]): { resul
   let winner: string | null = null;
   if (typeof obj.winner === 'string' && valid.has(obj.winner.trim().toUpperCase())) {
     winner = obj.winner.trim().toUpperCase();
+    const top = Math.max(...[...answers.values()].map((x) => x.judgeScore));
+    const own = answers.get(winner)!.judgeScore;
+    if (own < top) {
+      notes.push(`winner ${winner} scored ${own} below the call's top ${top}; using top score`);
+      winner = null;
+    }
   } else {
     notes.push(`invalid winner ${JSON.stringify(obj.winner)}`);
   }
   const decider = typeof obj.decider === 'string' ? obj.decider : '';
+  if (!decider) notes.push('empty decider');
   const reasoning = typeof obj.reasoning === 'string' ? obj.reasoning : '';
   if (!reasoning) notes.push('empty reasoning');
 
@@ -419,39 +445,50 @@ export function aggregateCalls(calls: readonly CallResult[], labels: readonly st
 
 // ── On-screen text hygiene ────────────────────────────────────────────────────
 
-const LABEL_WORD_RE = new RegExp(`\\b(?:answer|player|entry|submission)\\s+(?=${LABEL_RE_SOURCE})`, 'gi');
-const LABEL_RE = new RegExp(`\\(?\\b(${LABEL_RE_SOURCE})\\b\\)?`, 'g');
-const PLAYER_RE = /\b[Pp]layer\s+#?\d+\b/g;
+const LABEL_WORD_RE = new RegExp(`\\b(?:answer|player|entry|submission)s?\\s+(?=${LABEL_RE_SOURCE})`, 'gi');
+const LABEL_RE = new RegExp(`#?\\(?\\b(${LABEL_RE_SOURCE})\\b\\)?`, 'gi');
+// "answer 42" / "entry #42" — the label's number without its prefix; swapped only if it is a live label.
+const BARE_NUMBER_RE = /\b(?:answer|entry|submission)\s+#?(\d\d)\b/gi;
+const PLAYER_RE = /\bplayers?\s+#?\d+\b/gi;
+const MARKDOWN_LINK_RE = /\[([^\]]*)\]\([^)]*\)/g;
 
 /**
  * Labels are prompt plumbing, never UI text. The prompt forbids them in comments and
- * reasoning; this is the backstop that swaps a stray "ANS-42" for "the <scheme> answer".
- * Also strips the untrusted-input markers and stray markdown — the projector renders plain
- * text. `counter.count` accumulates the number of label substitutions for the logs.
+ * reasoning; this is the backstop that swaps a stray "ANS-42" (in any casing or spelling
+ * the parser would also accept) for "the <scheme> answer". Also strips the untrusted-input
+ * markers and stray markdown — the projector renders plain text. `counter.count`
+ * accumulates the number of label substitutions for the logs.
  */
 export function scrubLabels(text: string, schemeByLabel: ReadonlyMap<string, string>, counter?: { count: number }): string {
+  const swap = (label: string) => {
+    if (counter) counter.count++;
+    const scheme = schemeByLabel.get(canonLabel(label));
+    return scheme ? `the ${scheme} answer` : 'this answer';
+  };
   let out = (text ?? '')
     .replace(/<<<|>>>/g, '')
     .replace(LABEL_WORD_RE, '')
-    .replace(LABEL_RE, (_whole, label: string) => {
-      if (counter) counter.count++;
-      const scheme = schemeByLabel.get(label);
-      return scheme ? `the ${scheme} answer` : 'this answer';
-    })
+    .replace(LABEL_RE, (_whole, label: string) => swap(label))
+    .replace(BARE_NUMBER_RE, (whole, nn: string) => (schemeByLabel.has(`ANS-${nn}`) ? swap(nn) : whole))
     .replace(PLAYER_RE, 'this answer')
-    .replace(/[*`]+/g, '')
+    .replace(MARKDOWN_LINK_RE, '$1')
+    .replace(/[*`_~#>]+/g, '')
     .replace(/\s+/g, ' ')
     .trim();
-  // Unreachable after the regex above; kept as a guard so a label can never reach the screen.
-  if (new RegExp(LABEL_RE_SOURCE).test(out)) out = out.replace(new RegExp(LABEL_RE_SOURCE, 'g'), 'this answer');
+  // Unreachable after the regexes above; kept as a guard so a label can never reach the screen.
+  if (new RegExp(LABEL_RE_SOURCE, 'i').test(out)) out = out.replace(new RegExp(LABEL_RE_SOURCE, 'gi'), 'this answer');
   return out;
 }
 
-/** Cut over-long model text at the last sentence end before `max`; mark the cut with an ellipsis. */
+/**
+ * Cut over-long model text at the last sentence end before `max` (English or Devanagari
+ * punctuation); mark the cut with an ellipsis. Never splits a surrogate pair — a cut inside an
+ * emoji would render as � on the projector.
+ */
 export function capText(text: string, max: number): string {
   if (text.length <= max) return text;
-  const head = text.slice(0, max);
-  const cut = Math.max(head.lastIndexOf('. '), head.lastIndexOf('! '), head.lastIndexOf('? '));
+  const head = text.slice(0, max).replace(/[\uD800-\uDBFF]$/, '');
+  const cut = Math.max(head.lastIndexOf('. '), head.lastIndexOf('! '), head.lastIndexOf('? '), head.lastIndexOf('\u0964 '));
   return (cut > max * 0.4 ? head.slice(0, cut + 1) : head.trimEnd()) + '…';
 }
 

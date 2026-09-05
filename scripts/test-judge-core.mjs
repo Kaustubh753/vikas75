@@ -420,9 +420,71 @@ test('isStructuredOutputRejection only matches the output_config 400', () => {
   assert.equal(isStructuredOutputRejection(null), false);
 });
 
+
+// ── follow-up findings from the adversarial pass ──
+test('scrubLabels is as tolerant as the parser: any casing, separator, bare number, more markdown', () => {
+  const map = new Map([['ANS-42', 'Jan Dhan'], ['ANS-17', 'PM-KISAN']]);
+  assert.equal(scrubLabels('ans-42 over ANS 17 and PLAYER 3', map), 'the Jan Dhan answer over the PM-KISAN answer and this answer');
+  assert.equal(scrubLabels('Ans–42 edges ANS_17; #ANS-42 again', map), 'the Jan Dhan answer edges the PM-KISAN answer; the Jan Dhan answer again');
+  assert.equal(scrubLabels('answer 42 was sharp, entry #17 less so, answer 99 unknown', map), 'the Jan Dhan answer was sharp, the PM-KISAN answer less so, answer 99 unknown');
+  assert.equal(scrubLabels('# Verdict\n_italic_ ~~strike~~ [see](http://x) > quote', map), 'Verdict italic strike see quote');
+  assert.equal(scrubLabels('Answers ANS-42/ANS-17 both tried; players 2 too', map), 'the Jan Dhan answer/the PM-KISAN answer both tried; this answer too');
+  for (const probe of ['ans-42 wins', 'ANS 42', 'Ans-17', 'ans_42']) assert.ok(!/ans[\s\-_–]?\d\d/i.test(scrubLabels(probe, map)), probe);
+});
+test('parseCallResult discards a stated winner the same call scored below its top, with a note', () => {
+  const order = ['ANS-10', 'ANS-11'];
+  const { result, notes } = parseCallResult({ answers: [rawAnswer('ANS-10', 9), rawAnswer('ANS-11', 3)], decider: 'd', winner: 'ANS-11', reasoning: 'r' }, order);
+  assert.equal(result.winner, null);
+  assert.ok(notes.some((n) => /below the call's top/.test(n)));
+  assert.equal(callTopVote(result, 1), 'ANS-10');
+  const agg = aggregateCalls([result], order, 1);
+  assert.equal(agg.order[0], 'ANS-10');
+  assert.equal(agg.pluralityOverride, false, 'a single call can never produce a plurality override');
+  const tied = parseCallResult({ answers: [rawAnswer('ANS-10', 9), rawAnswer('ANS-11', 9)], decider: 'd', winner: 'ANS-11', reasoning: 'r' }, order);
+  assert.equal(tied.result.winner, 'ANS-11', 'a winner tied for the top score stands');
+});
+test('parseCallResult clamps a blank explanation to at most 2, before the winner check', () => {
+  const order = ['ANS-10', 'ANS-11'];
+  const blank = new Set(['ANS-10']);
+  const { result, notes } = parseCallResult({ answers: [rawAnswer('ANS-10', 6), rawAnswer('ANS-11', 5)], decider: 'd', winner: 'ANS-10', reasoning: 'r' }, order, blank);
+  assert.equal(result.answers.get('ANS-10').judgeScore, 2);
+  assert.equal(result.winner, null, 'the clamped answer can no longer be the stated winner');
+  assert.ok(notes.some((n) => /clamped to 2/.test(n)));
+  assert.equal(aggregateCalls([result], order, 1).order[0], 'ANS-11');
+  const low = parseCallResult({ answers: [rawAnswer('ANS-10', 1), rawAnswer('ANS-11', 5)], decider: 'd', winner: 'ANS-11', reasoning: 'r' }, order, blank);
+  assert.equal(low.result.answers.get('ANS-10').judgeScore, 1, 'a score already ≤ 2 is left alone');
+});
+test('parseCallResult notes empty why and decider', () => {
+  const { notes } = parseCallResult({ answers: [rawAnswer('ANS-10', 5, { why: '' })], winner: 'ANS-10', reasoning: 'r' }, ['ANS-10']);
+  assert.ok(notes.some((n) => n === 'empty why for ANS-10') && notes.some((n) => n === 'empty decider'));
+});
+test('capText respects the Devanagari danda and never splits a surrogate pair', () => {
+  const hindi = 'पहला वाक्य यहाँ है। दूसरा वाक्य काफी लंबा है और सीमा से आगे निकल जाता है।';
+  const cut = capText(hindi, 40);
+  assert.equal(cut, 'पहला वाक्य यहाँ है।…');
+  const emoji = 'x'.repeat(19) + '🎉' + 'y'.repeat(20);
+  const capped = capText(emoji, 20);
+  assert.ok(capped.isWellFormed(), 'no lone surrogate');
+  assert.equal(capped, 'x'.repeat(19) + '…');
+});
+test('cards_mapping.json only references real challenge and scheme ids', async () => {
+  const fs = await import('node:fs');
+  const read = (f) => JSON.parse(fs.readFileSync(new URL(`../context/${f}`, import.meta.url), 'utf8'));
+  const challenges = new Set(read('cards_challenges.json').map((c) => c.id));
+  const schemes = new Set(read('cards_schemes.json').map((s) => s.id));
+  const mapping = read('cards_mapping.json');
+  assert.equal(challenges.size, 30);
+  assert.equal(schemes.size, 75);
+  for (const [challengeId, ids] of Object.entries(mapping)) {
+    assert.ok(challenges.has(challengeId), `unknown challenge ${challengeId}`);
+    assert.ok(Array.isArray(ids) && ids.length > 0, `empty mapping for ${challengeId}`);
+    for (const id of ids) assert.ok(schemes.has(id), `unknown scheme ${id} under ${challengeId}`);
+  }
+});
+
 for (const { name, fn } of tests) {
   try {
-    fn();
+    await fn();
     passed++;
     console.log(`  ✓ ${name}`);
   } catch (err) {

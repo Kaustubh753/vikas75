@@ -75,9 +75,10 @@ export default function PrivacyPolicyPage() {
 
       <Section n={4} title="The AI judge">
         <p>
-          When a round is judged, the challenge, every player&apos;s chosen scheme, their written
-          explanation, and their display name are sent to <Term>Anthropic</Term> (the makers of
-          Claude) so the AI can rank the answers and write a verdict. This happens only for judging.
+          When a round is judged, the challenge, every player&apos;s chosen scheme and their written
+          explanation are sent to <Term>Anthropic</Term> (the makers of Claude) so the AI can rank
+          the answers and write a verdict. Display names, player identifiers and submission times are
+          not sent; answers are labelled anonymously. This happens only for judging.
           If no AI is configured, a built-in random judge runs instead and nothing leaves our
           servers. Anthropic&apos;s handling of that data is governed by its own{' '}
           <Ext href="https://www.anthropic.com/legal/privacy">privacy policy</Ext>. Please

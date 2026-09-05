@@ -21,7 +21,7 @@ const PANELS = [
   {
     icon: '👑',
     title: 'The AI judge decides',
-    description: 'The AI judge scores how well your scheme fits the problem, then how well you argued it. Win the most rounds to take the game.',
+    description: 'The AI judge scores how well your scheme fits the problem, then how well you explain the fix — the obvious card with no argument won\'t win. Win the most rounds to take the game.',
   },
 ];
 

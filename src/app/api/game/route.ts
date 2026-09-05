@@ -17,6 +17,7 @@ import {
   removePlayer,
 } from '@/lib/game-engine';
 import { judgeRound, noWinnerVerdict } from '@/lib/ai-judge';
+import { JUDGING_LOCK_TTL_MS } from '@/lib/judge-core';
 import { EMOTE_IDS } from '@/lib/emotes';
 import { filterText } from '@/lib/word-filter';
 import type { Submission, AvatarId, ChatMessage, GameRoom } from '@/types/game';
@@ -682,13 +683,13 @@ async function triggerJudge(code: string) {
   const room = await getRoom(code);
   if (!room || room.phase !== 'judging') return;
 
-  // Distributed lock — prevent double-judging if after() fires more than once. TTL is kept
-  // comfortably above the judge's own deadline (22 s at a full table, shared with the ~1 s retry if the
-  // API rejects structured outputs — see JUDGING_LOCK_TTL_MS in judge-core.ts) but short
+  // Distributed lock — prevent double-judging if after() fires more than once. The TTL
+  // (JUDGING_LOCK_TTL_MS, 30 s) is kept comfortably above the judge's own deadline (22 s at a
+  // full table, shared with the ~1 s retry if the API rejects structured outputs) but short
   // enough that, if the function is killed mid-judge, the lock clears quickly so the
   // kick-judge watchdog can recover.
   const lockKey = `lock:judging:${code}:${room.round}`;
-  const acquired = await acquireLock(lockKey, 30);
+  const acquired = await acquireLock(lockKey, JUDGING_LOCK_TTL_MS / 1000);
   if (!acquired) return; // Another instance already handling this round
 
   if (!room.currentChallenge) {
@@ -726,7 +727,9 @@ async function triggerJudge(code: string) {
   // Claude call above stays outside the lock so it never blocks other writers.
   await withRoomLock(code, async () => {
     const freshRoom = await getRoom(code);
-    if (!freshRoom || freshRoom.phase !== 'judging') return;
+    // Phase AND round: a judge run that somehow outlived the lock must never apply a stale
+    // round's verdict to a later round that happens to be in judging.
+    if (!freshRoom || freshRoom.phase !== 'judging' || freshRoom.round !== room.round) return;
     const updated = applyVerdict(freshRoom, verdict);
     await setRoom(updated);
     await broadcastRoom(updated);
