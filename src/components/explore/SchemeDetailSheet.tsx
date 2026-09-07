@@ -7,6 +7,8 @@ import { schemeDetailImage } from '@/lib/scheme-details';
 interface Props {
   schemeId: string;
   schemeName: string;
+  /** Devanagari name — the infographics are English-only, so the header carries it. */
+  schemeHi?: string;
   onClose: () => void;
 }
 
@@ -25,7 +27,7 @@ const C = {
  * phone the page is read top-to-bottom at full width, on a desktop it is centred with a
  * readable max width. `priority` is deliberately off — these are ~140 KB each and only ever
  * fetched when someone opens this sheet. */
-export default function SchemeDetailSheet({ schemeId, schemeName, onClose }: Props) {
+export default function SchemeDetailSheet({ schemeId, schemeName, schemeHi, onClose }: Props) {
   const src = schemeDetailImage(schemeId);
   const [loaded, setLoaded] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -73,6 +75,14 @@ export default function SchemeDetailSheet({ schemeId, schemeName, onClose }: Pro
           }}>
             {schemeName}
           </p>
+          {schemeHi && (
+            <p style={{
+              fontFamily: 'var(--font-devanagari),sans-serif', fontSize: 13, fontWeight: 600,
+              color: C.saffron, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }}>
+              {schemeHi}
+            </p>
+          )}
         </div>
         <button
           ref={closeRef}
