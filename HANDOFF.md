@@ -1,11 +1,17 @@
 # Session Handoff — Full Context & Thought Process
 
+> **This is a snapshot, not a live document.** It records the reasoning of the sessions that
+> wrote it and is deliberately not kept in step with the code. Where it disagrees with
+> `CLAUDE.md` or with the source, **they are right and this is out of date** — read it for the
+> *why* behind past decisions, never as a description of how things currently work.
+
 This document carries the **complete reasoning** behind recent work so a fresh Claude Code
 session (on any account) can resume with the same mental model the previous session had —
 not just *what* changed, but *why*, what was tried and rejected, and how things were verified.
 
-Read order for a new session: **this file → `CLAUDE.md` → `AGENTS.md`**.
-- `CLAUDE.md` = the standing developer guide (architecture, file map, env vars, bug history #1–#22).
+Read order for a new session: **`CLAUDE.md` → `AGENTS.md` → this file** (the standing guide
+first, since it is the one that is current).
+- `CLAUDE.md` = the standing developer guide (architecture, file map, env vars, bug history).
 - `AGENTS.md` = a warning that this is a **modified Next.js (v16, Turbopack)** with breaking
   changes; read `node_modules/next/dist/docs/` before writing Next.js code.
 - This file = the narrative + reasoning that commit messages and `CLAUDE.md` don't fully capture.

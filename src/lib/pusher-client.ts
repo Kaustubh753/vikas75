@@ -6,7 +6,7 @@ let pusherClientInstance: PusherClient | null = null;
 // and because this runs inside a component effect that exception takes the whole screen down to
 // the error boundary ("Something broke") rather than degrading. Return null when unconfigured so
 // callers skip realtime and fall back to their existing GET poll.
-export function isPusherConfigured(): boolean {
+function isPusherConfigured(): boolean {
   return !!process.env.NEXT_PUBLIC_PUSHER_KEY && !!process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
 }
 

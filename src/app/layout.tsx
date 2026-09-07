@@ -44,9 +44,12 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+// data-scroll-behavior on <html>: Next 16 stopped overriding CSS `scroll-behavior` during
+// navigation. Without this opt-in, globals.css's `html { scroll-behavior: smooth }` applies to
+// route changes too, so every navigation animates its scroll back to the top.
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className={`${bebas.variable} ${inter.variable} ${devanagari.variable} ${yatra.variable} ${pressStart.variable}`}>
         {/* Tricolour strip — fixed, top of every page only */}
         <div style={{

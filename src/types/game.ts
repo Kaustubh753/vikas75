@@ -108,7 +108,6 @@ export interface GameRoom {
   submissions: Record<string, Submission>;
   lastVerdict: JudgeVerdict | null;
   timerEndsAt: number | null;
-  cardSetId: string;
   createdAt: number;
   messages: ChatMessage[]; // last 20 chat messages
   usedChallengeIds: string[]; // tracks which challenge cards have been drawn this game
@@ -117,9 +116,21 @@ export interface GameRoom {
                           // any snapshot older than what they already have (stale-poll guard)
 }
 
-// Pusher event map — event names must match server triggers in api/game/route.ts exactly
+/**
+ * What clients actually receive on `game:room-updated` — never a raw `GameRoom`.
+ * `stripForBroadcast` (lib/pusher.ts) removes the host credential and the per-player token
+ * map, and empties every hand, so the payload is structurally a room minus its secrets.
+ */
+export type BroadcastRoom = Omit<GameRoom, 'hostId' | 'tokens'>;
+
+/**
+ * Pusher event names and their payloads. `triggerEvent` is generic over this map, so an event
+ * name that doesn't appear here — or a payload that doesn't match one — is a compile error
+ * rather than a message no client is listening for. (It used to be an unreferenced type whose
+ * comment merely asked that the names be kept in step by hand.)
+ */
 export type PusherEventMap = {
-  'game:room-updated': GameRoom;
+  'game:room-updated': BroadcastRoom;
   'emote': EmoteEvent;        // NOTE: emote fires without 'game:' prefix (see route.ts emote handler)
   'game:chat': ChatMessage;
   'music:toggle': { muted: boolean };

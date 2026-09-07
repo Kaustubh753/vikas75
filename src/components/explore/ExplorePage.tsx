@@ -80,8 +80,8 @@ export default function ExplorePage({ schemes }: Props) {
           borderRight: `1px solid ${C.w14}`,
           transition: 'color .15s',
         }}
-          onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = C.w70}
-          onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = C.w40}
+          onMouseEnter={e => e.currentTarget.style.color = C.w70}
+          onMouseLeave={e => e.currentTarget.style.color = C.w40}
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M9 2L4 7L9 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
@@ -178,8 +178,8 @@ function DeckTab({ schemes, query, onQuery, total, onOpen }: {
               fontFamily: 'var(--font-inter),sans-serif',
               transition: 'border-color .15s',
             }}
-            onFocus={e => (e.target as HTMLInputElement).style.borderColor = C.saffron}
-            onBlur={e => (e.target as HTMLInputElement).style.borderColor = C.w14}
+            onFocus={e => e.target.style.borderColor = C.saffron}
+            onBlur={e => e.target.style.borderColor = C.w14}
           />
           {query && (
             <button onClick={() => onQuery('')} aria-label="Clear search" style={{
@@ -393,8 +393,8 @@ function CardModal({ card, onClose }: { card: SchemeCard; onClose: () => void })
               fontSize: 15, lineHeight: 1,
               transition: 'background .15s',
             }}
-            onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'rgba(250,248,240,0.13)'}
-            onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'rgba(250,248,240,0.07)'}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(250,248,240,0.13)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(250,248,240,0.07)'}
           >×</button>
 
           {/* ID */}

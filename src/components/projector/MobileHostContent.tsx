@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Avatar from '@/lib/avatars';
+import { rankPlayers } from '@/lib/standings';
 import type { GameRoom } from '@/types/game';
 
 // Compact, portrait-native view of the live game state for a host running the game from a
@@ -42,7 +43,7 @@ export default function MobileHostContent({ room }: { room: GameRoom }) {
     return () => clearInterval(t);
   }, [room.phase, room.timerEndsAt]);
 
-  const leaderboard = [...players].sort((a, b) => b.roundsWon - a.roundsWon || b.score - a.score);
+  const { players: leaderboard, ranks, isLeader } = rankPlayers(players);
 
   const ChallengeBlock = () =>
     challenge ? (
@@ -77,14 +78,20 @@ export default function MobileHostContent({ room }: { room: GameRoom }) {
 
   const LeaderboardRows = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {leaderboard.map((p, i) => (
+      {leaderboard.map((p, i) => {
+        const leader = isLeader(p);
+        return (
         <div key={p.id} style={{ ...card, display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px' }}>
-          <span style={{ fontFamily: 'var(--font-bebas)', fontSize: 20, width: 22, color: i === 0 ? '#FF9933' : 'rgba(255,255,255,0.5)' }}>{i + 1}</span>
+          <span style={{ fontFamily: 'var(--font-bebas)', fontSize: 20, width: 22, color: leader ? '#FF9933' : 'rgba(255,255,255,0.5)' }}>{ranks[i]}</span>
           <div style={{ width: 30, height: 30, borderRadius: 7, overflow: 'hidden', flexShrink: 0 }}><Avatar id={p.avatarId} size={30} /></div>
           <span style={{ flex: 1, fontSize: 15, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
-          <span style={{ fontFamily: 'var(--font-bebas)', fontSize: 20, color: i === 0 ? '#FF9933' : '#fff' }}>{p.score}</span>
+          {(p.roundsWon ?? 0) > 0 && (
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>🏆 {p.roundsWon}</span>
+          )}
+          <span style={{ fontFamily: 'var(--font-bebas)', fontSize: 20, color: leader ? '#FF9933' : '#fff' }}>{p.score}</span>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 

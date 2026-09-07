@@ -1,4 +1,6 @@
-export type TrackName = 'lobby' | 'challenge' | 'ticking' | 'drumroll' | 'winner';
+// Lobby music is NOT here — it has its own looping manager (music-manager.ts) with fades and
+// a persisted toggle. This manager plays one-shot phase stings.
+export type TrackName = 'challenge' | 'ticking' | 'drumroll' | 'winner';
 
 /**
  * Sound-effects manager for the projector phase stings (challenge / ticking /
@@ -53,7 +55,7 @@ class MusicManager {
       this.playSynth(name);
       return;
     }
-    audio.loop = name === 'ticking' || name === 'lobby';
+    audio.loop = name === 'ticking';
     audio.volume = 0.4;
     this.currentAudio = audio;
 
@@ -80,13 +82,6 @@ class MusicManager {
     }
     this.stopSynth();
     this.current = null;
-  }
-
-  get muted() { return this._muted; }
-
-  toggleMute(): boolean {
-    this.setMuted(!this._muted);
-    return this._muted;
   }
 
   /**
@@ -127,9 +122,6 @@ class MusicManager {
         // Soft clock tick once per second until the phase changes.
         this.note(1100, 'square', 0, 0.04, 0.045);
         this.tickInterval = setInterval(() => this.note(1100, 'square', 0, 0.04, 0.045), 1000);
-        break;
-      case 'lobby':
-        // Lobby music has a real mp3 and its own manager — no synth equivalent.
         break;
     }
   }

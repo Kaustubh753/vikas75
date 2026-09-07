@@ -5,31 +5,21 @@ import Confetti from '@/components/ui/Confetti';
 import SocialLinks from '@/components/ui/SocialLinks';
 import LogoLockup from '@/components/ui/LogoLockup';
 import { getMusicManager } from '@/lib/music';
+import { rankPlayers } from '@/lib/standings';
 import type { GameRoom } from '@/types/game';
 
 interface Props { room: GameRoom }
 
 export default function ProjectorGameOver({ room }: Props) {
-  // Overall winner is whoever won the most rounds; total points break ties, then a stable
-  // id tiebreak so ordering isn't decided by arbitrary insertion order.
-  const players = Object.values(room.players).sort(
-    (a, b) => (b.roundsWon ?? 0) - (a.roundsWon ?? 0) || b.score - a.score || a.id.localeCompare(b.id),
-  );
+  // Most rounds won takes the game; points break ties, then a stable id tiebreak so the order
+  // never depends on insertion order. `leaders` holds everyone the tiebreak can't actually
+  // separate, so a dead heat is crowned as joint champions instead of decided by id.
+  const { players, leaders: champions, tied: isTie } = rankPlayers(Object.values(room.players));
   const [first, second, third] = players;
   const wins = (p: { roundsWon?: number }) => {
     const w = p.roundsWon ?? 0;
     return `${w} ${w === 1 ? 'win' : 'wins'}`;
   };
-
-  // A genuine tie for first: more than one player shares the leader's exact round-win count
-  // AND total points (the id tiebreak above can't separate them, so don't crown one alone).
-  // Requires the leader to have actually scored — an all-zero washout (every round a no-winner)
-  // isn't a "tie" to celebrate, so it falls through to the normal podium.
-  const champions = first
-    ? players.filter(p => (p.roundsWon ?? 0) === (first.roundsWon ?? 0) && p.score === first.score)
-    : [];
-  const hasLead = !!first && ((first.roundsWon ?? 0) > 0 || first.score > 0);
-  const isTie = hasLead && champions.length > 1;
   const rest = players.filter(p => !champions.includes(p));
 
   useEffect(() => {

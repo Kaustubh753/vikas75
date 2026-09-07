@@ -1,5 +1,5 @@
 import Pusher from 'pusher';
-import type { GameRoom, SchemeCard } from '@/types/game';
+import type { BroadcastRoom, GameRoom, PusherEventMap, SchemeCard } from '@/types/game';
 
 // Server-side only — never import this file in client components.
 // Client components must import from @/lib/pusher-client instead.
@@ -43,7 +43,7 @@ function stripCard(card: SchemeCard): SchemeCard {
 
 // Strip large data from room before sending via Pusher (free tier: 10 KB/message limit).
 // Players get full room (including hands) via GET /api/game on initial load.
-function stripForBroadcast(room: GameRoom) {
+function stripForBroadcast(room: GameRoom): BroadcastRoom {
   // Never broadcast secrets: the host credential or per-player tokens.
   const { hostId: _h, tokens: _t, ...safe } = room;
   void _h; void _t;
@@ -80,7 +80,11 @@ function stripForBroadcast(room: GameRoom) {
 // truth: every client also polls GET /api/game as a fallback, and all state is already
 // persisted to Redis before we broadcast. So a Pusher failure (outage, rate limit,
 // blocked egress) must never turn a successful mutation into a 500 — we log and move on.
-export async function triggerEvent(channel: string, event: string, data: unknown): Promise<void> {
+export async function triggerEvent<E extends keyof PusherEventMap>(
+  channel: string,
+  event: E,
+  data: PusherEventMap[E],
+): Promise<void> {
   if (!pusherServer) {
     if (!warnedNoPusher) {
       warnedNoPusher = true;

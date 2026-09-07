@@ -17,6 +17,7 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npx tsc --noEmit
-      # Plain-node unit tests for the AI judge's pure logic, including the position-bias oracle.
-      - run: npm run test:judge
+      # Plain-node unit tests for the pure logic: the AI judge (with its position-bias oracle)
+      # and the shared standings ranking (with its board-agrees-with-podium oracle).
+      - run: npm test
       - run: npm run build

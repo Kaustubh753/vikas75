@@ -1,21 +1,17 @@
 'use client';
 import { motion } from 'framer-motion';
 import Avatar from '@/lib/avatars';
+import { rankPlayers } from '@/lib/standings';
 import type { GameRoom } from '@/types/game';
 
 interface Props { room: GameRoom }
 
 export default function ProjectorBetweenRounds({ room }: Props) {
-  const players = Object.values(room.players).sort((a, b) => b.score - a.score);
+  // Ranked by round wins first, exactly like the podium this game ends on — a board that
+  // ordered on points alone could show a leader who then loses the game with no explanation.
+  const { players, ranks, isLeader } = rankPlayers(Object.values(room.players));
   const roundWinner = room.lastVerdict ? room.players[room.lastVerdict.winnerId] : null;
   const n = players.length;
-
-  // Standard competition ranking — players on the same score share a rank (1,1,3,…) so a tie
-  // isn't shown as an arbitrary 1st/2nd. Anyone on the (non-zero) top score is a co-leader.
-  const topScore = players[0]?.score ?? 0;
-  const ranks: number[] = [];
-  players.forEach((p, i) => { ranks[i] = i > 0 && players[i - 1].score === p.score ? ranks[i - 1] : i + 1; });
-  const isLeader = (score: number) => topScore > 0 && score === topScore;
 
   // Compress leaderboard rows when there are many players
   const rowPy  = n <= 6  ? 14 : n <= 10 ? 10 : 7;
@@ -77,7 +73,7 @@ export default function ProjectorBetweenRounds({ room }: Props) {
       {/* Full leaderboard */}
       <div style={{ width: '100%', maxWidth: 'clamp(480px, 55vw, 900px)' }} className="space-y-2">
         {players.map((p, i) => {
-          const leader = isLeader(p.score);
+          const leader = isLeader(p);
           return (
           <motion.div
             key={p.id}
@@ -100,6 +96,14 @@ export default function ProjectorBetweenRounds({ room }: Props) {
                   style={{ fontSize: rowFs, fontWeight: 500 }}>
               {p.name}
             </span>
+            {/* Round wins are what the order is built on, so they have to be visible — without
+                them a player sitting above someone with more points reads as a bug. */}
+            {(p.roundsWon ?? 0) > 0 && (
+              <span className="text-white/55 font-[family-name:var(--font-inter)]"
+                    style={{ fontSize: rowFs * 0.8 }}>
+                🏆 {p.roundsWon}
+              </span>
+            )}
             <span className={`font-[family-name:var(--font-bebas)] ${leader ? 'text-[#FFD700]' : 'text-white'}`}
                   style={{ fontSize: rankFs }}>
               {p.score}

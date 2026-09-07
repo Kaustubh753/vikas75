@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { after } from 'next/server';
 import { getRoom, setRoom, deleteRoom, checkRoomCreationLimit, checkRateLimit, acquireLock, releaseLock } from '@/lib/redis';
@@ -18,7 +18,7 @@ import {
 } from '@/lib/game-engine';
 import { judgeRound, noWinnerVerdict } from '@/lib/ai-judge';
 import { JUDGING_LOCK_TTL_MS } from '@/lib/judge-core';
-import { EMOTE_IDS } from '@/lib/emotes';
+import { isEmoteId } from '@/lib/emotes';
 import { filterText } from '@/lib/word-filter';
 import type { Submission, AvatarId, ChatMessage, GameRoom } from '@/types/game';
 
@@ -452,7 +452,7 @@ export async function POST(req: NextRequest) {
           code: string; playerId: string; playerName: string; avatarId: AvatarId; emote: string; token?: string;
         };
         // Single source of truth — a hardcoded copy here would silently drift when emotes change.
-        if (!emote || !(EMOTE_IDS as string[]).includes(emote)) return NextResponse.json({ ok: true });
+        if (!isEmoteId(emote)) return NextResponse.json({ ok: true });
         const emoteRoom = await getRoom(code?.toUpperCase());
         const emotePlayer = emoteRoom?.players[playerId];
         if (!emotePlayer) return NextResponse.json({ ok: true }); // silently drop unknown senders

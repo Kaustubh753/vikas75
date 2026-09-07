@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { listActiveRooms, getRoom, checkRateLimit } from '@/lib/redis';
 import { getIp } from '@/lib/request-ip';

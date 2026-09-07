@@ -6,12 +6,26 @@ import LogoLockup from '@/components/ui/LogoLockup';
 import Avatar from '@/lib/avatars';
 import type { GameRoom } from '@/types/game';
 
+/** Coarse age of a room, for spotting the stale ones that outlive their game. Rooms are
+ *  reaped when idle and expire on a 24 h Redis TTL, so hours is as precise as this needs. */
+function roomAge(ms: number): string {
+  if (!(ms > 0)) return 'just now';
+  const mins = Math.floor(ms / 60_000);
+  if (mins < 1) return '<1 min';
+  if (mins < 60) return `${mins} min`;
+  const hrs = Math.floor(mins / 60);
+  return hrs < 24 ? `${hrs}h ${mins % 60}m` : `${Math.floor(hrs / 24)}d`;
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [rooms, setRooms] = useState<GameRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [endingRoom, setEndingRoom] = useState<string | null>(null);
+  // Stamped when the list is fetched (every 10 s), not read at render: `Date.now()` in the
+  // render body is impure and would make room ages differ between renders of the same data.
+  const [fetchedAt, setFetchedAt] = useState(0);
 
   const fetchRooms = useCallback(async () => {
     const creds = sessionStorage.getItem('vikas75_admin_creds');
@@ -30,6 +44,7 @@ export default function AdminDashboard() {
       }
       const data = await res.json();
       setRooms(data.rooms ?? []);
+      setFetchedAt(Date.now());
     } catch {
       setError('Failed to load rooms');
     }
@@ -131,6 +146,7 @@ export default function AdminDashboard() {
                       </div>
                       <p className="text-white/50 text-sm font-[family-name:var(--font-inter)]">
                         Host: {room.hostName} · Round {room.round}/{room.totalRounds} · {players.length} players
+                        {room.createdAt ? ` · open ${roomAge(fetchedAt - room.createdAt)}` : ''}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">

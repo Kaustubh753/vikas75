@@ -10,7 +10,7 @@ export default function AdminPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  async function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     setError('');
