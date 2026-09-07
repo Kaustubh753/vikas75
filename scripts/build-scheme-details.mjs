@@ -22,10 +22,12 @@ if (!dir) {
 }
 
 const OUT = 'public/scheme-details';
-// 900px wide keeps the infographics' small body text legible on a 2×-DPR phone; q72 is the
-// point where these gradient-heavy pages stop shrinking without visible banding (~160 KB each).
-const WIDTH = 900;
-const QUALITY = 72;
+// No downscale: the source PDF is already a compressed export whose pages are 921×1650, so
+// that is the fidelity ceiling — shrinking further only threw away text sharpness. q88 keeps
+// the re-encode close to the source (~225 KB each). The sheet serves these straight from the
+// CDN (`unoptimized`), so this file IS what the phone downloads; don't shrink it to save repo
+// weight without checking the small body text still reads when zoomed.
+const QUALITY = 88;
 
 const { map } = JSON.parse(fs.readFileSync('context/scheme_details_map.json', 'utf8'));
 fs.mkdirSync(OUT, { recursive: true });
@@ -37,7 +39,7 @@ for (const [page, id] of Object.entries(map)) {
     console.error(`missing source page for ${id}: ${src}`);
     process.exit(1);
   }
-  const buf = await sharp(src).resize({ width: WIDTH, withoutEnlargement: true }).webp({ quality: QUALITY }).toBuffer();
+  const buf = await sharp(src).webp({ quality: QUALITY, effort: 6 }).toBuffer();
   fs.writeFileSync(path.join(OUT, `${id}.webp`), buf);
   bytes += buf.length;
 }
