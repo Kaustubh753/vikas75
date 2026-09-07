@@ -2,6 +2,8 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
+import SchemeDetailSheet from '@/components/explore/SchemeDetailSheet';
+import { hasSchemeDetail } from '@/lib/scheme-details';
 import { getSchemeCardImage } from '@/lib/cards';
 
 // ── Types ─────────────────────────────────────────────────────
@@ -297,6 +299,10 @@ function CardTile({ card, onOpen }: { card: SchemeCard; onOpen: (s: SchemeCard) 
 function CardModal({ card, onClose }: { card: SchemeCard; onClose: () => void }) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const imgSrc = getSchemeCardImage(card.id);
+  const [showGuide, setShowGuide] = useState(false);
+  // Not every deck card has an infographic in the source deck — hide the entry point rather
+  // than open a sheet with nothing in it.
+  const guideAvailable = hasSchemeDetail(card.id);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -430,8 +436,32 @@ function CardModal({ card, onClose }: { card: SchemeCard; onClose: () => void })
               ))}
             </ul>
           </div>
+
+          {guideAvailable && (
+            <button
+              onClick={() => setShowGuide(true)}
+              style={{
+                marginTop: 18, width: '100%', height: 48, borderRadius: 10, cursor: 'pointer',
+                background: 'rgba(255,153,51,0.12)', border: `1px solid rgba(255,153,51,0.45)`,
+                color: C.saffron, fontFamily: 'var(--font-bebas),sans-serif',
+                fontSize: 18, letterSpacing: '0.12em',
+              }}
+            >
+              Full scheme guide →
+            </button>
+          )}
         </div>
       </motion.div>
+
+      <AnimatePresence>
+        {showGuide && (
+          <SchemeDetailSheet
+            schemeId={card.id}
+            schemeName={card.name}
+            onClose={() => setShowGuide(false)}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
