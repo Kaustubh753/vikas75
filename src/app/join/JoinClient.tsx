@@ -8,6 +8,7 @@ import IntroAnimation from '@/components/intro/IntroAnimation';
 import LogoLockup from '@/components/ui/LogoLockup';
 import JoinTurnAnimation, { type TurnResult } from '@/components/join/JoinTurnAnimation';
 import { HANDOFF_KEY, prefersReducedMotion, type Rect, type TurnHandoff } from '@/components/join/turn-timeline';
+import { loadSeat, saveSeat, clearSeat } from '@/lib/seat-storage';
 
 /** Smallest the join form is allowed to shrink to. Past this it stops scaling and the page is
  *  allowed to scroll instead — a form too small to read is worse than a short scroll. */
@@ -23,6 +24,17 @@ const JOIN_TIMEOUT_MS = 8_000;
 export default function JoinClient({ initialCode }: { initialCode: string }) {
   const router = useRouter();
   const [name, setName] = useState('');
+  // Prefill the name for a returning player — this room's saved seat first, then whatever
+  // name they last played under anywhere. Coming back via the QR then becomes: scan, tap
+  // Join, land in your old seat with your score and hand intact.
+  useEffect(() => {
+    setName((current) => {
+      if (current) return current;
+      try {
+        return loadSeat(initialCode)?.name || localStorage.getItem('vikas75_playerName') || '';
+      } catch { return ''; }
+    });
+  }, [initialCode]);
   const [code, setCode] = useState(initialCode);
   // 'a0' = "auto" — if the player doesn't pick, the server assigns a revolving default
   // so a lobby of players gets distinct avatars instead of all defaulting to the same one.
@@ -131,8 +143,16 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
     const trimmedCode = code.replace(/\s/g, '');
     if (!name.trim() || trimmedCode.length !== 4) return;
     setLoading(true); setError('');
+    // A returning player (same room, same name as this device's saved seat) presents their
+    // old playerId + token, so the server's idempotent-rejoin branch hands back their exact
+    // seat — score, hand, joinedRound — instantly and in ANY phase, mid-round included. A
+    // different name is a deliberate fresh identity, so it gets a brand-new id instead.
+    const savedSeat = loadSeat(trimmedCode);
+    const returning = !!savedSeat && savedSeat.name.trim().toLowerCase() === name.trim().toLowerCase();
     // Stable id across retries so the server treats them as the same joiner.
-    const playerId = crypto.randomUUID();
+    let playerId = returning && savedSeat ? savedSeat.playerId : crypto.randomUUID();
+    let joinToken: string | undefined = returning && savedSeat ? savedSeat.token : undefined;
+    let retriedFresh = false;
 
     // Deal the card. Only on the first attempt — an auto-retry while a round finishes is a
     // quiet wait, not a fresh gesture — and never when the player asked not to be moved.
@@ -168,7 +188,7 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
       try {
         const res = await fetch('/api/game', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'join', code: trimmedCode, playerId, playerName: name.trim(), avatarId }),
+          body: JSON.stringify({ action: 'join', code: trimmedCode, playerId, playerName: name.trim(), avatarId, ...(joinToken ? { token: joinToken } : {}) }),
           signal: ctl.signal,
         });
         const data = await res.json();
@@ -184,6 +204,13 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
           const assignedAvatar = (data.room?.players?.[effectiveId]?.avatarId as AvatarId) || (avatarId === 'a0' ? 'a1' : avatarId);
           localStorage.setItem('vikas75_avatarId', assignedAvatar);
           localStorage.setItem('vikas75_roomCode', trimmedCode);
+          // The per-room seat record — the durable credential this device reconnects with.
+          saveSeat(trimmedCode, {
+            playerId: effectiveId,
+            token: (data.token as string) || joinToken || '',
+            name: name.trim(),
+            avatarId: assignedAvatar,
+          });
           try {
             const myHand = data.room?.players?.[effectiveId]?.hand;
             if (Array.isArray(myHand) && myHand.length) {
@@ -209,6 +236,18 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
           retryRef.current = setTimeout(attempt, 4000);
           return;
         }
+        // Our saved seat credential was rejected (the seat's token has been rotated — e.g. a
+        // name-based reclaim from another device reissued it). The record is dead: drop it and
+        // retry once as a brand-new joiner; the stale-seat reclaim can still recover the seat.
+        if (res.status === 403 && joinToken && !retriedFresh) {
+          retriedFresh = true;
+          clearSeat(trimmedCode);
+          playerId = crypto.randomUUID();
+          joinToken = undefined;
+          void attempt();
+          return;
+        }
+        if (res.status === 404) clearSeat(trimmedCode); // room is gone — so is the seat
         // "No room called V7KS" — a refused code is named in the game's own terms; anything
         // else the server has to say, it says itself.
         refuse(res.status === 404

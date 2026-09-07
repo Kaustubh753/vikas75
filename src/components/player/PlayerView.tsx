@@ -14,11 +14,14 @@ import PlayerLobby from '@/components/player/PlayerLobby';
 import PlayerChallengeReveal from '@/components/player/PlayerChallengeReveal';
 import PlayerSubmit from '@/components/player/PlayerSubmit';
 import PlayerWaiting from '@/components/player/PlayerWaiting';
+import PlayerScorecard from '@/components/player/PlayerScorecard';
+import PlayerGameOver from '@/components/player/PlayerGameOver';
 import Avatar from '@/lib/avatars';
 import EmotePanel from '@/components/player/EmotePanel';
 import ChatPanel from '@/components/player/ChatPanel';
 import { getLobbyMusic } from '@/lib/music-manager';
 import { staleRoom } from '@/lib/room-state';
+import { loadSeat, saveSeat, clearSeat, seatToken } from '@/lib/seat-storage';
 import type { GameRoom, SchemeCard, EmoteId, AvatarId, ChatMessage } from '@/types/game';
 
 interface Props {
@@ -64,9 +67,30 @@ export default function PlayerView({ code }: Props) {
   useEffect(() => {
     let pid = '', pname = '', avid: AvatarId = 'a1', soundOn = false;
     try {
-      pid = localStorage.getItem('vikas75_playerId') ?? '';
-      pname = localStorage.getItem('vikas75_playerName') ?? '';
-      avid = (localStorage.getItem('vikas75_avatarId') as AvatarId) ?? 'a1';
+      // THIS room's seat record wins over the shared legacy keys — the legacy keys hold
+      // whichever room was joined last, so without the per-room record a player who visited
+      // another room (or scanned a friend's QR) came back here as the wrong identity.
+      const seat = loadSeat(code);
+      if (seat) {
+        pid = seat.playerId;
+        pname = seat.name || (localStorage.getItem('vikas75_playerName') ?? '');
+        avid = (seat.avatarId as AvatarId) || 'a1';
+        // Sync the legacy keys so older readers (and the join-form prefill) agree with us.
+        localStorage.setItem('vikas75_playerId', pid);
+        localStorage.setItem('vikas75_token', seat.token);
+        if (pname) localStorage.setItem('vikas75_playerName', pname);
+        localStorage.setItem('vikas75_avatarId', avid);
+        localStorage.setItem('vikas75_roomCode', code);
+      } else {
+        pid = localStorage.getItem('vikas75_playerId') ?? '';
+        pname = localStorage.getItem('vikas75_playerName') ?? '';
+        avid = (localStorage.getItem('vikas75_avatarId') as AvatarId) ?? 'a1';
+        // Self-heal: seed this room's record from the legacy keys — but only when they were
+        // written FOR this room, or we'd stamp another room's token onto this one.
+        if (pid && pname && (localStorage.getItem('vikas75_roomCode') ?? '').toUpperCase() === code.toUpperCase()) {
+          saveSeat(code, { playerId: pid, token: localStorage.getItem('vikas75_token') ?? '', name: pname, avatarId: avid });
+        }
+      }
       // Single shared "sound on" preference drives both lobby music and SFX.
       soundOn = localStorage.getItem('vikas75-sound-on') === 'true';
     } catch {
@@ -103,6 +127,7 @@ export default function PlayerView({ code }: Props) {
       localStorage.removeItem('vikas75_roomCode');
       localStorage.removeItem(`vikas75_hand_${code}`);
     } catch { /* storage blocked — nothing persisted to clear */ }
+    clearSeat(code);
     if (message) toast(message, { icon: '🏁' });
     router.replace('/');
   }, [router, code]);
@@ -110,7 +135,7 @@ export default function PlayerView({ code }: Props) {
   const fetchRoom = useCallback(async () => {
     try {
       const pid = localStorage.getItem('vikas75_playerId') ?? '';
-      const tok = localStorage.getItem('vikas75_token') ?? '';
+      const tok = seatToken(code);
       const res = await fetch(`/api/game?code=${code}${pid ? `&me=${encodeURIComponent(pid)}` : ''}`,
         tok ? { headers: { 'x-player-token': tok } } : undefined);
       if (!res.ok) {
@@ -129,8 +154,10 @@ export default function PlayerView({ code }: Props) {
         clearSessionAndGoHome();
         return;
       }
-      // Rejoining a finished game — redirect with toast
-      if (!toastedJoin.current && r.phase === 'game-over') {
+      // A finished game: a visitor who was never in it gets redirected with a toast, but a
+      // seated player stays — refreshing on the final screen used to eject them home before
+      // they could see the podium or share the result card.
+      if (!toastedJoin.current && r.phase === 'game-over' && !(pid && r.players[pid])) {
         clearSessionAndGoHome('That game has ended. Start a new one!');
         return;
       }
@@ -260,7 +287,7 @@ export default function PlayerView({ code }: Props) {
         body: JSON.stringify({
           action: 'submit',
           code,
-          token: localStorage.getItem('vikas75_token') ?? '',
+          token: seatToken(code),
           auto,
           submission: {
             playerId,
@@ -302,7 +329,7 @@ export default function PlayerView({ code }: Props) {
           playerName,
           avatarId,
           emote: emoteId,
-          token: localStorage.getItem('vikas75_token') ?? '',
+          token: seatToken(code),
         }),
       });
     } catch { /* fire-and-forget — emotes are non-critical */ }
@@ -316,7 +343,7 @@ export default function PlayerView({ code }: Props) {
         body: JSON.stringify({
           action: 'chat',
           code,
-          token: localStorage.getItem('vikas75_token') ?? '',
+          token: seatToken(code),
           message: { playerId, playerName, avatarId, text },
         }),
       });
@@ -333,7 +360,7 @@ export default function PlayerView({ code }: Props) {
       fetch('/api/game', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'heartbeat', code, playerId, token: localStorage.getItem('vikas75_token') ?? '' }),
+        body: JSON.stringify({ action: 'heartbeat', code, playerId, token: seatToken(code) }),
         keepalive: true,
       }).catch(() => {});
     };
@@ -344,7 +371,7 @@ export default function PlayerView({ code }: Props) {
     // sendBeacon on tab close / navigate away
     const onUnload = () => {
       const blob = new Blob(
-        [JSON.stringify({ action: 'heartbeat', code, playerId, token: localStorage.getItem('vikas75_token') ?? '' })],
+        [JSON.stringify({ action: 'heartbeat', code, playerId, token: seatToken(code) })],
         { type: 'application/json' }
       );
       navigator.sendBeacon?.('/api/game', blob);
@@ -518,39 +545,12 @@ export default function PlayerView({ code }: Props) {
             <p className={`font-[family-name:var(--font-inter)] text-sm font-semibold ${iWon ? 'text-[#138808]' : 'text-white/50'}`}>
               {iWon ? '🎉 You won this round!' : 'Better luck next round!'}
             </p>
+            <PlayerScorecard verdict={verdict} playerId={playerId} />
           </div>
         );
       }
       case 'game-over':
-        return (
-          <div className="flex flex-col items-center justify-center gap-4 min-h-[50vh] px-4">
-            <p className="text-4xl">🎉</p>
-            <p className="text-white font-[family-name:var(--font-bebas)] text-3xl tracking-wide text-center">
-              Khel Khatam!
-            </p>
-            <p className="text-white/50 text-sm text-center font-[family-name:var(--font-inter)]">
-              Thanks for playing Vikas 75!
-            </p>
-            <button
-              onClick={() => clearSessionAndGoHome()}
-              className="mt-4 px-8 h-14 bg-[#FF9933] hover:bg-[#e8872a] text-[#08070f] font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95"
-            >
-              Play Again →
-            </button>
-            <a
-              href="/explore"
-              className="flex items-center gap-1.5 font-[family-name:var(--font-inter)] text-xs font-medium tracking-wide transition-colors"
-              style={{ color: 'rgba(250,248,240,0.38)', textDecoration: 'none' }}
-              onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,153,51,0.8)'}
-              onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(250,248,240,0.38)'}
-            >
-              Explore all 75 schemes
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                <path d="M2 5H8M5.5 2.5L8 5L5.5 7.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </a>
-          </div>
-        );
+        return <PlayerGameOver room={room} playerId={playerId} onExit={() => clearSessionAndGoHome()} />;
       // Standings on the player's own phone, not just the projector.
       case 'between-rounds':
         return <PlayerLeaderboard room={room} playerId={playerId} />;
