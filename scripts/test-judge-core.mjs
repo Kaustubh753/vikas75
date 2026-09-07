@@ -404,11 +404,11 @@ test('budgets grow with the table and stay inside the judging lock', () => {
   assert.equal(deadlineMsFor(20), 22_000);
   assert.equal(deadlineMsFor(40), 22_000);
   assert.ok(deadlineMsFor(10_000) + 3_000 < JUDGING_LOCK_TTL_MS, 'deadline + overhead under the 30 s lock');
-  assert.equal(maxTokensFor(4), 800);
-  assert.equal(maxTokensFor(BRIEF_THRESHOLD), 1_400);
-  assert.equal(maxTokensFor(BRIEF_THRESHOLD + 1), 1_170);
-  assert.equal(maxTokensFor(20), 1_800);
-  assert.equal(maxTokensFor(100), 3_000);
+  assert.equal(maxTokensFor(4), 1_020);
+  assert.equal(maxTokensFor(BRIEF_THRESHOLD), 1_800);
+  assert.equal(maxTokensFor(BRIEF_THRESHOLD + 1), 1_490);
+  assert.equal(maxTokensFor(20), 2_300);
+  assert.equal(maxTokensFor(100), 3_600);
 });
 test('isStructuredOutputRejection only matches the output_config 400', () => {
   assert.equal(isStructuredOutputRejection({ status: 400, message: 'output_config: unsupported' }), true);

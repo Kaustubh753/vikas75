@@ -203,7 +203,7 @@ The judge prompt should explicitly instruct Claude to think like a sharp, witty 
 - Framework: Next.js (hosted on Vercel, free tier)
 - Real-time sync: Pusher (free tier, ap2 Mumbai cluster)
 - Game state storage: Upstash Redis (free tier, ap-south-1 Mumbai)
-- AI Judge: Anthropic Claude (claude-haiku-4-5, called server-side only)
+- AI Judge: Anthropic Claude (claude-sonnet-5, called server-side only)
 - PDF parsing: pdf-parse npm package + Claude API for extraction
 - Styling: Tailwind CSS
 

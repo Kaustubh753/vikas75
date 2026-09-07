@@ -40,12 +40,15 @@ const ON_BRIEF_BY_CHALLENGE: ReadonlyMap<string, ReadonlySet<string>> = new Map(
     .map(([challengeId, ids]) => [challengeId, new Set(ids)]),
 );
 
-// The single hardcoded model string for the judge call. Haiku 4.5 — chosen for cost
-// efficiency (roughly a third of Sonnet-tier pricing; the whole game costs a few cents)
-// at an accepted tradeoff in judging nuance and comment wit. It is on the documented
-// structured-outputs support list, and the plain-JSON degrade below stays as the safety
-// net. Switching tiers is this one constant; never append a date suffix to the id.
-const JUDGE_MODEL = 'claude-haiku-4-5';
+// The single hardcoded model string for the judge call. Sonnet 5 — the cost-efficient
+// Sonnet: newer than Sonnet 4.6 at lower per-token prices (its heavier tokenizer eats part
+// of that, netting ~10–15% cheaper), with stronger judging than Haiku for a few cents more
+// per game. On the documented structured-outputs support list; the plain-JSON degrade below
+// stays as the safety net. Switching models is this one constant; never append a date
+// suffix to the id. Model-specific requirements handled below: thinking must be explicitly
+// DISABLED (Sonnet 5 defaults to adaptive thinking when the param is omitted, which would
+// blow the judge's deadline), and maxTokensFor in judge-core is sized for its tokenizer.
+const JUDGE_MODEL = 'claude-sonnet-5';
 
 /**
  * How a round is judged (the pure parts live in judge-core.ts):
@@ -262,13 +265,14 @@ async function claudeJudge(challenge: ChallengeCard, submissions: Submission[], 
       {
         model: JUDGE_MODEL,
         max_tokens: maxTokens,
-        // The ~1.5k-token system prompt is identical across the three calls and every round.
-        // NOTE: Haiku 4.5's minimum cacheable prefix is 4096 tokens, so on the current model
-        // this prompt silently does NOT cache — cacheRead=0 in the per-call log is expected,
-        // not a bug, and at Haiku input rates the un-cached cost is negligible. The marker is
-        // kept because it is harmless here and re-engages caching automatically if the judge
-        // is ever moved back to a Sonnet/Opus-tier model (minimum 1024).
+        // The ~2k-token system prompt is identical across the three calls and every round,
+        // and Sonnet 5's minimum cacheable prefix (1024 tokens) is comfortably cleared, so it
+        // is marked cacheable; cache_read_input_tokens in the per-call log shows the hit rate.
         system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+        // Sonnet 5 runs ADAPTIVE THINKING when `thinking` is omitted — unbounded extra
+        // latency and output spend the judge's deadline math does not allow. Disable it
+        // explicitly; the reason-before-score fields are the deliberate "thinking" here.
+        thinking: { type: 'disabled' as const },
         messages: [{ role: 'user', content: buildUserMessage(challenge, byLabel, order, onBriefIds) }],
         ...(structured ? { output_config: { format: { type: 'json_schema' as const, schema: CALL_SCHEMA } } } : {}),
       },

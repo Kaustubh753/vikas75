@@ -582,13 +582,15 @@ export function deadlineMsFor(n: number): number {
 }
 
 /**
- * Cap on the reply, not a target: about 100 tokens per answer in full mode (fit, an ≤18-word
- * why, an ≤12-word comment, score, keys) or 70 in brief mode, plus the decider, winner and
- * narrative. About twice the expected reply, so hitting it is a genuine failure signal.
+ * Cap on the reply, not a target: about 130 tokens per answer in full mode (fit, an ≤18-word
+ * why, an ≤12-word comment, score, keys) or 90 in brief mode, plus the decider, winner and
+ * narrative. Sized for Sonnet 5's tokenizer (~30% more tokens for the same text than the
+ * 4.x generation) with roughly 1.5–2× the expected reply, so hitting the cap is a genuine
+ * failure signal, and generous caps cost nothing — the deadline is the real bound.
  */
 export function maxTokensFor(n: number): number {
-  const perAnswer = n > BRIEF_THRESHOLD ? 70 : 100;
-  return Math.min(3000, 400 + n * perAnswer);
+  const perAnswer = n > BRIEF_THRESHOLD ? 90 : 130;
+  return Math.min(3600, 500 + n * perAnswer);
 }
 
 /**
