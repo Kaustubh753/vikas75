@@ -21,9 +21,13 @@ npm run start        # next start — serve the production build
 npm run lint         # eslint .
 npx tsc --noEmit     # type-check only
 npm run test:judge   # plain-node unit tests for the AI judge's pure logic (src/lib/judge-core.ts); needs Node ≥ 22.18
+
+node scripts/build-scheme-details.mjs <pages-dir>   # asset-only: rebuild public/scheme-details/*.webp
 ```
 
 There is **no test framework**. The one automated test is `npm run test:judge` — a plain-node script (`scripts/test-judge-core.mjs`, no runner, no API key; Node ≥ 22.18 for native type stripping, declared in `engines`) covering the AI judge's pure logic in `src/lib/judge-core.ts`: label assignment, permutation schedule, reply validation, cross-call aggregation and label scrubbing, including a position-bias oracle that proves submission order cannot decide a round. Everything else is verified by `npm run build` (which type-checks), `npm run lint`, and manual play-testing across the three windows described in *Running Locally*. `.github/workflows/ci.yml` runs lint, tsc, the judge tests and the build on every push. Don't reference a broader test suite that doesn't exist.
+
+`scripts/build-scheme-details.mjs` is a hand-run asset step, not part of the build or CI: it re-encodes the Explore scheme guides from a folder of exported PDF pages (`page02.jpg`…, matching the PDF's own page numbers) and exits non-zero if `src/lib/scheme-details.ts`'s id list has drifted from `context/scheme_details_map.json`. It imports `sharp`, which is not a declared dependency — it is present only transitively via Next.
 
 ---
 
@@ -124,6 +128,8 @@ User text is cleaned before storage: `sanitizeName()` (length/trim) and `filterT
   - Two rubric rules are enforced in code, not just prose (`parseCallResult`): a blank explanation scores at most 2, and a stated winner the same call scored below its own top answer is discarded for that top score.
   - Cost: three calls per round instead of one, at Sonnet 5 rates — about 9¢ for a 3-round game with 5 players, ~6–7¢ per round at a full 20-player table. The ~2k-token system prompt is sent with `cache_control` and clears Sonnet 5's 1024-token cache minimum, so repeat rounds read it from cache (`cacheRead=` in the per-call log shows the hit rate). The problem↔scheme mapping is compiled once at module load into an in-memory cache (`ON_BRIEF_BY_CHALLENGE`) and never enters the prompt — each answer carries only an ~8-token yes/no flag, vs ~350 tokens to paste the mapping.
 
+- `src/lib/scheme-details.ts` — Which scheme cards have a full infographic guide in `public/scheme-details/`. `hasSchemeDetail(id)` gates the Explore entry point; `schemeDetailImage(id)` returns `/scheme-details/<id>.webp` or **`null`** when there is none. The id list is explicit rather than "assume every card has one": `s018` (Digital India) has no matching page in the source deck, and a missing image would otherwise render as a broken box inside the sheet — callers must treat `null` as "no guide" and hide the entry point. `scripts/build-scheme-details.mjs` fails if this list drifts from `context/scheme_details_map.json`.
+
 ### API
 - `src/app/api/game/route.ts` — Single POST + GET endpoint.
   - `create-room` — creates room, returns `{ room }`
@@ -170,6 +176,12 @@ User text is cleaned before storage: `sanitizeName()` (length/trim) and `filterT
 - `src/components/projector/ProjectorBetweenRounds.tsx` — Leaderboard between rounds.
 - `src/components/projector/ProjectorGameOver.tsx` — Final standings.
 
+### Explore Components
+- `src/components/explore/ExplorePage.tsx` — "Know Your Deck" browser over the 75 scheme cards. Its `CardModal` shows the card image, name/Hindi/description/key points and — only when `hasSchemeDetail(card.id)` — a **Full scheme guide** button that mounts `SchemeDetailSheet` above it. The button is hidden rather than disabled for cards without a guide.
+- `src/components/explore/SchemeDetailSheet.tsx` — Full-screen sheet showing the office's own one-page infographic for a scheme (what it is, key features, how to apply, official portal link). A scroll container, not a fitted panel: the image is tall portrait, read top-to-bottom at full width on a phone and centred at 820 px on desktop. Two things to preserve:
+  - Escape is bound in the **capture** phase (`addEventListener(…, true)` + `stopPropagation`) because `CardModal` underneath also closes on Escape — without capturing, one keypress dismisses both.
+  - The loading placeholder must **never** be `display: none` on the `next/image` element. These images lazy-load through an intersection observer, so a hidden image never enters the viewport, never loads and never fires `onLoad` — it deadlocks in the placeholder forever. The skeleton is a `skeleton-pulse` background on the *wrapper* and the image fades in on `opacity` instead. `priority` is deliberately off: a ~160 KB guide is fetched only when someone opens the sheet.
+
 ### UI Components
 Buttons are styled inline per-component — there is **no shared `Button` primitive**. App-wide visual concerns live in `globals.css` (focus-visible rings, `prefers-reduced-motion` collapse, iOS input-zoom guard, safe-area padding, keyframes/animation utilities). The `ui/` directory holds:
 - `AvatarPicker.tsx`, `CardBack.tsx`, `Confetti.tsx`, `ConnectionBanner.tsx`, `CountUp.tsx`, `LogoLockup.tsx`, `MuteButton.tsx`, `SocialLinks.tsx`, `ToasterProvider.tsx`.
@@ -180,6 +192,8 @@ Loading states are **not** generic skeletons: `ProjectorLoading.tsx` and `Player
 ### Cards
 - `context/cards_challenges.json` — 30 challenge cards (c001–c030). Fields: `id`, `en`, `hi`, `icon`.
 - `context/cards_schemes.json` — 75 scheme cards (s001–s075). Fields: `id`, `name`, `hi`, `desc`, `bullets[]`.
+- `context/scheme_details_map.json` — PDF page → scheme id for the Explore scheme guides. The source deck's 75 scheme pages (page 1 is a cover) yield 74 mapped ids: page 17 is the *Digital India Internship Scheme*, far narrower than the deck's broad Digital India card, so `s018` is intentionally unmapped and has no guide. Page order does **not** track card order (page 4 is `s010`), so the mapping is per-page, not an offset.
+- `public/scheme-details/<schemeId>.webp` — the 74 per-scheme infographics, 900 px wide at webp q72 (~160 KB each, ~12 MB total). Not preloaded; one is fetched only when its sheet is opened. Regenerate with `scripts/build-scheme-details.mjs` (see *Commands*) — the 15 MB source PDF is deliberately not in the repo, only these derived images.
 - There is **no shared card component** — cards render as pre-baked webp images (`public/cards/card-001..105.webp`) via `next/image`, with the id→image mapping in `src/lib/cards.ts` (`getChallengeCardImage`/`getSchemeCardImage`), inline in each consumer (`PlayerSubmit`, `PlayerChallengeReveal`, `ProjectorChallengeReveal`, `ProjectorReveal`, `ExplorePage`).
 
 ### Styles and Config

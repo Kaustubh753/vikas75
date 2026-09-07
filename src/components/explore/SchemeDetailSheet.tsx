@@ -98,14 +98,14 @@ export default function SchemeDetailSheet({ schemeId, schemeName, onClose }: Pro
           style={{
             maxWidth: 820, margin: '0 auto', borderRadius: 12,
             background: loaded ? 'transparent' : 'rgba(255,255,255,0.06)',
-            aspectRatio: loaded ? undefined : '921 / 1650',
+            aspectRatio: loaded ? undefined : '900 / 1612',
           }}
         >
           <Image
             src={src}
             alt={`${schemeName}: what the scheme is, its key features, and how to apply`}
-            width={921}
-            height={1650}
+            width={900}
+            height={1612}
             onLoad={() => setLoaded(true)}
             style={{
               width: '100%', height: 'auto', borderRadius: 12,
