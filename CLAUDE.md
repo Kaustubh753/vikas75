@@ -317,7 +317,7 @@ Without Redis env vars, state lives in a module-level `Map` — rooms are lost o
 ```bash
 cd vikas75
 npm install
-# Copy .env.local and fill in Pusher keys (minimum required)
+cp .env.example .env.local   # then fill in the Pusher keys
 npm run dev
 ```
 
@@ -326,5 +326,7 @@ Open three windows:
 2. `http://localhost:3000/projector/[CODE]` — the big screen
 3. `http://localhost:3000/host/[CODE]?h=[HOST_ID]` — host controls (link shown on join)
 
-Without Upstash Redis, rooms live in memory — works fine for single-instance local dev.
-Without `ANTHROPIC_API_KEY`, the fallback judge picks a random winner with a fun Hinglish verdict.
+`npm run dev` **will not start** until the four server-side `PUSHER_*` variables are set —
+`validateEnv()` throws and names the missing ones. Everything else is optional: without Upstash
+Redis rooms live in memory (fine for single-instance local dev), and without `ANTHROPIC_API_KEY`
+the fallback judge picks a random winner with a fun Hinglish verdict.
