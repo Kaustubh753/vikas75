@@ -27,6 +27,19 @@ import {
 // scheme id in the 75-card deck — a stale id here would silently mark an answer off-brief.
 const RELEVANT_SCHEMES = mappingData as Record<string, string[]>;
 
+// The problem↔scheme mapping, compiled ONCE at module load into an in-memory cache of lookup
+// sets. This is deliberately where the mapping lives — server memory, never the prompt. The
+// model only ever receives a per-answer "On-brief for this challenge: yes|no" line (~8 tokens),
+// computed here by card id; pasting the mapping itself would cost ~350 tokens per call, and
+// even the old per-round name list cost ~30 tokens plus fuzzy name-matching by the model.
+// Together with the cache_control'd system prompt below, every stable input is either cached
+// or reduced to a flag, so per-round spend is dominated by the answers themselves.
+const ON_BRIEF_BY_CHALLENGE: ReadonlyMap<string, ReadonlySet<string>> = new Map(
+  Object.entries(RELEVANT_SCHEMES)
+    .filter(([, ids]) => ids.length > 0)
+    .map(([challengeId, ids]) => [challengeId, new Set(ids)]),
+);
+
 // The single hardcoded model string for the judge call.
 const JUDGE_MODEL = 'claude-sonnet-4-6';
 
@@ -222,9 +235,10 @@ async function claudeJudge(challenge: ChallengeCard, submissions: Submission[], 
   const byLabel = new Map(labelled.map((l) => [l.label, l.submission]));
   const orders = makeCallOrders(labels, seed);
   // Only this round's on-brief schemes matter, expressed per answer as a yes/no computed by
-  // card id — the model no longer has to string-match names, which drifted between calls.
-  const mapped = RELEVANT_SCHEMES[challenge.id];
-  const onBriefIds = mapped?.length ? new Set(mapped) : null;
+  // card id from the precompiled ON_BRIEF_BY_CHALLENGE cache — the model no longer has to
+  // string-match names, which drifted between calls. Null (no line at all) for an unmapped
+  // challenge, so the model never sees a misleading all-"no" round.
+  const onBriefIds = ON_BRIEF_BY_CHALLENGE.get(challenge.id) ?? null;
   // Past ten answers the reply is what dominates latency (~70 output tokens/s), so the prompt
   // caps the per-answer prose harder; max_tokens is a ceiling, the deadline is the real bound.
   const brief = n > BRIEF_THRESHOLD;
