@@ -21,7 +21,7 @@ import EmotePanel from '@/components/player/EmotePanel';
 import ChatPanel from '@/components/player/ChatPanel';
 import { getLobbyMusic } from '@/lib/music-manager';
 import { staleRoom } from '@/lib/room-state';
-import { loadSeat, saveSeat, clearSeat, seatToken } from '@/lib/seat-storage';
+import { loadSeat, saveSeat, clearSeat, seatToken, seatPlayerId } from '@/lib/seat-storage';
 import type { GameRoom, SchemeCard, EmoteId, AvatarId, ChatMessage } from '@/types/game';
 
 interface Props {
@@ -134,7 +134,12 @@ export default function PlayerView({ code }: Props) {
 
   const fetchRoom = useCallback(async () => {
     try {
-      const pid = localStorage.getItem('vikas75_playerId') ?? '';
+      // Room-scoped, like the token beside it: the shared global holds whichever room this
+      // device joined LAST, so a second tab in another room would otherwise make this poll ask
+      // for someone else's id — the server then scrubs our own hand out of the reply (an
+      // unknown `me`), freezing the hand, and the game-over check below would see us as a
+      // stranger and eject us.
+      const pid = seatPlayerId(code);
       const tok = seatToken(code);
       const res = await fetch(`/api/game?code=${code}${pid ? `&me=${encodeURIComponent(pid)}` : ''}`,
         tok ? { headers: { 'x-player-token': tok } } : undefined);
@@ -176,7 +181,9 @@ export default function PlayerView({ code }: Props) {
         try { localStorage.setItem(`vikas75_hand_${code}`, JSON.stringify(hand)); } catch { /* ignore */ }
       }
       if (!toastedJoin.current && pid && r.players[pid]) {
-        toast.success('Joined room!');
+        // Not on the podium: a seated player refreshing at game-over is returning to a finished
+        // game, not joining one.
+        if (r.phase !== 'game-over') toast.success('Joined room!');
         toastedJoin.current = true;
       }
     } catch {
@@ -213,7 +220,7 @@ export default function PlayerView({ code }: Props) {
       setRoom(prev => staleRoom(prev, updated) ? prev : { ...updated, messages: prev?.messages ?? [] });
       // Also sync cachedHand — Pusher payload is the full room, so the hand is here.
       // fetchRoom() does the same thing, but can lose a race when Pusher fires first.
-      const pid = localStorage.getItem('vikas75_playerId') ?? '';
+      const pid = seatPlayerId(code);
       if (pid && updated.players[pid]?.hand?.length) {
         const hand = updated.players[pid].hand;
         setCachedHand(hand);

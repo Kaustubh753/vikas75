@@ -29,9 +29,14 @@ const NAVY = '#0d1b35';
 const INK = '#08070f';
 const CREAM = 'rgba(250,248,240,';
 
-/** The page's real font families (next/font hashes its names — read them, don't guess). */
+/**
+ * The page's real font families (next/font hashes its names — read them, don't guess).
+ * They are set on <body> by the root layout's variable classes, NOT on :root — reading
+ * documentElement silently yields "" and every card renders in generic sans-serif, which is
+ * both off-brand and much wider, so names get truncated far earlier than they should.
+ */
 function fontFamilies() {
-  const styles = getComputedStyle(document.documentElement);
+  const styles = getComputedStyle(document.body || document.documentElement);
   const bebas = styles.getPropertyValue('--font-bebas').trim() || 'sans-serif';
   const inter = styles.getPropertyValue('--font-inter').trim() || 'sans-serif';
   return { bebas: `${bebas}, sans-serif`, inter: `${inter}, system-ui, sans-serif` };
@@ -70,17 +75,22 @@ function drawAvatar(
     ctx.font = `700 ${size * 0.45}px ${interFamily}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText((name.trim()[0] ?? '?').toUpperCase(), x + size / 2, y + size / 2 + size * 0.03);
+    // Code-point-wise: an emoji initial must not be split into a lone surrogate.
+    ctx.fillText(([...name.trim()][0] ?? '?').toUpperCase(), x + size / 2, y + size / 2 + size * 0.03);
   }
   ctx.restore();
 }
 
-/** Trim a name to fit `maxWidth` at the current font, with an ellipsis if it was cut. */
+/**
+ * Trim a name to fit `maxWidth` at the current font, with an ellipsis if it was cut.
+ * Cuts whole code points, never UTF-16 units: slicing an emoji in half leaves a lone
+ * surrogate that renders as a tofu box in the shared image.
+ */
 function fitText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string {
   if (ctx.measureText(text).width <= maxWidth) return text;
-  let t = text;
-  while (t.length > 1 && ctx.measureText(`${t}…`).width > maxWidth) t = t.slice(0, -1);
-  return `${t}…`;
+  let chars = [...text];
+  while (chars.length > 1 && ctx.measureText(`${chars.join('')}…`).width > maxWidth) chars = chars.slice(0, -1);
+  return `${chars.join('')}…`;
 }
 
 export async function buildShareCard(input: ShareCardInput): Promise<Blob> {
@@ -118,15 +128,29 @@ export async function buildShareCard(input: ShareCardInput): Promise<Blob> {
   ctx.fillStyle = `${CREAM}0.4)`;
   ctx.font = `500 24px ${inter}`;
   ctx.fillText(`GAME RESULT  —  ROOM ${input.code.toUpperCase()}  •  ${input.totalRounds} ROUND${input.totalRounds === 1 ? '' : 'S'}`, W / 2, 258);
+  const tieHeader = () => {
+    ctx.fillStyle = GOLD;
+    ctx.font = `44px ${bebas}`;
+    ctx.fillText('IT\u2019S A TIE — JOINT CHAMPIONS', W / 2, 296);
+  };
 
   const standings = input.standings;
   const avatars = await Promise.all(standings.slice(0, 3).map((s) => loadAvatar(s.avatarId)));
+
+  // A dead heat at the top is JOINT champions on the projector (ProjectorGameOver), so the
+  // shared card must not crown one of them — everyone level with the leader gets 🥇.
+  const lead = standings[0];
+  const jointChampions = lead
+    ? standings.filter((p) => p.roundsWon === lead.roundsWon && p.score === lead.score).length
+    : 0;
+  const tied = jointChampions > 1;
 
   // Podium: the top three as full rows — big, legible in a WhatsApp thumbnail.
   const MEDALS = ['🥇', '🥈', '🥉'];
   const rowX = 70;
   const rowW = W - 140;
-  let y = 320;
+  if (tied) tieHeader();
+  let y = tied ? 340 : 320;
   standings.slice(0, 3).forEach((p, i) => {
     const rowH = i === 0 ? 190 : 150;
     const pad = i === 0 ? 26 : 20;
@@ -145,7 +169,7 @@ export async function buildShareCard(input: ShareCardInput): Promise<Blob> {
     ctx.font = `${i === 0 ? 64 : 52}px ${inter}`;
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(MEDALS[i], rowX + pad, y + rowH / 2 + 4);
+    ctx.fillText(i < jointChampions ? MEDALS[0] : MEDALS[i], rowX + pad, y + rowH / 2 + 4);
 
     drawAvatar(ctx, avatars[i], p.name, rowX + pad + (i === 0 ? 96 : 82), y + pad, avatarSize, inter);
 

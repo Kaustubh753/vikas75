@@ -27,7 +27,11 @@ export function loadSeat(code: string): StoredSeat | null {
     const raw = localStorage.getItem(seatKey(code));
     if (!raw) return null;
     const s = JSON.parse(raw) as Partial<StoredSeat>;
-    if (typeof s.playerId !== 'string' || !s.playerId || typeof s.token !== 'string') return null;
+    // Bound the sizes a record can carry: a corrupted or crafted entry with a huge playerId
+    // would otherwise be replayed on every rejoin and rejected by the server's own length
+    // guard (route.ts caps playerId at 64), leaving the player stuck until they change name.
+    if (typeof s.playerId !== 'string' || !s.playerId || s.playerId.length > 64) return null;
+    if (typeof s.token !== 'string' || s.token.length > 128) return null;
     return {
       playerId: s.playerId,
       token: s.token,
@@ -49,6 +53,22 @@ export function clearSeat(code: string): void {
   try {
     localStorage.removeItem(seatKey(code));
   } catch { /* nothing persisted to clear */ }
+}
+
+/**
+ * The playerId for this room — the room's own seat record first, then the legacy global.
+ * Every call-time identity read must use this rather than the global directly: the global
+ * holds whichever room was joined last, so with two rooms open on one device it names the
+ * wrong player.
+ */
+export function seatPlayerId(code: string): string {
+  const seat = loadSeat(code);
+  if (seat?.playerId) return seat.playerId;
+  try {
+    return localStorage.getItem('vikas75_playerId') ?? '';
+  } catch {
+    return '';
+  }
 }
 
 /**

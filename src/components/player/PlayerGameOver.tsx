@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import Avatar from '@/lib/avatars';
 import { buildShareCard } from '@/lib/share-card';
@@ -33,12 +33,29 @@ export default function PlayerGameOver({ room, playerId, onExit }: Props) {
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
   }, []);
 
-  const players = Object.values(room.players).sort(
-    (a, b) => (b.roundsWon ?? 0) - (a.roundsWon ?? 0) || b.score - a.score || a.id.localeCompare(b.id),
-  );
-  const champion = players[0];
-  const hasLead = !!champion && ((champion.roundsWon ?? 0) > 0 || champion.score > 0);
-  const myPlace = players.findIndex((p) => p.id === playerId) + 1;
+  // Memoised as one unit: the share callback depends on all of it, and recomputing a fresh
+  // array each render would defeat its memoisation.
+  const { players, champion, hasLead, champions, tied, myPlace, iAmChampion } = useMemo(() => {
+    const sorted = Object.values(room.players).sort(
+      (a, b) => (b.roundsWon ?? 0) - (a.roundsWon ?? 0) || b.score - a.score || a.id.localeCompare(b.id),
+    );
+    const top = sorted[0];
+    const lead = !!top && ((top.roundsWon ?? 0) > 0 || top.score > 0);
+    // A dead heat is joint champions on the projector — say the same thing here rather than
+    // crowning whoever won the id tiebreak.
+    const tiedTop = top
+      ? sorted.filter((p) => (p.roundsWon ?? 0) === (top.roundsWon ?? 0) && p.score === top.score)
+      : [];
+    return {
+      players: sorted,
+      champion: top,
+      hasLead: lead,
+      champions: tiedTop,
+      tied: lead && tiedTop.length > 1,
+      myPlace: sorted.findIndex((p) => p.id === playerId) + 1,
+      iAmChampion: tiedTop.some((p) => p.id === playerId),
+    };
+  }, [room.players, playerId]);
 
   const share = useCallback(async () => {
     if (busy) return;
@@ -57,9 +74,11 @@ export default function PlayerGameOver({ room, playerId, onExit }: Props) {
         origin: window.location.origin,
       });
       const file = new File([blob], 'vikas75-result.png', { type: 'image/png' });
-      const text = myPlace > 0
-        ? `I finished #${myPlace} in Vikas 75 — the sarkari scheme card game! 🎴 Play: ${window.location.origin}`
-        : `We just played Vikas 75 — the sarkari scheme card game! 🎴 Play: ${window.location.origin}`;
+      const text = iAmChampion
+        ? `I ${tied ? 'tied for the win' : 'won'} at Vikas 75 — the sarkari scheme card game! 🎴 Play: ${window.location.origin}`
+        : myPlace > 0
+          ? `I finished #${myPlace} in Vikas 75 — the sarkari scheme card game! 🎴 Play: ${window.location.origin}`
+          : `We just played Vikas 75 — the sarkari scheme card game! 🎴 Play: ${window.location.origin}`;
       if (typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })) {
         try {
           await navigator.share({ files: [file], text, title: 'Vikas 75' });
@@ -79,7 +98,7 @@ export default function PlayerGameOver({ room, playerId, onExit }: Props) {
     } finally {
       setBusy(false);
     }
-  }, [busy, players, playerId, myPlace, room.code, room.totalRounds]);
+  }, [busy, players, playerId, myPlace, iAmChampion, tied, room.code, room.totalRounds]);
 
   const closePreview = useCallback(() => {
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
@@ -101,10 +120,10 @@ export default function PlayerGameOver({ room, playerId, onExit }: Props) {
           </div>
           <div className="text-left">
             <p className="font-[family-name:var(--font-inter)] text-[10px] font-bold uppercase" style={{ color: GOLD, letterSpacing: '0.2em' }}>
-              Champion
+              {tied ? 'Joint champions' : 'Champion'}
             </p>
             <p className="font-[family-name:var(--font-bebas)] text-2xl tracking-wide leading-none" style={{ color: GOLD }}>
-              {champion.name}
+              {tied ? champions.map((p) => p.name).join(' & ') : champion.name}
             </p>
           </div>
           <p className="font-[family-name:var(--font-inter)] text-xs font-semibold ml-2" style={{ color: `${CREAM}0.6)` }}>
@@ -114,8 +133,10 @@ export default function PlayerGameOver({ room, playerId, onExit }: Props) {
       )}
 
       {myPlace > 0 && (
-        <p className="font-[family-name:var(--font-inter)] text-sm font-semibold" style={{ color: myPlace === 1 ? GOLD : `${CREAM}0.65)` }}>
-          {myPlace === 1 ? '🏆 You take the game!' : `You finished #${myPlace} of ${players.length}`}
+        <p className="font-[family-name:var(--font-inter)] text-sm font-semibold" style={{ color: iAmChampion ? GOLD : `${CREAM}0.65)` }}>
+          {iAmChampion
+            ? (tied ? '🏆 Joint champion!' : '🏆 You take the game!')
+            : `You finished #${myPlace} of ${players.length}`}
         </p>
       )}
 
