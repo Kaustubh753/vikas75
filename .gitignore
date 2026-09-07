@@ -41,3 +41,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 public/avatars.zip
+
+# android TWA wrapper — signing keys (NEVER commit) and Bubblewrap-generated project files.
+# apk/twa-manifest.json and apk/README.md are the only tracked files in apk/.
+*.keystore
+*.jks
+apk/*
+!apk/twa-manifest.json
+!apk/README.md

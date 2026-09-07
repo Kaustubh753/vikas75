@@ -293,7 +293,7 @@ export default function ProjectorLobby({ room }: Props) {
                     borderRadius: Math.round(qrSize * 0.065),
                     background: '#FF9933',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontFamily: 'var(--font-yatra),var(--font-inter)', fontSize: Math.round(qrSize * 0.115), color: '#15110a',
+                    fontFamily: 'var(--font-yatra),var(--font-inter)', fontSize: Math.round(qrSize * 0.115), color: '#08070f',
                     boxShadow: `0 0 0 3px #faf8f0, 0 4px 10px rgba(0,0,0,0.35)`,
                   }}>V·75</div>
                 </div>
@@ -350,7 +350,7 @@ export default function ProjectorLobby({ room }: Props) {
                 {letters.map((ch, i) => (
                   <div key={i} style={{
                     width: tileW, height: tileH,
-                    background: '#faf8f0', color: '#15110a',
+                    background: '#faf8f0', color: '#08070f',
                     borderRadius: 'clamp(8px,0.7vw,14px)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontFamily: 'var(--font-yatra),var(--font-inter)',
@@ -426,7 +426,7 @@ export default function ProjectorLobby({ room }: Props) {
               color: 'rgba(250,248,240,0.45)',
             }}>
               <span style={{ color: '#FF9933' }}>{players.length}</span>
-              {' '}{players.length === 1 ? 'player' : 'players'} joined · waiting for host to start
+              {' '}{players.length === 1 ? 'player' : 'players'} joined · waiting for the host to start
             </div>
           </div>
 
@@ -507,7 +507,7 @@ export default function ProjectorLobby({ room }: Props) {
             fontSize: 'clamp(9px,0.76vw,11px)',
             letterSpacing: '0.12em', textTransform: 'uppercase',
             color: 'rgba(250,248,240,0.4)', textAlign: 'center',
-          }}>An initiative of the Office of Shri Sujeet Kumar</div>
+          }}>An initiative of the Office of Sujeet Kumar</div>
         </div>
 
         {/* ── TICKER — "Did you know" rotating facts ────────────────── */}

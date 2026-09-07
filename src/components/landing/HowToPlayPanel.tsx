@@ -23,7 +23,7 @@ const STEPS = [
   { num: '02', title: 'See the problem',  label: 'See the problem',  body: 'A problem statement goes up on the big screen. Everyone answers the same one.' },
   { num: '03', title: 'Play your scheme', label: 'Play your scheme', body: 'You hold real government schemes. Pick the one that answers the problem.' },
   { num: '04', title: 'Make your case',   label: 'Make your case',   body: 'The clock runs while you argue it. Say what your scheme does and why it fits.' },
-  { num: '05', title: 'Best answer wins', label: 'Best answer wins', body: 'The AI judge scores fit first, then how well you argued it. Win the most rounds to take the game.' },
+  { num: '05', title: 'Best answer wins', label: 'Best answer wins', body: 'The AI judge scores fit first, then how well you explain the fix — the obvious card with no argument won\'t win. Win the most rounds to take the game.' },
 ];
 
 /* The bodies differ in length — step 05 runs to four lines where step 03 takes two. Left to
@@ -32,10 +32,10 @@ const STEPS = [
  * in the same place every time. */
 const BODY_MIN_LINES = 4;
 
-const CREAM = '#f5efdc';
+const CREAM = '#faf8f0';
 const SAFFRON = '#FF9933';
-const HAIRLINE = 'rgba(245,239,220,0.13)';
-const ROW_RULE = 'rgba(245,239,220,0.1)';
+const HAIRLINE = 'rgba(250,248,240,0.13)';
+const ROW_RULE = 'rgba(250,248,240,0.1)';
 const SANS = 'var(--font-inter),sans-serif';
 const PRESS = "var(--font-press),'Press Start 2P',monospace";
 
@@ -52,10 +52,10 @@ const shell: React.CSSProperties = {
 function Header({ counter }: { counter: string }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-      <span style={{ fontSize: 11, letterSpacing: '0.26em', textTransform: 'uppercase', color: 'rgba(245,239,220,0.75)' }}>
+      <span style={{ fontSize: 11, letterSpacing: '0.26em', textTransform: 'uppercase', color: 'rgba(250,248,240,0.75)' }}>
         How to play
       </span>
-      <span style={{ fontFamily: PRESS, fontSize: 9, color: 'rgba(245,239,220,0.4)' }}>{counter}</span>
+      <span style={{ fontFamily: PRESS, fontSize: 9, color: 'rgba(250,248,240,0.4)' }}>{counter}</span>
     </div>
   );
 }
@@ -81,7 +81,7 @@ function ListLayout() {
             </div>
             <div>
               <h3 style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.2, margin: '0 0 4px' }}>{s.title}</h3>
-              <p style={{ fontSize: 13, lineHeight: 1.45, color: 'rgba(245,239,220,0.62)', margin: 0 }}>{s.body}</p>
+              <p style={{ fontSize: 13, lineHeight: 1.45, color: 'rgba(250,248,240,0.62)', margin: 0 }}>{s.body}</p>
             </div>
           </div>
         ))}
@@ -189,7 +189,7 @@ function StageLayout({ active }: { active: boolean }) {
         <p
           className="htp-body"
           style={{
-            fontSize: compact ? 14 : 15, lineHeight: 1.55, color: 'rgba(245,239,220,0.68)', margin: 0,
+            fontSize: compact ? 14 : 15, lineHeight: 1.55, color: 'rgba(250,248,240,0.68)', margin: 0,
             minHeight: `${BODY_MIN_LINES * 1.55}em`,   // every step reserves the tallest body — see BODY_MIN_LINES
           }}
         >
@@ -213,7 +213,7 @@ function StageLayout({ active }: { active: boolean }) {
                 borderTop: `1px solid ${ROW_RULE}`,
                 borderBottom: n === STEPS.length - 1 ? `1px solid ${ROW_RULE}` : 'none',
                 borderLeft: 'none', borderRight: 'none',
-                color: active ? CREAM : 'rgba(245,239,220,0.45)',
+                color: active ? CREAM : 'rgba(250,248,240,0.45)',
                 transition: 'color 200ms',
                 minHeight: 44,   // comfortable hit area on touch; the mock's rows are 35px
                 fontFamily: SANS,

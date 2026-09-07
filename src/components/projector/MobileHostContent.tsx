@@ -47,7 +47,7 @@ export default function MobileHostContent({ room }: { room: GameRoom }) {
   const ChallengeBlock = () =>
     challenge ? (
       <div style={{ ...card, background: '#1a3a6e', borderColor: 'rgba(255,153,51,0.25)' }}>
-        <p style={{ ...label, marginBottom: 8 }}>Problem Statement</p>
+        <p style={{ ...label, marginBottom: 8 }}>Challenge</p>
         <p style={{ fontFamily: 'var(--font-bebas)', fontSize: 22, lineHeight: 1.2, letterSpacing: '0.02em' }}>{challenge.en}</p>
         <p style={{ fontFamily: 'var(--font-devanagari)', fontSize: 19, color: 'rgba(173,200,255,0.92)', marginTop: 10, lineHeight: 1.55 }}>{challenge.hi}</p>
       </div>
@@ -187,7 +187,10 @@ export default function MobileHostContent({ room }: { room: GameRoom }) {
   }
 
   return (
-    <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column', gap: 16, padding: '16px 16px 88px', color: '#fff', fontFamily: 'var(--font-inter),sans-serif' }}>
+    // Bottom padding clears the fixed HostOverlay bar (≤72px) plus the device safe area, so the
+    // last card never hides behind it. Single source of clearance — the ProjectorView scroller
+    // that wraps this adds none.
+    <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column', gap: 16, padding: '16px 16px calc(96px + env(safe-area-inset-bottom))', color: '#fff', fontFamily: 'var(--font-inter),sans-serif' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <p style={label}>{PHASE_LABEL[room.phase] ?? room.phase}</p>

@@ -21,7 +21,7 @@ const PANELS = [
   {
     icon: '👑',
     title: 'The AI judge decides',
-    description: 'Claude scores how well your scheme fits the problem, then how well you argued it. Win the most rounds to take the game.',
+    description: 'The AI judge scores how well your scheme fits the problem, then how well you explain the fix — the obvious card with no argument won\'t win. Win the most rounds to take the game.',
   },
 ];
 
@@ -40,7 +40,7 @@ export default function HowToPlayPage() {
         {PANELS.map((panel, i) => (
           <div
             key={i}
-            className="bg-[#F5F0E8] rounded-2xl p-4 flex flex-col items-center text-center animate-bounce-in"
+            className="bg-[#faf8f0] rounded-2xl p-4 flex flex-col items-center text-center animate-bounce-in"
             style={{ animationDelay: `${i * 0.1}s` }}
           >
             <span className="text-4xl mb-3">{panel.icon}</span>
@@ -56,7 +56,7 @@ export default function HowToPlayPage() {
 
       <button
         onClick={() => router.push('/')}
-        className="h-14 px-10 bg-[#FF9933] hover:bg-[#e8872a] text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95"
+        className="h-14 px-10 bg-[#FF9933] hover:bg-[#e8872a] text-[#08070f] font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95"
       >
         Let&apos;s Play →
       </button>

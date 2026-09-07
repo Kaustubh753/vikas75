@@ -297,7 +297,7 @@ function Cta({ time }: { time: number }) {
 }
 
 /* ── scene ───────────────────────────────────────────────────── */
-function Scene() {
+function Scene({ hideCta = false }: { hideCta?: boolean }) {
   const time = useTime();
   const fadeIn = seg(time, 0, 0.3);
   const fadeOut = 1 - seg(time, 9.9, 10.4, E.inCubic);
@@ -315,7 +315,7 @@ function Scene() {
         <Arrow time={time} />
         <Cascade time={time} />
         <Confetti time={time} />
-        <Cta time={time} />
+        {!hideCta && <Cta time={time} />}
       </div>
     </div>
   );
@@ -341,6 +341,7 @@ const PRELOAD = [
 export default function IntroAnimation({ onDone }: { onDone: () => void }) {
   const [time, setTime] = useState(0);
   const [scale, setScale] = useState(1);
+  const [isPortrait, setIsPortrait] = useState(false);
   const [exiting, setExiting] = useState(false);
   const [ready, setReady] = useState(false); // timeline parked on PLAY NOW, awaiting the click
   const raf = useRef(0);
@@ -375,9 +376,20 @@ export default function IntroAnimation({ onDone }: { onDone: () => void }) {
   // on purpose: the clock must never be held hostage to a slow/failed asset load.
   useEffect(() => { PRELOAD.forEach(s => { const im = new Image(); im.src = s; }); }, []);
 
-  // Scale 1920×1080 to fit (contain) so the wordmark is never cropped.
+  // Landscape: scale 1920×1080 to fit (contain) so the wordmark is never cropped.
+  // Portrait (phones): contain would shrink the whole film to a ~220px letterboxed strip —
+  // the single worst screen in the app. Instead fit the *composition* (the card fan spans
+  // stage x 249–1671, the wordmark 392–1517; both live inside a centred ~1440px column) so
+  // it fills the screen width, and let the empty stage edges crop away. The overlay paints
+  // cream around the band (below) so it reads as paper margins, not black bars.
   useEffect(() => {
-    const fit = () => setScale(Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H));
+    const fit = () => {
+      const w = window.innerWidth, h = window.innerHeight;
+      const portrait = h > w;
+      const contain = Math.min(w / STAGE_W, h / STAGE_H);
+      setIsPortrait(portrait);
+      setScale(portrait ? Math.max(contain, Math.min(w / 1440, h / STAGE_H)) : contain);
+    };
     fit();
     window.addEventListener('resize', fit);
     return () => window.removeEventListener('resize', fit);
@@ -423,12 +435,45 @@ export default function IntroAnimation({ onDone }: { onDone: () => void }) {
       tabIndex={-1}
       aria-label={ready ? 'Play now — enter the game' : undefined}
       aria-hidden={!ready}
-      style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#08070f', overflow: 'hidden',
+      style={{ position: 'fixed', inset: 0, zIndex: 9999,
+        // Portrait paints the paper colour behind the cropped stage so the film sits on a
+        // full cream page instead of between black letterbox bars.
+        background: isPortrait ? CREAM : '#08070f', overflow: 'hidden',
         cursor: ready ? 'pointer' : 'default',
         opacity: exiting ? 0 : 1, transition: 'opacity 0.38s ease' }}
     >
+      {isPortrait && (
+        <>
+          {/* Continue the scene's centre highlight and edge vignette across the whole screen
+              so the stage band doesn't end in a visible rectangle seam against flat cream. */}
+          <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(ellipse 75% 45% at 50% 50%, ${CREAM_HI} 0%, rgba(253,248,232,0) 62%)`, opacity: 0.85 }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 90% 70% at 50% 50%, rgba(0,0,0,0) 55%, rgba(23,52,88,0.10) 100%)' }} />
+          {/* Mirror the scene's white cascade across the margins — without this the band
+              washes to white while the surround stays cream, leaving glaring stripes on the
+              parked PLAY NOW frame. Under the stage, so confetti still falls over it. */}
+          <div style={{ position: 'absolute', inset: 0, background: '#ffffff', opacity: seg(time, 6.6, 7.9, E.inOutCubic), pointerEvents: 'none' }} />
+        </>
+      )}
       <div style={{ position: 'absolute', left: '50%', top: '50%', width: STAGE_W, height: STAGE_H, transform: `translate(-50%, -50%) scale(${scale})`, transformOrigin: 'center center' }}>
-        <TimeCtx.Provider value={time}><Scene /></TimeCtx.Provider>
+        <TimeCtx.Provider value={time}><Scene hideCta={isPortrait} /></TimeCtx.Provider>
+      </div>
+      {isPortrait && <PortraitCta time={time} />}
+    </div>
+  );
+}
+
+/* Screen-space PLAY NOW for portrait. The stage CTA scales with the film (~6px type on a
+   phone — unreadable), so portrait hides it and renders this one at real pixel size below
+   the band instead. Same timeline beats, same pulse once parked. */
+function PortraitCta({ time }: { time: number }) {
+  const p = seg(time, 7.95, 8.65, E.outBack);
+  if (p <= 0) return null;
+  const sc = 0.72 + 0.28 * Math.min(p, 1);
+  return (
+    <div style={{ position: 'absolute', left: '50%', top: '74%', transform: `translate(-50%,-50%) scale(${sc})`, opacity: Math.min(p, 1), zIndex: 40 }}>
+      <div className={p >= 1 ? 'intro-cta-pulse' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 34px', background: INK, color: CREAM, fontFamily: PSFONT, fontSize: 14, letterSpacing: 1.5, borderRadius: 8, boxShadow: '0 14px 32px rgba(23,52,88,0.4)', whiteSpace: 'nowrap' }}>
+        <span>PLAY NOW</span>
+        <span style={{ width: 0, height: 0, borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderBottom: `14px solid ${SAFFRON}` }} />
       </div>
     </div>
   );

@@ -111,12 +111,12 @@ export default function ProjectorBetweenRounds({ room }: Props) {
 
       <p className="text-white/40 font-[family-name:var(--font-inter)] uppercase text-center"
          style={{ fontSize: 'clamp(10px, 0.8vw, 13px)', letterSpacing: '0.08em', fontWeight: 500 }}>
-        Waiting for host to start Round {room.round + 1}…
+        Waiting for the host to start Round {room.round + 1}…
       </p>
 
       <div className="absolute bottom-6 text-center">
         <p className="text-white/20 font-[family-name:var(--font-inter)]" style={{ fontSize: 11 }}>
-          An initiative of the Office of Shri Sujeet Kumar
+          An initiative of the Office of Sujeet Kumar
         </p>
       </div>
     </div>

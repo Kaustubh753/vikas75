@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getPusherClient, getRoomChannel } from '@/lib/pusher-client';
 import { getLobbyMusic } from '@/lib/music-manager';
+import { getMusicManager } from '@/lib/music';
 import EmoteOverlay from '@/components/projector/EmoteOverlay';
 import HostOverlay from '@/components/projector/HostOverlay';
 import MuteButton from '@/components/ui/MuteButton';
@@ -37,7 +38,7 @@ const PHASE_BG: Record<string, string> = {
 const PHASE_TRANSITIONS: Partial<Record<string, string>> = {
   'challenge-reveal': 'GET READY',
   reveal: "LET'S SEE WHAT\nYOU PLAYED",
-  winner: 'AND THE\nWINNER IS...',
+  winner: 'AND THE\nWINNER IS…',
 };
 
 type OverlayInfo = { text: string; color: string; initial: { y?: number; x?: number; scale?: number } };
@@ -131,8 +132,22 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
     const pusher = getPusherClient();
     if (!pusher) return; // realtime unconfigured — the GET poll below keeps the screen live
     const channel = pusher.subscribe(getRoomChannel(code));
-    const onRoomUpdated = (updated: GameRoom) => setRoom(prev => staleRoom(prev, updated) ? prev : updated);
-    const onMusicToggle = (payload: { muted: boolean }) => getLobbyMusic().forceMute(payload.muted);
+    const onRoomUpdated = (updated: GameRoom) => {
+      // A live room event proves the room exists — clear any "Room Closed" state a single
+      // transient poll 404 may have latched, which only the GET paths reset otherwise (so the
+      // projector could sit on "Room Closed" for up to a poll interval while Pusher kept
+      // delivering valid updates).
+      setRoomMissing(false);
+      setRoom(prev => staleRoom(prev, updated) ? prev : updated);
+    };
+    // Host remote-mute: silence BOTH the lobby background track (forceMute, a transient lever
+    // that doesn't clobber the stored preference) AND the phase SFX stings — the ticking clock,
+    // drumroll and winner fanfare that play during gameplay, when the lobby track is silent. A
+    // mute that left those going wouldn't read as a working mute button at the venue.
+    const onMusicToggle = (payload: { muted: boolean }) => {
+      getLobbyMusic().forceMute(payload.muted);
+      getMusicManager().setMuted(payload.muted);
+    };
     channel.bind('game:room-updated', onRoomUpdated);
     channel.bind('music:toggle', onMusicToggle);
     return () => {
@@ -213,10 +228,11 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
     return () => clearTimeout(t);
   }, [room?.timerEndsAt, room?.phase, timerExpire]);
 
-  // Watchdog: a verdict normally lands within the judge's 8s timeout. If we're still in the
-  // judging phase well past that, the server-side judge likely never ran (e.g. a serverless
-  // after() callback that was dropped) — re-kick it. The action is idempotent and awaited
-  // server-side, so it resolves the round even if the original scheduling mechanism failed.
+  // Watchdog: the judge's deadline scales with the table — min(22 s, 9 s + 0.65 s per answer),
+  // see deadlineMsFor in judge-core.ts — so a verdict normally lands well inside the 30 s
+  // judging lock. If we're still in the judging phase after that, the original after()-scheduled
+  // judge may never have run (serverless drop). Kicks fire every 12 s; while the lock is held
+  // they are no-ops, so they only matter once the original judge is genuinely dead.
   useEffect(() => {
     if (room?.phase !== 'judging') return;
     const kick = () => {
@@ -358,8 +374,8 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
       </AnimatePresence>
 
       <EmoteOverlay code={code} />
-      {/* Mobile host already has a music toggle in the control bar — hide the floating one
-          so it doesn't collide with the room-code header. */}
+      {/* Mobile host gets a music toggle in the host bar (HostOverlay) that remote-mutes the
+          projector — hide the floating one so it doesn't collide with the room-code header. */}
       {!(isHost && isMobileHost) && <MuteButton />}
       {isHost && hostId && <HostOverlay room={room} code={code} hostId={hostId} />}
     </motion.div>

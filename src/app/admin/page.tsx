@@ -77,7 +77,7 @@ export default function AdminPage() {
           <button
             type="submit"
             disabled={loading || !user || !pass}
-            className="w-full h-12 bg-[#FF9933] hover:bg-[#e8872a] disabled:opacity-40 text-white font-[family-name:var(--font-bebas)] text-xl tracking-widest rounded-xl transition-all active:scale-95"
+            className="w-full h-12 bg-[#FF9933] hover:bg-[#e8872a] disabled:opacity-40 text-[#08070f] font-[family-name:var(--font-bebas)] text-xl tracking-widest rounded-xl transition-all active:scale-95"
           >
             {loading ? 'Logging in…' : 'Login →'}
           </button>

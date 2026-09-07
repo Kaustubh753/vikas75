@@ -40,6 +40,7 @@ export default function ChatPanel({ messages, onSend, playerId }: Props) {
             <span className="text-white/70 text-sm font-[family-name:var(--font-inter)]">Chat</span>
             <button
               onClick={() => setOpen(false)}
+              aria-label="Close chat"
               className="text-white/40 hover:text-white/70 text-lg"
             >
               ✕
@@ -91,7 +92,8 @@ export default function ChatPanel({ messages, onSend, playerId }: Props) {
             <button
               type="submit"
               disabled={!text.trim()}
-              className="w-9 h-9 bg-[#FF9933] hover:bg-[#e8872a] disabled:opacity-40 rounded-lg flex items-center justify-center text-white flex-shrink-0 transition-all"
+              aria-label="Send message"
+              className="w-9 h-9 bg-[#FF9933] hover:bg-[#e8872a] disabled:opacity-40 rounded-lg flex items-center justify-center text-[#08070f] flex-shrink-0 transition-all"
             >
               ↑
             </button>

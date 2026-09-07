@@ -27,7 +27,7 @@ export default function ProjectorJudging({ room }: Props) {
              style={{ padding: 'clamp(12px, 1.2vw, 20px) clamp(16px, 1.5vw, 28px)' }}>
           <p className="text-white/50 uppercase tracking-widest font-[family-name:var(--font-inter)]"
              style={{ fontSize: 'clamp(9px, 0.65vw, 11px)', marginBottom: 4 }}>
-            Problem Statement
+            Challenge
           </p>
           <p className="font-[family-name:var(--font-bebas)] text-white tracking-wide leading-snug"
              style={{ fontSize: 'clamp(20px, 2.2vw, 36px)' }}>

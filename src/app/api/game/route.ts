@@ -17,9 +17,15 @@ import {
   removePlayer,
 } from '@/lib/game-engine';
 import { judgeRound, noWinnerVerdict } from '@/lib/ai-judge';
+import { JUDGING_LOCK_TTL_MS } from '@/lib/judge-core';
 import { EMOTE_IDS } from '@/lib/emotes';
 import { filterText } from '@/lib/word-filter';
 import type { Submission, AvatarId, ChatMessage, GameRoom } from '@/types/game';
+
+// The judge fans out up to three parallel Claude calls under a 22 s deadline (see ai-judge.ts)
+// inside after(); that background work runs in this function's lifetime, so the route must
+// outlive it. 60 s is within every Vercel plan's ceiling and is far more than any handler needs.
+export const maxDuration = 60;
 
 // ── Secret handling ──────────────────────────────────────────────────────────
 // hostId and per-player tokens are credentials and must never reach a client other
@@ -102,6 +108,15 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { action } = body;
+
+    // Every code-bearing action eventually calls code.toUpperCase() (directly or via
+    // withRoomLock). A non-string code (e.g. a client bug sending `code: 123`) would throw a
+    // TypeError and surface as a generic 500; reject it once, here, with a clean 400. Guard the
+    // `in` check with an object test — `'code' in <primitive>` itself throws — so a bare-primitive
+    // body still falls through to the default "Unknown action" 400. create-room carries no code.
+    if (body !== null && typeof body === 'object' && 'code' in body && body.code !== undefined && typeof body.code !== 'string') {
+      return NextResponse.json({ error: 'Invalid room code' }, { status: 400 });
+    }
 
     switch (action) {
       case 'create-room': {
@@ -218,6 +233,12 @@ export async function POST(req: NextRequest) {
           const updated = addPlayer(room, playerId, safeName, resolveAvatar(room, avatarId));
           const token = crypto.randomUUID();
           updated.tokens = { ...(updated.tokens ?? {}), [playerId]: token };
+          // A new arrival means the room is alive — cancel any idle-reap armed while the lobby sat
+          // empty. Without this, a lobby whose shutdownAt has already elapsed could be deleted by
+          // the very next GET poll (the reap check there) before this player's first heartbeat
+          // clears it, so they'd join and immediately get "Room closed". The existing-seat and
+          // reclaim branches already do this; the new-player branch was the one that didn't.
+          updated.shutdownAt = undefined;
           await setRoom(updated);
           await broadcastRoom(updated);
           return NextResponse.json({ room: scrubRoomFor(updated, playerId), token });
@@ -610,15 +631,19 @@ export async function GET(req: NextRequest) {
       // Under the room lock, re-reading and re-checking, so a concurrent locked mutation (a late
       // heartbeat/advance) can't setRoom right after the delete and resurrect a zombie room —
       // and so a game that started between the two reads is not deleted out from under itself.
-      const deleted = await withRoomLock(code.toUpperCase(), async () => {
+      const gone = await withRoomLock(code.toUpperCase(), async () => {
         const fresh = await getRoom(code.toUpperCase());
-        if (fresh?.shutdownAt && Date.now() > fresh.shutdownAt && isReapable(fresh.phase)) {
+        // Already deleted by a concurrent reaper between our first read and this lock: the room is
+        // gone, so 404 rather than falling through and serving the stale pre-delete snapshot we
+        // read a moment ago.
+        if (!fresh) return true;
+        if (fresh.shutdownAt && Date.now() > fresh.shutdownAt && isReapable(fresh.phase)) {
           await deleteRoom(code.toUpperCase());
           return true;
         }
         return false;
       });
-      if (deleted) {
+      if (gone) {
         return NextResponse.json({ error: 'Room closed — it was idle for too long' }, { status: 404 });
       }
     }
@@ -658,12 +683,13 @@ async function triggerJudge(code: string) {
   const room = await getRoom(code);
   if (!room || room.phase !== 'judging') return;
 
-  // Distributed lock — prevent double-judging if after() fires more than once. TTL is kept
-  // comfortably above the judge's own timeout (up to 18s at a full table) but short enough
-  // that, if the function is killed mid-judge, the lock clears quickly so the kick-judge
-  // watchdog can recover.
+  // Distributed lock — prevent double-judging if after() fires more than once. The TTL
+  // (JUDGING_LOCK_TTL_MS, 30 s) is kept comfortably above the judge's own deadline (22 s at a
+  // full table, shared with the ~1 s retry if the API rejects structured outputs) but short
+  // enough that, if the function is killed mid-judge, the lock clears quickly so the
+  // kick-judge watchdog can recover.
   const lockKey = `lock:judging:${code}:${room.round}`;
-  const acquired = await acquireLock(lockKey, 30);
+  const acquired = await acquireLock(lockKey, JUDGING_LOCK_TTL_MS / 1000);
   if (!acquired) return; // Another instance already handling this round
 
   if (!room.currentChallenge) {
@@ -694,14 +720,16 @@ async function triggerJudge(code: string) {
     return;
   }
 
-  const verdict = await judgeRound(room.currentChallenge, submissions);
+  const verdict = await judgeRound(room.currentChallenge, submissions, { tag: `${code}:${room.round}` });
 
   // Apply the verdict under the room lock (and re-read fresh) so a concurrent heartbeat or
   // chat write can't clobber the winner phase back to judging and freeze the game. The
   // Claude call above stays outside the lock so it never blocks other writers.
   await withRoomLock(code, async () => {
     const freshRoom = await getRoom(code);
-    if (!freshRoom || freshRoom.phase !== 'judging') return;
+    // Phase AND round: a judge run that somehow outlived the lock must never apply a stale
+    // round's verdict to a later round that happens to be in judging.
+    if (!freshRoom || freshRoom.phase !== 'judging' || freshRoom.round !== room.round) return;
     const updated = applyVerdict(freshRoom, verdict);
     await setRoom(updated);
     await broadcastRoom(updated);
@@ -722,12 +750,14 @@ function checkAdminAuth(req: NextRequest): boolean {
   if (colonIdx === -1) return false;
   const user = decoded.slice(0, colonIdx);
   const pass = decoded.slice(colonIdx + 1);
-  const maxLen = Math.max(user.length, expectedUser.length, pass.length, expectedPass.length);
-  const bufU1 = Buffer.alloc(maxLen); bufU1.write(user);
-  const bufU2 = Buffer.alloc(maxLen); bufU2.write(expectedUser);
-  const bufP1 = Buffer.alloc(maxLen); bufP1.write(pass);
-  const bufP2 = Buffer.alloc(maxLen); bufP2.write(expectedPass);
-  return crypto.timingSafeEqual(bufU1, bufU2) && crypto.timingSafeEqual(bufP1, bufP2);
+  // Compare fixed-length SHA-256 digests rather than length-padded buffers. Buffer.alloc sizes by
+  // string length (UTF-16 units) while Buffer.write emits UTF-8 bytes, so a multibyte credential
+  // was silently truncated and a wrong-but-same-byte-prefix value could authenticate. Hashing is
+  // constant-time on the 32-byte digests and length-independent for any UTF-8 input.
+  const digest = (s: string) => crypto.createHash('sha256').update(s, 'utf8').digest();
+  const userOk = crypto.timingSafeEqual(digest(user), digest(expectedUser));
+  const passOk = crypto.timingSafeEqual(digest(pass), digest(expectedPass));
+  return userOk && passOk;
 }
 
 export async function DELETE(req: NextRequest) {

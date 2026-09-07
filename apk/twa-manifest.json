@@ -1,0 +1,56 @@
+{
+  "packageId": "com.sujeetkofficial.vikas75",
+  "host": "vikas75.vercel.app",
+  "name": "Vikas 75",
+  "launcherName": "Vikas 75",
+  "display": "standalone",
+  "orientation": "portrait",
+  "themeColor": "#08070f",
+  "themeColorDark": "#08070f",
+  "navigationColor": "#08070f",
+  "navigationColorDark": "#08070f",
+  "navigationDividerColor": "#08070f",
+  "navigationDividerColorDark": "#08070f",
+  "backgroundColor": "#08070f",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://vikas75.vercel.app/icon-512.png",
+  "maskableIconUrl": "https://vikas75.vercel.app/icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "vikas75"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [
+    {
+      "name": "Join a Game",
+      "shortName": "Join",
+      "url": "/join",
+      "chosenIconUrl": "https://vikas75.vercel.app/icon-192.png"
+    },
+    {
+      "name": "Explore the Deck",
+      "shortName": "Explore",
+      "url": "/explore",
+      "chosenIconUrl": "https://vikas75.vercel.app/icon-192.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://vikas75.vercel.app/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeMode": true,
+  "minSdkVersion": 21,
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "appVersion": "1.0.0"
+}

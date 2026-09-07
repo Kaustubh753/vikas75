@@ -1,6 +1,7 @@
 import { FaGlobe, FaInstagram, FaXTwitter, FaLinkedin, FaFacebook, FaYoutube } from 'react-icons/fa6';
 
-const LINKS = [
+// Single source of truth for the official social links — also consumed by the landing footer.
+export const SOCIAL_LINKS = [
   { label: 'Website',   href: 'https://www.sujeetkofficial.com/',                                    Icon: FaGlobe     },
   { label: 'Instagram', href: 'https://www.instagram.com/sujeetkofficial/',                          Icon: FaInstagram  },
   { label: 'X',         href: 'https://x.com/SujeetKOfficial',                                       Icon: FaXTwitter   },
@@ -16,7 +17,7 @@ interface Props {
 export default function SocialLinks({ className = '' }: Props) {
   return (
     <div className={`flex items-center gap-4 justify-center flex-wrap ${className}`}>
-      {LINKS.map(({ label, href, Icon }) => (
+      {SOCIAL_LINKS.map(({ label, href, Icon }) => (
         <a
           key={label}
           href={href}

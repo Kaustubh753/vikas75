@@ -2,6 +2,8 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
+import SchemeDetailSheet from '@/components/explore/SchemeDetailSheet';
+import { hasSchemeDetail } from '@/lib/scheme-details';
 import { getSchemeCardImage } from '@/lib/cards';
 
 // ── Types ─────────────────────────────────────────────────────
@@ -29,11 +31,8 @@ const C = {
   w06:     'rgba(250,248,240,0.06)',
 };
 
-type Tab = 'deck' | 'team';
-
 // ── Main component ────────────────────────────────────────────
 export default function ExplorePage({ schemes }: Props) {
-  const [tab, setTab]       = useState<Tab>('deck');
   const [query, setQuery]   = useState('');
   const [active, setActive] = useState<SchemeCard | null>(null);
 
@@ -93,29 +92,10 @@ export default function ExplorePage({ schemes }: Props) {
         <div style={{
           display: 'flex', alignItems: 'center',
           fontFamily: 'var(--font-bebas),sans-serif',
-          fontSize: 22, color: C.white, letterSpacing: '0.02em', paddingRight: 32,
+          fontSize: 22, color: C.white, letterSpacing: '0.02em',
         }}>
           Explore
         </div>
-
-        <nav style={{ display: 'flex', alignItems: 'stretch' }}>
-          {(['deck', 'team'] as Tab[]).map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              padding: '0 20px', height: '100%',
-              color: tab === t ? C.saffron : C.w40,
-              fontSize: 13, fontWeight: 600,
-              letterSpacing: '0.08em', textTransform: 'uppercase',
-              borderBottom: tab === t ? `2px solid ${C.saffron}` : '2px solid transparent',
-              marginBottom: -1, transition: 'color .15s, border-color .15s',
-            }}
-              onMouseEnter={e => { if (tab !== t) (e.currentTarget as HTMLButtonElement).style.color = C.w70; }}
-              onMouseLeave={e => { if (tab !== t) (e.currentTarget as HTMLButtonElement).style.color = C.w40; }}
-            >
-              {t === 'deck' ? 'The Deck' : 'The Team'}
-            </button>
-          ))}
-        </nav>
       </header>
 
       {/* ── Body ─────────────────────────────────────────────── */}
@@ -124,16 +104,13 @@ export default function ExplorePage({ schemes }: Props) {
         maxWidth: 1400, margin: '0 auto',
         padding: 'clamp(28px,4vh,52px) clamp(20px,4vw,64px)',
       }}>
-        {tab === 'deck' && (
-          <DeckTab
-            schemes={filtered}
-            query={query}
-            onQuery={setQuery}
-            total={schemes.length}
-            onOpen={setActive}
-          />
-        )}
-        {tab === 'team' && <TeamTab />}
+        <DeckTab
+          schemes={filtered}
+          query={query}
+          onQuery={setQuery}
+          total={schemes.length}
+          onOpen={setActive}
+        />
       </main>
 
       {/* ── Detail modal ─────────────────────────────────────── */}
@@ -192,7 +169,7 @@ function DeckTab({ schemes, query, onQuery, total, onOpen }: {
             onBlur={e => (e.target as HTMLInputElement).style.borderColor = C.w14}
           />
           {query && (
-            <button onClick={() => onQuery('')} style={{
+            <button onClick={() => onQuery('')} aria-label="Clear search" style={{
               position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
               background: 'none', border: 'none', cursor: 'pointer',
               color: C.w40, fontSize: 16, lineHeight: 1, padding: 2,
@@ -215,7 +192,11 @@ function DeckTab({ schemes, query, onQuery, total, onOpen }: {
       ) : (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
+          // Fluid column count: ~5 on a desktop content width, 4 on tablets, 2 on phones.
+          // The old hard repeat(5, 1fr) overflowed the viewport on phones — five columns of
+          // unbreakable card names forced the grid wider than the screen and clipped the
+          // right column.
+          gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(150px, 16vw, 220px), 1fr))',
           gap: 'clamp(12px,1.4vw,20px)',
         }}>
           {schemes.map(s => (
@@ -241,7 +222,7 @@ function CardTile({ card, onOpen }: { card: SchemeCard; onOpen: (s: SchemeCard) 
       style={{
         background: 'none', border: 'none', padding: 0,
         cursor: 'pointer', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', gap: 10,
+        alignItems: 'center', gap: 10, minWidth: 0,
       }}
     >
       {/* Card image wrapper */}
@@ -318,6 +299,10 @@ function CardTile({ card, onOpen }: { card: SchemeCard; onOpen: (s: SchemeCard) 
 function CardModal({ card, onClose }: { card: SchemeCard; onClose: () => void }) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const imgSrc = getSchemeCardImage(card.id);
+  const [showGuide, setShowGuide] = useState(false);
+  // Not every deck card has an infographic in the source deck — hide the entry point rather
+  // than open a sheet with nothing in it.
+  const guideAvailable = hasSchemeDetail(card.id);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -347,20 +332,23 @@ function CardModal({ card, onClose }: { card: SchemeCard; onClose: () => void })
     >
       <motion.div
         style={{
+          // flexWrap + the panel's min-width stack the layout on phones: side-by-side left
+          // the detail panel ~60px wide at 390px. The wrapper scrolls when stacked content
+          // exceeds the viewport.
           display: 'flex', gap: 'clamp(20px,3vw,40px)',
-          alignItems: 'flex-start',
+          alignItems: 'flex-start', flexWrap: 'wrap', justifyContent: 'center',
           width: '100%', maxWidth: 1100,
-          maxHeight: '90vh',
+          maxHeight: '90vh', overflowY: 'auto',
         }}
         initial={{ scale: 0.93, y: 16, opacity: 0 }}
         animate={{ scale: 1, y: 0, opacity: 1 }}
         exit={{ scale: 0.96, y: 8, opacity: 0 }}
         transition={{ duration: 0.24, ease: [0.34, 1.56, 0.64, 1] }}
       >
-        {/* Card image — left */}
+        {/* Card image — left (above on phones) */}
         <div style={{
           flexShrink: 0,
-          width: 'clamp(280px,44vw,440px)',
+          width: 'clamp(200px,44vw,440px)',
           aspectRatio: '5 / 7',
           borderRadius: 12,
           overflow: 'hidden',
@@ -370,9 +358,9 @@ function CardModal({ card, onClose }: { card: SchemeCard; onClose: () => void })
           <img src={imgSrc} alt={card.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         </div>
 
-        {/* Detail panel — right */}
+        {/* Detail panel — right (below on phones; the min-width is what forces the wrap) */}
         <div style={{
-          flex: 1, minWidth: 0,
+          flex: 1, minWidth: 'min(100%, 260px)',
           background: 'linear-gradient(160deg,rgba(255,153,51,.06) 0%,rgba(5,11,28,.96) 100%)',
           border: `1px solid rgba(255,153,51,0.25)`,
           borderRadius: 14,
@@ -385,6 +373,7 @@ function CardModal({ card, onClose }: { card: SchemeCard; onClose: () => void })
           {/* Close */}
           <button
             onClick={onClose}
+            aria-label="Close"
             style={{
               position: 'absolute', top: 14, right: 14,
               width: 28, height: 28, borderRadius: '50%',
@@ -447,19 +436,32 @@ function CardModal({ card, onClose }: { card: SchemeCard; onClose: () => void })
               ))}
             </ul>
           </div>
+
+          {guideAvailable && (
+            <button
+              onClick={() => setShowGuide(true)}
+              style={{
+                marginTop: 18, width: '100%', height: 48, borderRadius: 10, cursor: 'pointer',
+                background: 'rgba(255,153,51,0.12)', border: `1px solid rgba(255,153,51,0.45)`,
+                color: C.saffron, fontFamily: 'var(--font-bebas),sans-serif',
+                fontSize: 18, letterSpacing: '0.12em',
+              }}
+            >
+              Full scheme guide →
+            </button>
+          )}
         </div>
       </motion.div>
-    </motion.div>
-  );
-}
 
-// ── Team tab ──────────────────────────────────────────────────
-function TeamTab() {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 240 }}>
-      <p style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 14, color: C.w40, margin: 0 }}>
-        Coming soon.
-      </p>
-    </div>
+      <AnimatePresence>
+        {showGuide && (
+          <SchemeDetailSheet
+            schemeId={card.id}
+            schemeName={card.name}
+            onClose={() => setShowGuide(false)}
+          />
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }

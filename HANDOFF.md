@@ -5,7 +5,7 @@ session (on any account) can resume with the same mental model the previous sess
 not just *what* changed, but *why*, what was tried and rejected, and how things were verified.
 
 Read order for a new session: **this file → `CLAUDE.md` → `AGENTS.md`**.
-- `CLAUDE.md` = the standing developer guide (architecture, file map, env vars, bug history #1–#17).
+- `CLAUDE.md` = the standing developer guide (architecture, file map, env vars, bug history #1–#22).
 - `AGENTS.md` = a warning that this is a **modified Next.js (v16, Turbopack)** with breaking
   changes; read `node_modules/next/dist/docs/` before writing Next.js code.
 - This file = the narrative + reasoning that commit messages and `CLAUDE.md` don't fully capture.
@@ -105,7 +105,22 @@ milestones. M1 closed the broken/silent/duplicate gaps.
 - Still untested because they need live infra: real-time Pusher delivery, `after()` /
   `triggerJudge` reliability under Vercel cold starts, and cross-instance Redis.
 
-### 1.6 — Phase-stall fixes (`a98d296`) ← most important recent change
+### 1.7 — AI judge rebuilt to remove position bias (`5d06bd6` and follow-up)
+
+The judge used to receive submissions in submission order, numbered and named, and had to
+return a score-sorted JSON list — a textbook LLM position bias, so the fastest submitter won far
+too often. It is now split into pure logic (`src/lib/judge-core.ts`, tested by
+`npm run test:judge`, Node ≥ 22.18) and orchestration (`src/lib/ai-judge.ts`): anonymous random
+`ANS-nn` labels, three parallel calls over different rotations of one seeded shuffle,
+reason-before-score fields, vote-then-mean aggregation with a seeded tie-break, structured
+outputs with a plain-JSON degrade, and per-call drops instead of whole-round fallback.
+Load-bearing invariant: the judge's absolute deadline `min(22 s, 9 s + 0.65 s/answer)` (SDK
+retries disabled, every call raced against it) must stay under `JUDGING_LOCK_TTL_MS` (30 s) or
+the 12 s kick-judge watchdog can double-fire a round. Grep Vercel logs for `[ai-judge]` — every
+line carries a `[CODE:round]` tag; `winnerPos` clustering at 1 over many rounds is the residual-
+primacy tell. See `CLAUDE.md` bug #22.
+
+### 1.6 — Phase-stall fixes (`a98d296`)
 
 While testing the full game loop end-to-end (via `curl`, see §2), two independent
 auto-advance bugs surfaced. Both are in `src/app/api/game/route.ts`.
@@ -181,7 +196,7 @@ guarding against double-fires *within* a round. The room must be read first to k
 const room = await getRoom(code);
 if (!room || room.phase !== 'judging') return;
 const lockKey = `lock:judging:${code}:${room.round}`;   // ← per-round
-const acquired = await acquireLock(lockKey, 60);
+const acquired = await acquireLock(lockKey, JUDGING_LOCK_TTL_MS / 1000);   // 30 s today (was 60)
 if (!acquired) return;
 ```
 
@@ -248,7 +263,7 @@ viewport width / player count. Banter chips animate in as new players join, trac
 
 ### 1.0 — Earlier (pre-handoff) fixes still relevant
 `0a7aac3` allow mid-submission joins + 2 s auto-advance delay; `c121d58` restored avatars
-`a6`/`a9` to the server allowlist. Full bug history is `CLAUDE.md` #1–#17.
+`a6`/`a9` to the server allowlist. Full bug history is `CLAUDE.md` #1–#22.
 
 ---
 

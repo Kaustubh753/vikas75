@@ -14,11 +14,14 @@ import PlayerLobby from '@/components/player/PlayerLobby';
 import PlayerChallengeReveal from '@/components/player/PlayerChallengeReveal';
 import PlayerSubmit from '@/components/player/PlayerSubmit';
 import PlayerWaiting from '@/components/player/PlayerWaiting';
+import PlayerScorecard from '@/components/player/PlayerScorecard';
+import PlayerGameOver from '@/components/player/PlayerGameOver';
 import Avatar from '@/lib/avatars';
 import EmotePanel from '@/components/player/EmotePanel';
 import ChatPanel from '@/components/player/ChatPanel';
 import { getLobbyMusic } from '@/lib/music-manager';
 import { staleRoom } from '@/lib/room-state';
+import { loadSeat, saveSeat, clearSeat, seatToken, seatPlayerId } from '@/lib/seat-storage';
 import type { GameRoom, SchemeCard, EmoteId, AvatarId, ChatMessage } from '@/types/game';
 
 interface Props {
@@ -62,9 +65,42 @@ export default function PlayerView({ code }: Props) {
   const timerFiredForRef = useRef<number>(0);
 
   useEffect(() => {
-    const pid = localStorage.getItem('vikas75_playerId') ?? '';
-    const pname = localStorage.getItem('vikas75_playerName') ?? '';
-    const avid = (localStorage.getItem('vikas75_avatarId') as AvatarId) ?? 'a1';
+    let pid = '', pname = '', avid: AvatarId = 'a1', soundOn = false;
+    try {
+      // THIS room's seat record wins over the shared legacy keys — the legacy keys hold
+      // whichever room was joined last, so without the per-room record a player who visited
+      // another room (or scanned a friend's QR) came back here as the wrong identity.
+      const seat = loadSeat(code);
+      if (seat) {
+        pid = seat.playerId;
+        pname = seat.name || (localStorage.getItem('vikas75_playerName') ?? '');
+        avid = (seat.avatarId as AvatarId) || 'a1';
+        // Sync the legacy keys so older readers (and the join-form prefill) agree with us.
+        localStorage.setItem('vikas75_playerId', pid);
+        localStorage.setItem('vikas75_token', seat.token);
+        if (pname) localStorage.setItem('vikas75_playerName', pname);
+        localStorage.setItem('vikas75_avatarId', avid);
+        localStorage.setItem('vikas75_roomCode', code);
+      } else {
+        pid = localStorage.getItem('vikas75_playerId') ?? '';
+        pname = localStorage.getItem('vikas75_playerName') ?? '';
+        avid = (localStorage.getItem('vikas75_avatarId') as AvatarId) ?? 'a1';
+        // Self-heal: seed this room's record from the legacy keys — but only when they were
+        // written FOR this room, or we'd stamp another room's token onto this one.
+        if (pid && pname && (localStorage.getItem('vikas75_roomCode') ?? '').toUpperCase() === code.toUpperCase()) {
+          saveSeat(code, { playerId: pid, token: localStorage.getItem('vikas75_token') ?? '', name: pname, avatarId: avid });
+        }
+      }
+      // Single shared "sound on" preference drives both lobby music and SFX.
+      soundOn = localStorage.getItem('vikas75-sound-on') === 'true';
+    } catch {
+      // Storage access throws (not just returns null) when a device blocks site data — private
+      // mode, enterprise policy. We can't recover an identity, so send the player to the join
+      // screen rather than aborting the effect before setHydrated and hanging on the loading
+      // ghost forever.
+      router.replace(`/join?code=${code}`);
+      return;
+    }
     if (!pid || !pname) {
       router.replace(`/join?code=${code}`);
       return;
@@ -72,8 +108,6 @@ export default function PlayerView({ code }: Props) {
     setPlayerId(pid);
     setPlayerName(pname);
     setAvatarId(avid);
-    // Single shared "sound on" preference drives both lobby music and SFX.
-    const soundOn = localStorage.getItem('vikas75-sound-on') === 'true';
     setMusicOn(soundOn);
     getMusicManager().setMuted(!soundOn);
     // Restore cached hand from previous session (survives page refresh mid-game)
@@ -85,28 +119,38 @@ export default function PlayerView({ code }: Props) {
   }, [code, router]);
 
   const clearSessionAndGoHome = useCallback((message?: string) => {
-    localStorage.removeItem('vikas75_playerId');
-    localStorage.removeItem('vikas75_token');
-    localStorage.removeItem('vikas75_playerName');
-    localStorage.removeItem('vikas75_avatarId');
-    localStorage.removeItem('vikas75_roomCode');
-    localStorage.removeItem(`vikas75_hand_${code}`);
+    try {
+      localStorage.removeItem('vikas75_playerId');
+      localStorage.removeItem('vikas75_token');
+      localStorage.removeItem('vikas75_playerName');
+      localStorage.removeItem('vikas75_avatarId');
+      localStorage.removeItem('vikas75_roomCode');
+      localStorage.removeItem(`vikas75_hand_${code}`);
+    } catch { /* storage blocked — nothing persisted to clear */ }
+    clearSeat(code);
     if (message) toast(message, { icon: '🏁' });
     router.replace('/');
   }, [router, code]);
 
   const fetchRoom = useCallback(async () => {
     try {
-      const pid = localStorage.getItem('vikas75_playerId') ?? '';
-      const tok = localStorage.getItem('vikas75_token') ?? '';
+      // Room-scoped, like the token beside it: the shared global holds whichever room this
+      // device joined LAST, so a second tab in another room would otherwise make this poll ask
+      // for someone else's id — the server then scrubs our own hand out of the reply (an
+      // unknown `me`), freezing the hand, and the game-over check below would see us as a
+      // stranger and eject us.
+      const pid = seatPlayerId(code);
+      const tok = seatToken(code);
       const res = await fetch(`/api/game?code=${code}${pid ? `&me=${encodeURIComponent(pid)}` : ''}`,
         tok ? { headers: { 'x-player-token': tok } } : undefined);
       if (!res.ok) {
-        // 404 = the room is genuinely gone (closed, expired, deleted). Always clear identity
-        // and return home cleanly — no error, no dead end — even for an already-joined player.
-        // Other errors (e.g. 503 storage blip) are ignored so a transient hiccup doesn't eject
-        // an active player; during initial restore any failure still sends them home.
-        if (res.status === 404 || !toastedJoin.current) clearSessionAndGoHome();
+        // 404 = the room is genuinely gone (closed, expired, deleted): clear identity and return
+        // home cleanly, even for an already-joined player. Every other status is transient — a
+        // 503 storage blip, a 429 from a refresh storm, a 500 — and must NOT wipe a valid identity
+        // or eject an active player; we stay put and let the next poll retry. (This used to also
+        // eject on any non-ok response during the initial restore, which meant a single transient
+        // failure on load erased a live player's seat mid-round.)
+        if (res.status === 404) clearSessionAndGoHome();
         return;
       }
       const data = await res.json();
@@ -115,8 +159,10 @@ export default function PlayerView({ code }: Props) {
         clearSessionAndGoHome();
         return;
       }
-      // Rejoining a finished game — redirect with toast
-      if (!toastedJoin.current && r.phase === 'game-over') {
+      // A finished game: a visitor who was never in it gets redirected with a toast, but a
+      // seated player stays — refreshing on the final screen used to eject them home before
+      // they could see the podium or share the result card.
+      if (!toastedJoin.current && r.phase === 'game-over' && !(pid && r.players[pid])) {
         clearSessionAndGoHome('That game has ended. Start a new one!');
         return;
       }
@@ -135,7 +181,9 @@ export default function PlayerView({ code }: Props) {
         try { localStorage.setItem(`vikas75_hand_${code}`, JSON.stringify(hand)); } catch { /* ignore */ }
       }
       if (!toastedJoin.current && pid && r.players[pid]) {
-        toast.success('Joined room!');
+        // Not on the podium: a seated player refreshing at game-over is returning to a finished
+        // game, not joining one.
+        if (r.phase !== 'game-over') toast.success('Joined room!');
         toastedJoin.current = true;
       }
     } catch {
@@ -172,7 +220,7 @@ export default function PlayerView({ code }: Props) {
       setRoom(prev => staleRoom(prev, updated) ? prev : { ...updated, messages: prev?.messages ?? [] });
       // Also sync cachedHand — Pusher payload is the full room, so the hand is here.
       // fetchRoom() does the same thing, but can lose a race when Pusher fires first.
-      const pid = localStorage.getItem('vikas75_playerId') ?? '';
+      const pid = seatPlayerId(code);
       if (pid && updated.players[pid]?.hand?.length) {
         const hand = updated.players[pid].hand;
         setCachedHand(hand);
@@ -220,7 +268,7 @@ export default function PlayerView({ code }: Props) {
     prevPhaseRef.current = room.phase;
     if (prev !== null && prev !== room.phase) {
       if (room.phase === 'challenge-reveal') {
-        toast('Round starting...', { icon: '🎯' });
+        toast('Round starting…', { icon: '🎯' });
       }
       // Brief overlay text
       const ov = getOverlay(room.phase, room.round);
@@ -246,7 +294,7 @@ export default function PlayerView({ code }: Props) {
         body: JSON.stringify({
           action: 'submit',
           code,
-          token: localStorage.getItem('vikas75_token') ?? '',
+          token: seatToken(code),
           auto,
           submission: {
             playerId,
@@ -288,7 +336,7 @@ export default function PlayerView({ code }: Props) {
           playerName,
           avatarId,
           emote: emoteId,
-          token: localStorage.getItem('vikas75_token') ?? '',
+          token: seatToken(code),
         }),
       });
     } catch { /* fire-and-forget — emotes are non-critical */ }
@@ -302,7 +350,7 @@ export default function PlayerView({ code }: Props) {
         body: JSON.stringify({
           action: 'chat',
           code,
-          token: localStorage.getItem('vikas75_token') ?? '',
+          token: seatToken(code),
           message: { playerId, playerName, avatarId, text },
         }),
       });
@@ -319,7 +367,7 @@ export default function PlayerView({ code }: Props) {
       fetch('/api/game', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'heartbeat', code, playerId, token: localStorage.getItem('vikas75_token') ?? '' }),
+        body: JSON.stringify({ action: 'heartbeat', code, playerId, token: seatToken(code) }),
         keepalive: true,
       }).catch(() => {});
     };
@@ -330,7 +378,7 @@ export default function PlayerView({ code }: Props) {
     // sendBeacon on tab close / navigate away
     const onUnload = () => {
       const blob = new Blob(
-        [JSON.stringify({ action: 'heartbeat', code, playerId, token: localStorage.getItem('vikas75_token') ?? '' })],
+        [JSON.stringify({ action: 'heartbeat', code, playerId, token: seatToken(code) })],
         { type: 'application/json' }
       );
       navigator.sendBeacon?.('/api/game', blob);
@@ -504,39 +552,12 @@ export default function PlayerView({ code }: Props) {
             <p className={`font-[family-name:var(--font-inter)] text-sm font-semibold ${iWon ? 'text-[#138808]' : 'text-white/50'}`}>
               {iWon ? '🎉 You won this round!' : 'Better luck next round!'}
             </p>
+            <PlayerScorecard verdict={verdict} playerId={playerId} />
           </div>
         );
       }
       case 'game-over':
-        return (
-          <div className="flex flex-col items-center justify-center gap-4 min-h-[50vh] px-4">
-            <p className="text-4xl">🎉</p>
-            <p className="text-white font-[family-name:var(--font-bebas)] text-3xl tracking-wide text-center">
-              Game Over!
-            </p>
-            <p className="text-white/50 text-sm text-center font-[family-name:var(--font-inter)]">
-              Thanks for playing Vikas 75!
-            </p>
-            <button
-              onClick={() => clearSessionAndGoHome()}
-              className="mt-4 px-8 h-14 bg-[#FF9933] hover:bg-[#e8872a] text-white font-[family-name:var(--font-bebas)] text-2xl tracking-widest rounded-xl transition-all active:scale-95"
-            >
-              Play Again →
-            </button>
-            <a
-              href="/explore"
-              className="flex items-center gap-1.5 font-[family-name:var(--font-inter)] text-xs font-medium tracking-wide transition-colors"
-              style={{ color: 'rgba(250,248,240,0.38)', textDecoration: 'none' }}
-              onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,153,51,0.8)'}
-              onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(250,248,240,0.38)'}
-            >
-              Explore all 75 schemes
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                <path d="M2 5H8M5.5 2.5L8 5L5.5 7.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </a>
-          </div>
-        );
+        return <PlayerGameOver room={room} playerId={playerId} onExit={() => clearSessionAndGoHome()} />;
       // Standings on the player's own phone, not just the projector.
       case 'between-rounds':
         return <PlayerLeaderboard room={room} playerId={playerId} />;

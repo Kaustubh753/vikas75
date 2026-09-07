@@ -112,7 +112,6 @@ export default function AvatarPicker({ value, onChange, disabled }: Props) {
                 justifyContent: 'center',
                 cursor: disabled ? 'not-allowed' : 'pointer',
                 padding: 0,
-                outline: 'none',
               }}
             >
               {isRandom ? (

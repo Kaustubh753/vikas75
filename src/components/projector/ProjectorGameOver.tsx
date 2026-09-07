@@ -177,7 +177,7 @@ export default function ProjectorGameOver({ room }: Props) {
       <div className="flex flex-col items-center gap-3">
         <SocialLinks />
         <div className="text-white/20 text-xs font-[family-name:var(--font-inter)]">
-          An initiative of the Office of Shri Sujeet Kumar
+          An initiative of the Office of Sujeet Kumar
         </div>
       </div>
     </div>
