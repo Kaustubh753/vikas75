@@ -185,3 +185,9 @@ input, textarea, select { font-size: max(16px, 1em); }
 @keyframes vk-rail-l2 { 0% { opacity: 1; transform: none; } 36% { opacity: .12; transform: translateX(26px);  } 100% { opacity: 1; transform: none; } }
 
 @keyframes vk-mote { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: .55; } 100% { transform: translateY(-260px); opacity: 0; } }
+
+/* The guide page's arrival. The card flies in from its deck tile on the left, so the page
+   comes in from the right and the two converge on the centre; without it the page only
+   faded, which read as flat beside a card that visibly travelled. Transform only — the
+   well's `vk-fade` already carries the opacity, and doubling it just muddies the arrival. */
+@keyframes vk-enter-right { from { transform: translateX(110px); } to { transform: none; } }
