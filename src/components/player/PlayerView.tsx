@@ -21,6 +21,7 @@ import EmotePanel from '@/components/player/EmotePanel';
 import ChatPanel from '@/components/player/ChatPanel';
 import { getLobbyMusic } from '@/lib/music-manager';
 import { staleRoom } from '@/lib/room-state';
+import { pollIntervalMs } from '@/lib/poll';
 import { loadSeat, saveSeat, clearSeat, seatToken, seatPlayerId } from '@/lib/seat-storage';
 import type { GameRoom, SchemeCard, EmoteId, AvatarId, ChatMessage } from '@/types/game';
 
@@ -203,12 +204,7 @@ export default function PlayerView({ code }: Props) {
   // phases (lobby / between-rounds / game-over) poll slowly to save load.
   useEffect(() => {
     if (!hydrated) return;
-    const active = room?.phase === 'submission' || room?.phase === 'reveal'
-      || room?.phase === 'judging' || room?.phase === 'winner';
-    // Jitter per client so a large room (which falls back to polling once Pusher's limit is
-    // hit) doesn't stampede the API on the same 3s beat — spread the load across the window.
-    const base = active ? 3_000 : 30_000;
-    const id = setInterval(fetchRoom, base + Math.random() * (active ? 1_500 : 8_000));
+    const id = setInterval(fetchRoom, pollIntervalMs(room?.phase));
     return () => clearInterval(id);
   }, [hydrated, fetchRoom, room?.phase]);
 

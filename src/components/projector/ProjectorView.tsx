@@ -19,6 +19,7 @@ import ProjectorGameOver from '@/components/projector/ProjectorGameOver';
 import MobileHostContent from '@/components/projector/MobileHostContent';
 import ProjectorLoading from '@/components/projector/ProjectorLoading';
 import { staleRoom } from '@/lib/room-state';
+import { pollIntervalMs } from '@/lib/poll';
 import type { GameRoom, BroadcastRoom } from '@/types/game';
 
 interface Props { code: string; hostId?: string }
@@ -112,10 +113,6 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
     // motion so phase changes — round ends after everyone submits, and the judge's verdict —
     // reach the big screen within a few seconds instead of stalling for 30s (which looks like
     // "the round won't end" or "stuck on AI deliberating"). Idle phases poll slowly.
-    const active = room?.phase === 'submission' || room?.phase === 'reveal'
-      || room?.phase === 'judging' || room?.phase === 'winner';
-    // Jitter per client so fallback polls don't all land on the same beat under load.
-    const base = active ? 3_000 : 30_000;
     const poll = setInterval(() => {
       fetch(`/api/game?code=${code}`)
         .then(async (r) => {
@@ -124,7 +121,7 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
         })
         .then((d) => { if (d?.room) { setRoom(prev => staleRoom(prev, d.room) ? prev : d.room); setRoomMissing(false); } })
         .catch(() => {});
-    }, base + Math.random() * (active ? 1_500 : 8_000));
+    }, pollIntervalMs(room?.phase));
     return () => clearInterval(poll);
   }, [code, room?.phase]);
 
