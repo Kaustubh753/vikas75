@@ -56,11 +56,17 @@ function stripForBroadcast(room: GameRoom): BroadcastRoom {
     players: Object.fromEntries(
       Object.entries(room.players).map(([id, p]) => [id, { ...p, hand: [] }])
     ),
-    // Strip desc/bullets from scheme cards in submissions
+    // Strip desc/bullets from scheme cards in submissions — and, before the reveal, the answer
+    // itself. A broadcast during `submission` otherwise carries every answer already played to
+    // every client, so a player still choosing could read their rivals'. The keys stay, because
+    // that is all the "who has submitted" UI needs; the content waits for the phase named after
+    // showing it. (GET applies the same rule, per hideUnrevealedSubmissions in the API route.)
     submissions: Object.fromEntries(
       Object.entries(room.submissions).map(([id, s]) => [
         id,
-        { ...s, schemeCard: stripCard(s.schemeCard) },
+        room.phase === 'submission'
+          ? { ...s, explanation: '', schemeCard: stripCard({ id: '', name: '', hi: '', desc: '', bullets: [] }) }
+          : { ...s, schemeCard: stripCard(s.schemeCard) },
       ])
     ),
     // Strip desc/bullets from verdict cards

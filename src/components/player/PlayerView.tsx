@@ -55,6 +55,8 @@ export default function PlayerView({ code }: Props) {
   const [avatarId, setAvatarId] = useState<AvatarId>('a1');
   const [room, setRoom] = useState<GameRoom | null>(null);
   const [cachedHand, setCachedHand] = useState<SchemeCard[]>([]);
+  // Our own answer, kept from the moment we submit — see the note at the setter.
+  const [mySubmission, setMySubmission] = useState<{ round: number; schemeCard: SchemeCard; explanation: string } | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [overlay, setOverlay] = useState<OverlayInfo | null>(null);
   const [musicOn, setMusicOn] = useState(false);
@@ -286,6 +288,10 @@ export default function PlayerView({ code }: Props) {
     }
   }, [hydrated, room?.phase, fetchRoom]);
 
+  // Stamps the remembered answer with the round it belongs to, so last round's card can
+  // never be shown as this round's confirmation.
+  const currentRound = room?.round ?? 0;
+
   const handleSubmit = useCallback(async (card: SchemeCard, explanation: string, auto = false) => {
     try {
       const res = await fetch('/api/game', {
@@ -316,12 +322,18 @@ export default function PlayerView({ code }: Props) {
         toast.error((data as { error?: string }).error || 'Submission failed — please try again');
         return;
       }
+      // Keep our own answer locally. The server withholds every submission's content until the
+      // reveal (so a player still choosing can't read the answers already played), and the
+      // Pusher broadcast is one payload for the whole room, so it cannot make an exception for
+      // the reader the way the GET does. Without this, a broadcast arriving after we submitted
+      // would blank our own confirmation back to us.
+      setMySubmission({ round: currentRound, schemeCard: card, explanation });
       toast.success(auto ? 'Time! Your answer was submitted.' : 'Answer submitted!');
       vibrate(50);
     } catch {
       toast.error('Network error — please check your connection and try again');
     }
-  }, [code, playerId, playerName, avatarId, clearSessionAndGoHome]);
+  }, [code, playerId, playerName, avatarId, currentRound, clearSessionAndGoHome]);
 
   const handleEmote = useCallback(async (emoteId: EmoteId) => {
     vibrate(30);
@@ -466,7 +478,11 @@ export default function PlayerView({ code }: Props) {
 
   if (!hydrated || !room) return <PlayerLoading />;
 
-  const mySubmission = room.submissions[playerId];
+  // Present in the room's submission keys (always broadcast) — the content may be withheld
+  // until the reveal, in which case our own copy from `submit` fills it in.
+  const serverSubmission = room.submissions[playerId];
+  const ownAnswer = serverSubmission?.schemeCard?.id ? serverSubmission
+    : mySubmission?.round === room.round ? mySubmission : undefined;
   const phase = room.phase;
   // Show "join next round" screen when:
   // (a) player isn't in room.players yet (navigated directly), or
@@ -508,9 +524,9 @@ export default function PlayerView({ code }: Props) {
               hand={cachedHand}
               challenge={room.currentChallenge}
               onSubmit={handleSubmit}
-              submitted={!!mySubmission}
-              submittedCard={mySubmission?.schemeCard}
-              submittedExplanation={mySubmission?.explanation}
+              submitted={!!serverSubmission}
+              submittedCard={ownAnswer?.schemeCard}
+              submittedExplanation={ownAnswer?.explanation}
               timerEndsAt={room.timerEndsAt ?? undefined}
               timerDuration={room.timerDuration}
             />

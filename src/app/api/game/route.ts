@@ -40,12 +40,36 @@ function stripSecrets(room: GameRoom): Omit<GameRoom, 'hostId' | 'tokens'> {
 
 /** Client-facing room for a specific player: secrets removed, and every hand except the
  *  named player's stripped (hands are private). */
+/**
+ * Blank out other players' answers while the round is still being played.
+ *
+ * Submissions accumulate in the room as people play, and the whole room object is served by
+ * GET and broadcast over Pusher — so during `submission` anyone with devtools could read the
+ * scheme and the reasoning of everyone who had already gone, and answer against them. That is
+ * a straightforward competitive advantage in a game whose entire scoring is comparative.
+ *
+ * The KEYS are kept: `ProjectorSubmission` and the lobby list only need to know who has
+ * submitted, and `allPlayersSubmitted` runs server-side. Only the content is withheld, and only
+ * until `reveal`, which is the phase that exists to show exactly this. A player always sees
+ * their own answer back.
+ */
+function hideUnrevealedSubmissions(room: GameRoom, viewerId: string): GameRoom['submissions'] {
+  if (room.phase !== 'submission') return room.submissions;
+  return Object.fromEntries(
+    Object.entries(room.submissions).map(([id, sub]) => [
+      id,
+      id === viewerId ? sub : { ...sub, explanation: '', schemeCard: { id: '', name: '', hi: '', desc: '', bullets: [] } },
+    ]),
+  );
+}
+
 function scrubRoomFor(room: GameRoom, playerId: string) {
   return {
     ...stripSecrets(room),
     players: Object.fromEntries(
       Object.entries(room.players).map(([id, p]) => [id, { ...p, hand: id === playerId ? p.hand : [] }]),
     ),
+    submissions: hideUnrevealedSubmissions(room, playerId),
   };
 }
 
@@ -106,15 +130,20 @@ function reapWindowMs(phase: GameRoom['phase']): number {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    // Parse and shape-check BEFORE destructuring. `await req.json()` throws on malformed JSON,
+    // and `const { action } = body` throws on a literal `null` body — both surfacing as a 500,
+    // which is a lie about whose fault it is and buries genuine 500s in monitoring.
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
     const { action } = body;
 
     // Every code-bearing action eventually calls code.toUpperCase() (directly or via
     // withRoomLock). A non-string code (e.g. a client bug sending `code: 123`) would throw a
-    // TypeError and surface as a generic 500; reject it once, here, with a clean 400. Guard the
-    // `in` check with an object test — `'code' in <primitive>` itself throws — so a bare-primitive
-    // body still falls through to the default "Unknown action" 400. create-room carries no code.
-    if (body !== null && typeof body === 'object' && 'code' in body && body.code !== undefined && typeof body.code !== 'string') {
+    // TypeError and surface as a generic 500; reject it once, here, with a clean 400.
+    // create-room carries no code.
+    if ('code' in body && body.code !== undefined && typeof body.code !== 'string') {
       return NextResponse.json({ error: 'Invalid room code' }, { status: 400 });
     }
 
@@ -257,8 +286,15 @@ export async function POST(req: NextRequest) {
           if (!hostId || room.hostId !== hostId) return NextResponse.json({ error: 'Not the host' }, { status: 403 });
           // Idempotent — already gone is success, not an error.
           if (!room.players[targetId]) return NextResponse.json({ room: scrubRoomFor(room, '') });
-          const updated = removePlayer(room, targetId);
+          let updated = removePlayer(room, targetId);
           if (updated.tokens) delete updated.tokens[targetId]; // revoke the kicked seat's credential
+          // Kicking the one player everyone is waiting on is usually WHY the host kicked them.
+          // removePlayer drops their pending submission too, so the round may now be complete —
+          // but allPlayersSubmitted is only ever re-evaluated by `submit`, so nothing noticed and
+          // the room sat on the submission screen until the timer expired (up to 300 s).
+          if (updated.phase === 'submission' && allPlayersSubmitted(updated)) {
+            updated = advancePhase(updated);
+          }
           await setRoom(updated);
           await broadcastRoom(updated); // the kicked client sees itself gone from players → exits
           return NextResponse.json({ room: scrubRoomFor(updated, '') });
@@ -487,7 +523,11 @@ export async function POST(req: NextRequest) {
           if (!(await checkRateLimit(`ratelimit:chat:${message.playerId}`, 30, 60))) {
             return NextResponse.json({ error: 'Sending too fast' }, { status: 429 });
           }
-          const rawText = typeof message?.text === 'string' ? message.text.trim() : '';
+          // Cap BEFORE filtering. filterText normalises and runs ~29 global regex passes, and
+          // this runs inside withRoomLock — an unbounded string here burns CPU while holding the
+          // room's write lock, stalling submissions and heartbeats behind it. join and submit
+          // already truncate first; chat was the one place the cap sat on the wrong side.
+          const rawText = typeof message?.text === 'string' ? message.text.slice(0, 500).trim() : '';
           const filtered = filterText(rawText);
           if (!filtered) return NextResponse.json({ ok: true });
           const chatMsg: ChatMessage = {
@@ -776,11 +816,18 @@ export async function DELETE(req: NextRequest) {
   if (!code || !/^[A-Z]{4}$/.test(code)) {
     return NextResponse.json({ error: 'Invalid room code' }, { status: 400 });
   }
-  const room = await getRoom(code);
-  if (!room) {
-    return NextResponse.json({ error: 'Room not found' }, { status: 404 });
-  }
-  await deleteRoom(code);
+  // Under the room lock, and re-read inside it, for the same reason the GET reaper does: a
+  // concurrent locked mutation (a heartbeat is in flight a few percent of the time in an
+  // occupied room) holds a pre-delete snapshot and would setRoom it straight back afterwards.
+  // End Room would report success, the room would vanish from the list, and it would reappear
+  // on refresh and run out its full 24 h TTL.
+  const deleted = await withRoomLock(code, async () => {
+    const room = await getRoom(code);
+    if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+    await deleteRoom(code);
+    return null;
+  });
+  if (deleted) return deleted;
   // Clients discover deletion via the GET 404 path ("Room Closed" screen); there is no
   // 'game:room-closed' Pusher listener, so no broadcast here.
   return NextResponse.json({ ok: true });
