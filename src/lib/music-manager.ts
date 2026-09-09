@@ -7,7 +7,7 @@
 const LOBBY_TRACK = '/sounds/lobby.mp3';
 // Single source of truth for the user's "sound on/off" preference, shared with the SFX
 // manager (src/lib/music.ts) so the one toggle can never desync the two systems.
-const STORAGE_KEY = 'vikas75-sound-on';
+import { soundOn, setSoundOn } from '@/lib/sound-pref';
 const FADE_IN_DURATION = 2000;  // ms
 const FADE_OUT_DURATION = 3000; // ms
 const MAX_VOLUME = 0.4;
@@ -22,7 +22,7 @@ class LobbyMusicManager {
   constructor() {
     try {
       // Default: off — stored 'true' means the user explicitly turned it on
-      this._enabled = localStorage.getItem(STORAGE_KEY) === 'true';
+      this._enabled = soundOn();
     } catch {
       this._enabled = false;
     }
@@ -89,12 +89,12 @@ class LobbyMusicManager {
   autoPlay(): void {
     if (this._forceMuted) return;
     // The big screen defaults to sound ON, but never clobber an explicit "off" the user set.
-    const stored = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
-    if (stored === 'false') { this._enabled = false; return; }
+    // The big screen defaults ON, so an absent preference is not an explicit "off".
+    if (!soundOn(true)) { this._enabled = false; return; }
     // Record the shared "sound on" preference so the SFX manager (music.ts) and the mute
     // button agree rather than drifting out of sync.
     this._enabled = true;
-    try { localStorage.setItem(STORAGE_KEY, 'true'); } catch { /* ignore */ }
+    setSoundOn(true);
     const audio = this.getAudio();
     if (!audio.paused) return; // already playing
     this.doFadeIn();
@@ -126,7 +126,7 @@ class LobbyMusicManager {
   toggle(): boolean {
     this._enabled = !this._enabled;
     try {
-      localStorage.setItem(STORAGE_KEY, String(this._enabled));
+      setSoundOn(this._enabled);
     } catch { /* ignore */ }
     if (this._enabled && !this._forceMuted) {
       this.doFadeIn();

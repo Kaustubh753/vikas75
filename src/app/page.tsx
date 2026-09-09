@@ -294,13 +294,19 @@ function LandingPage() {
     // A shared link / legacy QR landing on the home page with ?code= goes to the join page,
     // which plays the intro itself — so skip it here and redirect immediately.
     if (initialCode) { setShowIntro(false); router.replace(`/join?code=${initialCode}`); return; }
-    const pid  = localStorage.getItem('vikas75_playerId');
-    const pname = localStorage.getItem('vikas75_playerName');
-    const avid = localStorage.getItem('vikas75_avatarId');
-    const rc   = localStorage.getItem('vikas75_roomCode');
-    // A returning player gets bounced back to their room — but only *after* the intro plays
-    // (or they hit Skip), so the opening animation still shows on every load of the game.
-    if (pid && pname && avid && rc) pendingRedirect.current = `/room/${rc}`;
+    // Storage THROWS, not just returns null, on a device that blocks site data — and an
+    // uncaught throw here goes to the route error boundary, so the home page reads
+    // "Something broke". The identical reads in dismissIntro are already guarded; these were
+    // missed. No stored identity simply means no redirect.
+    try {
+      const pid  = localStorage.getItem('vikas75_playerId');
+      const pname = localStorage.getItem('vikas75_playerName');
+      const avid = localStorage.getItem('vikas75_avatarId');
+      const rc   = localStorage.getItem('vikas75_roomCode');
+      // A returning player gets bounced back to their room — but only *after* the intro plays
+      // (or they hit Skip), so the opening animation still shows on every load of the game.
+      if (pid && pname && avid && rc) pendingRedirect.current = `/room/${rc}`;
+    } catch { /* blocked storage — start as a new visitor */ }
   }, [router, initialCode]);
 
   // Sync music button state from saved preference and attempt to resume playback.

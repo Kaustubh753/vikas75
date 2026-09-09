@@ -369,11 +369,15 @@ export async function POST(req: NextRequest) {
           // Validate submitter is an active player and holds the matching token (can't submit
           // on another player's behalf).
           const submittingPlayer = room.players[submission.playerId];
+          // `code: 'identity'` on the two identity failures below (and the chat pair) is the
+          // client's only way to tell "your seat or credential is gone" from "that card isn't
+          // in your hand". Without it a player whose token was rotated by the name-based
+          // reclaim saw a normal, live game and silently failed every action for the rest of it.
           if (!submittingPlayer) {
-            return NextResponse.json({ error: 'Player not in this room' }, { status: 403 });
+            return NextResponse.json({ error: 'Player not in this room', code: 'identity' }, { status: 403 });
           }
           if (!tokenOk(room, submission.playerId, token)) {
-            return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+            return NextResponse.json({ error: 'Not authorized', code: 'identity' }, { status: 403 });
           }
           // Validate the submitted card is actually in the player's hand — use server-side card data
           const serverCard = submittingPlayer.hand.find((c) => c.id === submission.schemeCard?.id);
@@ -515,8 +519,8 @@ export async function POST(req: NextRequest) {
           if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
           // Validate sender is an actual room player and holds the matching token.
           const chatPlayer = room.players[message?.playerId];
-          if (!chatPlayer) return NextResponse.json({ error: 'Player not in room' }, { status: 403 });
-          if (!tokenOk(room, message.playerId, token)) return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+          if (!chatPlayer) return NextResponse.json({ error: 'Player not in room', code: 'identity' }, { status: 403 });
+          if (!tokenOk(room, message.playerId, token)) return NextResponse.json({ error: 'Not authorized', code: 'identity' }, { status: 403 });
           // Rate-limit AFTER auth (30 messages/player/minute): the bucket is keyed on playerId,
           // so charging it before the token check let anyone spoof a victim's playerId and burn
           // the victim's own quota. Now only an authenticated sender charges their own bucket.

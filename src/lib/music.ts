@@ -1,3 +1,4 @@
+import { soundOn, setSoundOn } from '@/lib/sound-pref';
 // Lobby music is NOT here — it has its own looping manager (music-manager.ts) with fades and
 // a persisted toggle. This manager plays one-shot phase stings.
 export type TrackName = 'challenge' | 'ticking' | 'drumroll' | 'winner';
@@ -27,7 +28,7 @@ class MusicManager {
     if (typeof window !== 'undefined') {
       // Shared "sound on/off" key with the lobby music manager. Sound is off by default;
       // muted is simply the inverse of "sound on", so the single user toggle controls both.
-      this._muted = localStorage.getItem('vikas75-sound-on') !== 'true';
+      this._muted = !soundOn();
     }
   }
 
@@ -90,7 +91,7 @@ class MusicManager {
    */
   setMuted(muted: boolean) {
     this._muted = muted;
-    if (typeof window !== 'undefined') localStorage.setItem('vikas75-sound-on', String(!muted));
+    setSoundOn(!muted);
     if (this._muted) this.stop();
   }
 

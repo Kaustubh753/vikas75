@@ -177,6 +177,26 @@ export function addSubmission(room: GameRoom, submission: Submission): GameRoom 
 export function applyVerdict(room: GameRoom, verdict: JudgeVerdict): GameRoom {
   const players = { ...room.players };
 
+  // The judge runs OUTSIDE the room lock (a 10-22 s call must not block every other writer),
+  // so a player can be kicked, or leave, between submitting and being crowned. The scoring
+  // below already skips anyone absent — but `winnerId`/`winnerName` are what ProjectorWinner
+  // announces, so the room would hear a winner who is not in it and whose trophy count never
+  // moves, leaving the between-rounds board and the podium naming different people. That is
+  // the bug #25 class of disagreement. Re-crown the best-placed player who is still here.
+  if (!verdict.noWinner && verdict.winnerId && !players[verdict.winnerId]) {
+    // Drop everyone who is gone and re-derive placement points from the new order, the same
+    // 1st=3/2nd=2/3rd=1 the judge applies — promoting the heir but leaving them on their old
+    // placement's points would credit a round win to someone displayed as second.
+    const present = verdict.rankings
+      .filter((r) => players[r.playerId])
+      .map((r, i) => ({ ...r, gamePoints: i === 0 ? 3 : i === 1 ? 2 : i === 2 ? 1 : 0 }));
+    const heir = present[0];
+    verdict = heir
+      ? { ...verdict, rankings: present, winnerId: heir.playerId, winnerName: heir.playerName, schemeCard: heir.schemeCard, explanation: heir.explanation }
+      : { ...verdict, winnerId: '', winnerName: '', rankings: [], noWinner: true,
+          reasoning: 'The winner left before the verdict landed — no winner this round.' };
+  }
+
   // Award points to all ranked players (1st=3, 2nd=2, 3rd=1). A no-winner verdict has
   // empty rankings, so nobody scores and no round win is recorded.
   for (const ranking of verdict.rankings) {
