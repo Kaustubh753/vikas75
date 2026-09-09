@@ -665,9 +665,14 @@ export async function GET(req: NextRequest) {
 async function withRoomLock<T>(code: string, fn: () => Promise<T>): Promise<T | null> {
   const key = `lock:room:${code.toUpperCase()}`;
   for (let i = 0; i < 40; i++) {
-    if (await acquireLock(key, 10)) {
+    // The token is what makes the release safe. A critical section that awaits a slow network
+    // call can outrun the 10 s TTL, by which point Redis has handed the lock to the next
+    // writer; releasing by key alone would then delete THAT writer's lock and let a third in
+    // on a stale snapshot. Releasing by token makes the late release a no-op instead.
+    const token = await acquireLock(key, 10);
+    if (token) {
       try { return await fn(); }
-      finally { await releaseLock(key); }
+      finally { await releaseLock(key, token); }
     }
     await new Promise((r) => setTimeout(r, 25));
   }

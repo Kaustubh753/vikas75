@@ -66,9 +66,20 @@ const JUDGE_MODEL = 'claude-sonnet-5';
  * Any call that times out, is truncated, refuses, or fails validation is dropped and the others
  * carry the round; if none survive, judgeRound falls back to the local random judge as before.
  */
+// Word budgets for the reply. `why` and `decider` are PRIVATE — they exist only to force the
+// model to articulate fit and argument before it commits to a number, and to compare the
+// contenders before it crowns one. Nothing renders them (grep: no `.why`/`decider` reader
+// outside this module), yet together they are roughly 40% of the output tokens, which are both
+// the dominant cost line and essentially all of the latency (~70 tok/s). They are therefore
+// budgeted tightly: the reasoning discipline comes from writing the field at all, not from its
+// length. `judgeComment` is the one field a player actually reads, so it is NOT cut.
+const WHY_WORDS = { full: 12, brief: 6 } as const;
+const COMMENT_WORDS = { full: 12, brief: 8 } as const;
+const DECIDER_WORDS = 20;
+
 function buildSystemPrompt(brief: boolean): string {
-  const whyWords = brief ? 8 : 18;
-  const commentWords = brief ? 8 : 12;
+  const whyWords = brief ? WHY_WORDS.brief : WHY_WORDS.full;
+  const commentWords = brief ? COMMENT_WORDS.brief : COMMENT_WORDS.full;
   return `You are the AI Judge for Vikas 75, a game show about Indian government schemes. Each round,
 players answer a challenge card by playing one scheme card and explaining, in a sentence or two,
 how that scheme addresses the problem. You assess every answer, then crown exactly ONE winner.
@@ -142,8 +153,8 @@ language.
   name or by quoting a phrase from the explanation. Never write a label ("ANS-42"), never
   "Player 2", "the first answer" or a placement word ("winner", "last place") — placement is
   decided by the referee from all judges' winners and scores.
-- decider: at most 30 words, private: the two or three real contenders, by scheme name, and the
-  single thing that separates first from second.
+- decider: at most ${DECIDER_WORDS} words, private: the two or three real contenders, by scheme
+  name, and the single thing that separates first from second.
 - reasoning: 2–3 sentences about the round as a whole, naming the winning answer by its scheme
   name and what made it win. Same rules: no labels, no player numbers, no positions.
 
@@ -156,7 +167,7 @@ with the fields in this order:
       "why": "<at most ${whyWords} words>", "judgeComment": "<one sentence>", "judgeScore": <integer 1–10> },
     ... one entry per answer, in the order the answers were shown ...
   ],
-  "decider": "<at most 30 words>",
+  "decider": "<at most ${DECIDER_WORDS} words>",
   "winner": "<the label of the single best answer>",
   "reasoning": "<2–3 sentences>"
 }

@@ -4,7 +4,7 @@ import type { GameRoom } from '@/types/game';
 // In-memory store used when Upstash env vars are absent (local dev without Redis)
 const devStore = new Map<string, { value: GameRoom; expiresAt: number }>();
 const devRateStore = new Map<string, { count: number; expiresAt: number }>();
-const devLockStore = new Map<string, number>(); // key → expiresAt timestamp
+const devLockStore = new Map<string, { expiresAt: number; token: string }>();
 
 function isRedisConfigured(): boolean {
   return !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
@@ -155,16 +155,27 @@ export async function listActiveRooms(): Promise<string[]> {
 }
 
 /**
- * Release a distributed lock acquired with acquireLock.
- * Safe to call even if the lock has already expired.
+ * Release a lock acquired with acquireLock — but ONLY if this caller still holds it.
+ *
+ * The compare-and-delete is the whole point. A bare `DEL` releases whoever happens to hold
+ * the key, which is safe only while a critical section can never outlive the lock's TTL —
+ * and one can: any handler that awaits a slow network call (a Pusher broadcast, say) inside
+ * `withRoomLock` can run past the 10 s TTL, at which point Redis has already expired the key
+ * and handed the lock to the next writer. A bare `DEL` would then delete *that* writer's
+ * lock, letting a third writer in on a stale snapshot — precisely the lost update the lock
+ * exists to prevent. Matching the token first turns that into a harmless no-op.
+ *
+ * Safe to call when the lock has already expired or been taken over: it deletes nothing.
  */
-export async function releaseLock(key: string): Promise<void> {
+const RELEASE_IF_OWNER = `if redis.call("get", KEYS[1]) == ARGV[1] then return redis.call("del", KEYS[1]) else return 0 end`;
+
+export async function releaseLock(key: string, token: string): Promise<void> {
   if (!isRedisConfigured()) {
-    devLockStore.delete(key);
+    if (devLockStore.get(key)?.token === token) devLockStore.delete(key);
     return;
   }
   try {
-    await getRedis().del(key);
+    await getRedis().eval(RELEASE_IF_OWNER, [key], [token]);
   } catch {
     // Best-effort — lock will auto-expire anyway
   }
@@ -172,22 +183,24 @@ export async function releaseLock(key: string): Promise<void> {
 
 /**
  * Acquire a distributed lock using Redis SET NX EX.
- * Returns true if the lock was acquired, false if already held.
- * The lock auto-expires after ttlSec seconds — no need to release explicitly.
+ * Returns an ownership token to pass back to releaseLock, or null if the lock is already
+ * held. The lock auto-expires after ttlSec seconds, so a caller that never releases (the
+ * judging lock) can simply drop the token.
  */
-export async function acquireLock(key: string, ttlSec: number): Promise<boolean> {
+export async function acquireLock(key: string, ttlSec: number): Promise<string | null> {
+  const token = crypto.randomUUID();
   if (!isRedisConfigured()) {
     const now = Date.now();
-    const expiresAt = devLockStore.get(key) ?? 0;
-    if (expiresAt > now) return false; // lock already held
-    devLockStore.set(key, now + ttlSec * 1000);
-    return true;
+    const held = devLockStore.get(key);
+    if (held && held.expiresAt > now) return null; // lock already held
+    devLockStore.set(key, { expiresAt: now + ttlSec * 1000, token });
+    return token;
   }
   try {
-    // SET key 1 NX EX ttl — returns "OK" on success, null if key already exists
-    const result = await getRedis().set(key, '1', { nx: true, ex: ttlSec });
-    return result !== null;
+    // SET key <token> NX EX ttl — returns "OK" on success, null if key already exists
+    const result = await getRedis().set(key, token, { nx: true, ex: ttlSec });
+    return result !== null ? token : null;
   } catch {
-    return true; // fail open — don't block judging on Redis errors
+    return token; // fail open — don't block judging on Redis errors
   }
 }

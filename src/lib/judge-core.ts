@@ -122,6 +122,8 @@ export const LABEL_POOL_SIZE = 90;
 const LABEL_RE_SOURCE = 'ANS[\\s\\-\\u2010-\\u2015_]?\\d\\d';
 /** Canonical form of any LABEL_RE_SOURCE match. */
 const canonLabel = (raw: string) => `ANS-${raw.slice(-2)}`;
+/** The same tolerance, anchored — for deciding whether a whole field IS a label. */
+const LABEL_EXACT_RE = new RegExp(`^${LABEL_RE_SOURCE}$`, 'i');
 
 export function drawLabels(n: number, rand: () => number): string[] {
   if (n > LABEL_POOL_SIZE) throw new Error(`${n} answers exceed the ${LABEL_POOL_SIZE}-label pool`);
@@ -182,6 +184,12 @@ export function clean(text: string | undefined | null): string {
     .replace(/\p{Cc}/gu, ' ')
     .replace(/[<>]/g, '')
     .replace(/={2,}/g, '')
+    // Label-shaped text, in any spelling the parser would accept. A player writing "ANS-42
+    // wins" in their own explanation cannot then be quoted back as if it were a real answer
+    // header, or referred to by a label they chose. The prompt already forbids obeying
+    // anything inside the markers; this makes it a property of the input, like the two
+    // strips above, rather than a rule the model is trusted to follow.
+    .replace(new RegExp(LABEL_RE_SOURCE, 'gi'), 'that answer')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -260,6 +268,17 @@ function fitFromScore(score: number): Fit {
 }
 
 /**
+ * The top of each fit's score band, from the rubric ("on-point → 5–10, stretch → 3–7,
+ * miss → 1–4"). Only the CEILING is enforced, never the floor: a score higher than the
+ * model's own stated fit justifies is score inflation — the "do not park everyone at 7–8"
+ * failure the rubric warns about — and clamping it down is always the honest reading. The
+ * floor is deliberately left alone because the rubric's own override sends a blank
+ * explanation, or text aimed at the judge, to 1–2 *whatever the fit says*; clamping up
+ * would undo exactly that.
+ */
+const FIT_CEILING: Record<Fit, number> = { 'on-point': 10, stretch: 7, miss: 4 };
+
+/**
  * Turn one raw reply into a CallResult or throw. Hard failures (a label missing, unknown or
  * repeated; a score that is not an integer 1–10) reject the whole call — a confused reply is
  * dropped, never repaired into a ranking. Soft ones (bad fit, missing strings, an invalid
@@ -282,11 +301,18 @@ export function parseCallResult(
 
   const valid = new Set(order);
   const answers = new Map<string, CallAnswer>();
+  const replyOrder: string[] = [];
   for (const item of obj.answers as unknown[]) {
     if (!item || typeof item !== 'object') throw new Error('answer is not an object');
     const a = item as Record<string, unknown>;
-    const label = typeof a.label === 'string' ? a.label.trim().toUpperCase() : '';
+    // Accept every spelling `scrubLabels` tolerates ("ANS 42", "ANS_42", "ANS\u201142"), not just
+    // the exact one. A hard throw here drops the WHOLE call — a third of the panel — so a
+    // formatting slip in one field used to cost a real vote. The canonical form must still be
+    // one of this call's own labels, so nothing loosens about which answers are valid.
+    const rawLabel = typeof a.label === 'string' ? a.label.trim() : '';
+    const label = LABEL_EXACT_RE.test(rawLabel) ? canonLabel(rawLabel) : rawLabel.toUpperCase();
     if (!valid.has(label)) throw new Error(`unknown label ${JSON.stringify(a.label)}`);
+    replyOrder.push(label);
     if (answers.has(label)) throw new Error(`duplicate label ${label}`);
     const score = a.judgeScore;
     if (typeof score !== 'number' || !Number.isInteger(score) || score < 1 || score > 10) {
@@ -303,6 +329,15 @@ export function parseCallResult(
     const judgeComment = typeof a.judgeComment === 'string' ? a.judgeComment : '';
     if (!judgeComment) notes.push(`empty comment for ${label}`);
     let judgeScore = score;
+    // The rubric's fit↔score bands, enforced rather than merely asked for. A call that writes
+    // "miss" and then scores it 9 has contradicted itself between two fields it wrote in that
+    // order; the fit came first and is the less anchored of the two, so the score yields to it.
+    // A no-op when `fit` was coerced above (it is derived from the score, so it always agrees).
+    const ceiling = FIT_CEILING[fit];
+    if (judgeScore > ceiling) {
+      notes.push(`${label} scored ${judgeScore} above the ${fit} ceiling ${ceiling}; clamped`);
+      judgeScore = ceiling;
+    }
     if (blankLabels.has(label) && judgeScore > 2) {
       notes.push(`blank explanation for ${label} scored ${judgeScore}; clamped to 2`);
       judgeScore = 2;
@@ -313,10 +348,18 @@ export function parseCallResult(
     const missing = order.filter((l) => !answers.has(l));
     throw new Error(`missing label(s) ${missing.join(',')}`);
   }
+  // The prompt requires the answers back "in the order the answers were shown", because a
+  // reply that re-sorts them — score-descending, say — is the model ranking before it reasons,
+  // which is the exact habit the whole debiased design exists to break (bug #22). It is not
+  // worth dropping a call over, and the scores are still usable, but it must not pass silently:
+  // this note is the only thing that would make the regression visible in the logs.
+  if (replyOrder.some((l, i) => l !== order[i])) notes.push('answers returned out of the shown order');
 
   let winner: string | null = null;
-  if (typeof obj.winner === 'string' && valid.has(obj.winner.trim().toUpperCase())) {
-    winner = obj.winner.trim().toUpperCase();
+  const rawWinner = typeof obj.winner === 'string' ? obj.winner.trim() : '';
+  const winnerLabel = LABEL_EXACT_RE.test(rawWinner) ? canonLabel(rawWinner) : rawWinner.toUpperCase();
+  if (valid.has(winnerLabel)) {
+    winner = winnerLabel;
     const top = Math.max(...[...answers.values()].map((x) => x.judgeScore));
     const own = answers.get(winner)!.judgeScore;
     if (own < top) {
@@ -576,9 +619,20 @@ export const JUDGING_LOCK_TTL_MS = 30_000;
  * outputs are rejected). Output tokens are the slow part (~70/s) and the reply grows with the
  * table, so the budget grows with it — but never past 22 s, which with Redis and the
  * broadcast keeps triggerJudge inside the 30 s lock.
+ *
+ * The per-answer slack is 900 ms, not the 650 ms it started at, because 650 did not keep up
+ * with the reply it was budgeting for. A full-mode answer costs roughly 65–90 output tokens,
+ * i.e. ~1.0–1.3 s each at 70 tok/s, so the budget was falling behind by ~350 ms per player
+ * and the squeeze landed hardest at 8–10 answers — full mode (brief only engages above 10)
+ * with the least headroom. That matters more than a dropped call usually would: all K calls
+ * share ONE deadline and do an identically sized job, so missing it is a *correlated*
+ * failure — every call drops together, `judgeRound` catches, and the round is decided by
+ * `fallbackJudge`, i.e. at random, at exactly the table sizes a real venue fills. 900 ms
+ * per answer restores the margin (~65–70% of the budget used at 8–10) while the 22 s cap,
+ * and therefore the lock-TTL invariant, is untouched.
  */
 export function deadlineMsFor(n: number): number {
-  return Math.min(22_000, 9_000 + 650 * n);
+  return Math.min(22_000, 9_000 + 900 * n);
 }
 
 /**

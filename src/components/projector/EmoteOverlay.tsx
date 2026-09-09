@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { getPusherClient, getRoomChannel } from '@/lib/pusher-client';
+import { subscribeRoom } from '@/lib/pusher-client';
 import Avatar from '@/lib/avatars';
 import { EMOTES } from '@/lib/emotes';
 import type { EmoteEvent } from '@/types/game';
@@ -21,10 +21,6 @@ export default function EmoteOverlay({ code }: Props) {
   const timersRef = React.useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
-    const pusher = getPusherClient();
-    if (!pusher) return; // realtime unconfigured — emotes are ephemeral, nothing to fall back to
-    const channel = pusher.subscribe(getRoomChannel(code));
-
     const onEmote = (payload: EmoteEvent) => {
       const uid = `${payload.playerId}-${payload.timestamp ?? Date.now()}`;
       const x = 8 + Math.random() * 78;
@@ -37,10 +33,11 @@ export default function EmoteOverlay({ code }: Props) {
       timersRef.current.push(t);
     };
 
-    channel.bind('emote', onEmote);
+    // Refcounted — see subscribeRoom. Unsubscribing this channel directly used to take
+    // ProjectorView's room-update and music-toggle bindings down with it, for good.
+    const release = subscribeRoom(code, { emote: onEmote });
     return () => {
-      channel.unbind('emote', onEmote);
-      pusher.unsubscribe(getRoomChannel(code));
+      release();
       // Clear all pending removal timers to avoid setState on unmounted component
       timersRef.current.forEach(clearTimeout);
       timersRef.current = [];
