@@ -306,6 +306,12 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
       <div style={{
         position: 'absolute', inset: 0, display: 'flex',
         flexDirection: phone ? 'column' : 'row', alignItems: 'center',
+        // Centre the card and the page as ONE pair. The well used to take `flex: 1`, which
+        // stretched it across everything the fixed-width rail left over — so the two were
+        // pushed to opposite ends of a wide screen, the card pinned against the left edge
+        // with a dead gap between them, and opening a card read as it flying off to the
+        // corner rather than settling beside its page.
+        justifyContent: phone ? undefined : 'center',
         gap: phone || zoom ? 0 : '3.25rem',
         padding: phone ? '5.5rem .75rem 7rem' : zoom ? '4.5rem 1.5rem 4.25rem' : '4.5rem 4.25rem 4.25rem',
         boxSizing: 'border-box',
@@ -411,7 +417,11 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
             ancestor of the page's own enter keyframe, and the page animates from a
             contaminated origin. */}
         <div style={{
-          flex: 1, minWidth: 0, width: '100%', display: 'flex', flexDirection: 'column',
+          // Shrink to the page's own width so the pair centres together (above). Zoomed, the
+          // rail is gone and the page needs the whole stage, so it grows again.
+          flex: phone || zoom ? 1 : '0 1 auto',
+          minWidth: 0, width: phone || zoom ? '100%' : undefined,
+          display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center', gap: '.9rem',
           animation: `vk-fade ${flyer ? '.64s' : '.6s'} ${ENTER} both ${flyer ? '.26s' : '.22s'}`,
         }}>
