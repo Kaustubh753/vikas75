@@ -16,7 +16,14 @@ export interface ShareStanding {
 export interface ShareCardInput {
   code: string;
   totalRounds: number;
-  standings: ShareStanding[]; // best first — caller sorts (roundsWon → score, same as projector)
+  standings: ShareStanding[]; // best first — caller ranks with lib/standings, same as the projector
+  /**
+   * How many players are level at the top, or 0 when nobody has scored at all. Supplied by the
+   * caller (which already has the ranking) rather than re-derived here: this file used to work
+   * it out from the rows alone and had no way to tell a real dead heat from an all-zero
+   * washout, so a game where every round ended with no winner printed "IT'S A TIE".
+   */
+  jointChampions: number;
   origin: string;             // e.g. https://vikas75.vercel.app — printed as the play link
 }
 
@@ -139,10 +146,7 @@ export async function buildShareCard(input: ShareCardInput): Promise<Blob> {
 
   // A dead heat at the top is JOINT champions on the projector (ProjectorGameOver), so the
   // shared card must not crown one of them — everyone level with the leader gets 🥇.
-  const lead = standings[0];
-  const jointChampions = lead
-    ? standings.filter((p) => p.roundsWon === lead.roundsWon && p.score === lead.score).length
-    : 0;
+  const { jointChampions } = input;
   const tied = jointChampions > 1;
 
   // Podium: the top three as full rows — big, legible in a WhatsApp thumbnail.

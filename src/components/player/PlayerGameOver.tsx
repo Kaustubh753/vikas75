@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import Avatar from '@/lib/avatars';
 import { buildShareCard } from '@/lib/share-card';
+import { rankPlayers } from '@/lib/standings';
 import type { GameRoom } from '@/types/game';
 
 interface Props {
@@ -36,24 +37,18 @@ export default function PlayerGameOver({ room, playerId, onExit }: Props) {
   // Memoised as one unit: the share callback depends on all of it, and recomputing a fresh
   // array each render would defeat its memoisation.
   const { players, champion, hasLead, champions, tied, myPlace, iAmChampion } = useMemo(() => {
-    const sorted = Object.values(room.players).sort(
-      (a, b) => (b.roundsWon ?? 0) - (a.roundsWon ?? 0) || b.score - a.score || a.id.localeCompare(b.id),
-    );
-    const top = sorted[0];
-    const lead = !!top && ((top.roundsWon ?? 0) > 0 || top.score > 0);
-    // A dead heat is joint champions on the projector — say the same thing here rather than
-    // crowning whoever won the id tiebreak.
-    const tiedTop = top
-      ? sorted.filter((p) => (p.roundsWon ?? 0) === (top.roundsWon ?? 0) && p.score === top.score)
-      : [];
+    // Same helper the projector's podium uses, so the phone and the big screen cannot disagree
+    // about who won — including a dead heat, which is joint champions on both rather than
+    // whoever happened to win the id tiebreak.
+    const s = rankPlayers(Object.values(room.players));
     return {
-      players: sorted,
-      champion: top,
-      hasLead: lead,
-      champions: tiedTop,
-      tied: lead && tiedTop.length > 1,
-      myPlace: sorted.findIndex((p) => p.id === playerId) + 1,
-      iAmChampion: tiedTop.some((p) => p.id === playerId),
+      players: s.players,
+      champion: s.players[0],
+      hasLead: s.hasLead,
+      champions: s.leaders,
+      tied: s.tied,
+      myPlace: s.placeOf(playerId),
+      iAmChampion: s.leaders.some((p) => p.id === playerId),
     };
   }, [room.players, playerId]);
 
@@ -71,6 +66,10 @@ export default function PlayerGameOver({ room, playerId, onExit }: Props) {
           roundsWon: p.roundsWon ?? 0,
           isMe: p.id === playerId,
         })),
+        // Passed in rather than re-derived on the canvas: the card was recomputing the tie
+        // itself and missing the "someone actually scored" guard, so an all-zero washout —
+        // every round a no-winner — printed "IT'S A TIE, JOINT CHAMPIONS" over a table of noughts.
+        jointChampions: hasLead ? champions.length : 0,
         origin: window.location.origin,
       });
       const file = new File([blob], 'vikas75-result.png', { type: 'image/png' });
@@ -98,7 +97,7 @@ export default function PlayerGameOver({ room, playerId, onExit }: Props) {
     } finally {
       setBusy(false);
     }
-  }, [busy, players, playerId, myPlace, iAmChampion, tied, room.code, room.totalRounds]);
+  }, [busy, players, playerId, myPlace, iAmChampion, tied, hasLead, champions, room.code, room.totalRounds]);
 
   const closePreview = useCallback(() => {
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
@@ -158,8 +157,8 @@ export default function PlayerGameOver({ room, playerId, onExit }: Props) {
         href="/explore"
         className="flex items-center gap-1.5 font-[family-name:var(--font-inter)] text-xs font-medium tracking-wide transition-colors"
         style={{ color: 'rgba(250,248,240,0.38)', textDecoration: 'none' }}
-        onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,153,51,0.8)'}
-        onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(250,248,240,0.38)'}
+        onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,153,51,0.8)'}
+        onMouseLeave={e => e.currentTarget.style.color = 'rgba(250,248,240,0.38)'}
       >
         Explore all 75 schemes
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none">

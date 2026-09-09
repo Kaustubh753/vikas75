@@ -47,6 +47,12 @@ export default function EmotePanel({ onEmote }: Props) {
                 <span className="text-white/70 text-[10px] font-[family-name:var(--font-inter)] text-center leading-tight">
                   {e.label}
                 </span>
+                {/* Every emote has carried a Devanagari label since they were written; it just
+                    was never rendered, leaving this the one panel in an otherwise bilingual UI
+                    that spoke only English. */}
+                <span className="text-[#FF9933]/70 text-[9px] font-[family-name:var(--font-devanagari)] text-center leading-tight">
+                  {e.labelHi}
+                </span>
               </button>
             );
           })}

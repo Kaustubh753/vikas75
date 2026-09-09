@@ -21,7 +21,7 @@ export default function ChatPanel({ messages, onSend, playerId }: Props) {
     if (open) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, open]);
 
-  function handleSend(e: React.FormEvent) {
+  function handleSend(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     const trimmed = text.trim();
     if (!trimmed) return;

@@ -8,3 +8,13 @@ export const EMOTES: Record<EmoteId, { emoji: string; label: string; labelHi: st
 };
 
 export const EMOTE_IDS = Object.keys(EMOTES) as EmoteId[];
+
+/**
+ * Membership test that also narrows the type, so the API's validation of an untrusted `emote`
+ * string is the same statement that lets it be broadcast as an `EmoteId`. The check was
+ * previously an `includes` through a `string[]` cast, which validated at runtime but left the
+ * value typed `string` — the broadcast payload only looked well-typed.
+ */
+export function isEmoteId(value: unknown): value is EmoteId {
+  return typeof value === 'string' && Object.hasOwn(EMOTES, value);
+}

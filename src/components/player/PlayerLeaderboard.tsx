@@ -1,6 +1,7 @@
 'use client';
 import { motion } from 'framer-motion';
 import Avatar from '@/lib/avatars';
+import { rankPlayers } from '@/lib/standings';
 import type { GameRoom } from '@/types/game';
 
 interface Props { room: GameRoom; playerId: string }
@@ -9,20 +10,16 @@ interface Props { room: GameRoom; playerId: string }
  * generic waiting screen, so the only place the table existed was the projector — no use to
  * anyone not looking up at it.
  *
- * Ranking is deliberately identical to ProjectorBetweenRounds: sorted on total points, with
- * standard competition ranking so players level on points share a place (1,1,3,…) rather than
- * being split by an arbitrary tiebreak. If the two ever disagree the room notices immediately. */
+ * Ranking comes from the shared `rankPlayers` helper, so this table, the projector's, the
+ * mobile host's and the final podium are the same ordering by construction rather than by
+ * four hand-written comparators agreeing (they didn't). */
 
 const SAFFRON = '#FF9933';
 const GOLD = '#FFD700';
 const CREAM = 'rgba(250,248,240,';
 
 export default function PlayerLeaderboard({ room, playerId }: Props) {
-  const players = Object.values(room.players).sort((a, b) => b.score - a.score);
-  const topScore = players[0]?.score ?? 0;
-  const ranks: number[] = [];
-  players.forEach((p, i) => { ranks[i] = i > 0 && players[i - 1].score === p.score ? ranks[i - 1] : i + 1; });
-  const isLeader = (score: number) => topScore > 0 && score === topScore;
+  const { players, ranks, isLeader } = rankPlayers(Object.values(room.players));
 
   const meIndex = players.findIndex(p => p.id === playerId);
   const me = meIndex >= 0 ? players[meIndex] : null;
@@ -83,7 +80,7 @@ export default function PlayerLeaderboard({ room, playerId }: Props) {
       {/* Everyone */}
       <div style={{ width: '100%', maxWidth: 340, display: 'flex', flexDirection: 'column', gap: 7 }}>
         {players.map((p, i) => {
-          const leader = isLeader(p.score);
+          const leader = isLeader(p);
           const isMe = p.id === playerId;
           return (
             <motion.div

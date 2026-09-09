@@ -119,7 +119,7 @@ export function seededShuffle<T>(items: readonly T[], rand: () => number): T[] {
  */
 export const LABEL_POOL_SIZE = 90;
 /** Matches a label however the model might write it back: ANS-42, ans-42, ANS 42, ANS–42, ANS_42. */
-export const LABEL_RE_SOURCE = 'ANS[\\s\\-\\u2010-\\u2015_]?\\d\\d';
+const LABEL_RE_SOURCE = 'ANS[\\s\\-\\u2010-\\u2015_]?\\d\\d';
 /** Canonical form of any LABEL_RE_SOURCE match. */
 const canonLabel = (raw: string) => `ANS-${raw.slice(-2)}`;
 
@@ -352,7 +352,7 @@ function withinCallRanks(call: CallResult, labels: readonly string[]): Map<strin
   return ranks;
 }
 
-export function tieCoin(seed: number, label: string): number {
+function tieCoin(seed: number, label: string): number {
   return fnv1a32(`${seed}:${label}`);
 }
 
@@ -498,8 +498,8 @@ const NEUTRAL_COMMENT: Record<Fit, string> = {
   miss: "Fun, but the scheme doesn't do that.",
 };
 
-export const COMMENT_MAX = 200;
-export const REASONING_MAX = 600;
+const COMMENT_MAX = 200;
+const REASONING_MAX = 600;
 
 // ── Final verdict ─────────────────────────────────────────────────────────────
 

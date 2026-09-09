@@ -68,7 +68,6 @@ export function createRoom(
     submissions: {},
     lastVerdict: null,
     timerEndsAt: null,
-    cardSetId: 'vikas75',
     createdAt: Date.now(),
     messages: [],
     usedChallengeIds: [],

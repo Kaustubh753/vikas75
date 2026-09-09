@@ -138,7 +138,7 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
     return () => clearTimeout(t);
   }, [initialCode]);
 
-  async function handleJoin(e: React.FormEvent) {
+  async function handleJoin(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     const trimmedCode = code.replace(/\s/g, '');
     if (!name.trim() || trimmedCode.length !== 4) return;
@@ -440,8 +440,8 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
               cursor: 'pointer', letterSpacing: '0.04em', padding: 4,
               transition: 'color .15s ease',
             }}
-            onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = 'rgba(250,248,240,.85)'}
-            onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = 'rgba(250,248,240,.55)'}
+            onMouseEnter={e => e.currentTarget.style.color = 'rgba(250,248,240,.85)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'rgba(250,248,240,.55)'}
           >
             ← back to home
           </button>

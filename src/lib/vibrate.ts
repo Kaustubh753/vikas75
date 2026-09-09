@@ -4,7 +4,9 @@
  */
 export function vibrate(pattern: number | number[]): void {
   try {
-    (navigator as Navigator & { vibrate?: (p: number | number[]) => void }).vibrate?.(pattern);
+    // `vibrate` is in lib.dom, so no cast is needed to reach it — but it is declared
+    // non-optional there while iOS Safari genuinely doesn't implement it, hence the `?.`.
+    navigator.vibrate?.(pattern);
   } catch {
     // Ignore — vibration is best-effort
   }

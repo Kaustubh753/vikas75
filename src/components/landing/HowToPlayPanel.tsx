@@ -16,7 +16,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
  *  which is the floor of comfortable for step 05's longer body. Inter sets a little wider than the
  *  mock's DM Sans, so 4.5s keeps that step relaxed without the panel feeling slow. One interval
  *  for all five steps — per-step timings read as unsteady. */
-export const STEP_DWELL_MS = 4500;
+const STEP_DWELL_MS = 4500;
 
 const STEPS = [
   { num: '01', title: 'Get a room',       label: 'Get a room',       body: 'Host a game and share the four-letter code. Players join from their devices.' },

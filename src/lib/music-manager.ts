@@ -63,22 +63,21 @@ class LobbyMusicManager {
     }, interval);
   }
 
-  private doFadeOut(callback?: () => void) {
+  private doFadeOut() {
     const audio = this.getAudio();
     this.clearFade();
-    if (audio.paused) { callback?.(); return; }
+    if (audio.paused) return;
     const startVol = audio.volume || MAX_VOLUME;
     const interval = FADE_OUT_DURATION / FADE_STEPS;
     const decrement = startVol / FADE_STEPS;
     this.fadeTimer = setInterval(() => {
-      if (!this.audio) { this.clearFade(); callback?.(); return; }
+      if (!this.audio) { this.clearFade(); return; }
       const next = Math.max(this.audio.volume - decrement, 0);
       this.audio.volume = next;
       if (next <= 0) {
         this.audio.pause();
         this.audio.volume = 0;
         this.clearFade();
-        callback?.();
       }
     }, interval);
   }
@@ -159,10 +158,6 @@ class LobbyMusicManager {
   get enabled(): boolean {
     return this._enabled;
   }
-
-  isPlaying(): boolean {
-    return this.audio ? !this.audio.paused : false;
-  }
 }
 
 // Module-level singleton — survives Next.js client-side navigation
@@ -178,7 +173,6 @@ export function getLobbyMusic(): LobbyMusicManager {
       forceMute:  () => {},
       stop:       () => {},
       enabled:    false,
-      isPlaying:  () => false,
     } as unknown as LobbyMusicManager;
   }
   if (!instance) instance = new LobbyMusicManager();

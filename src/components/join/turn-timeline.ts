@@ -159,7 +159,7 @@ export const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 /** Solve a CSS cubic-bezier(x1,y1,x2,y2) for y at a given x. Newton's method with a
  *  bisection fallback — the same approach browsers use, accurate enough that the motion
  *  matches the prototype's CSS curves rather than approximating them. */
-export function cubicBezier(x1: number, y1: number, x2: number, y2: number) {
+function cubicBezier(x1: number, y1: number, x2: number, y2: number) {
   const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
   const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
   const sampleX = (t: number) => ((ax * t + bx) * t + cx) * t;
@@ -191,7 +191,6 @@ export function cubicBezier(x1: number, y1: number, x2: number, y2: number) {
 
 /** The curves the direction actually uses, named for the beat they carry. */
 export const EASE = {
-  settle: cubicBezier(0.33, 0, 0.25, 1),
   gather: cubicBezier(0.26, 0.6, 0.3, 1),
   flip: cubicBezier(0.5, 0, 0.3, 1),
   travel: cubicBezier(0.3, 0, 0.2, 1),

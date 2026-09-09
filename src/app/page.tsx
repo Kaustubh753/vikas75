@@ -453,16 +453,16 @@ function LandingPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button
               style={{ ...btnBase, width: '100%', background: '#FF9933', color: '#08070f', borderColor: '#FF9933' }}
-              onMouseEnter={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = '#e8872a'; b.style.transform = 'translateY(-1px)'; b.style.boxShadow = '0 6px 24px rgba(255,153,51,.32)'; }}
-              onMouseLeave={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = '#FF9933'; b.style.transform = ''; b.style.boxShadow = ''; }}
+              onMouseEnter={e => { const b = e.currentTarget; b.style.background = '#e8872a'; b.style.transform = 'translateY(-1px)'; b.style.boxShadow = '0 6px 24px rgba(255,153,51,.32)'; }}
+              onMouseLeave={e => { const b = e.currentTarget; b.style.background = '#FF9933'; b.style.transform = ''; b.style.boxShadow = ''; }}
               onClick={handleHostGame}
             >
               {hosting ? 'Creating…' : 'Host a Game'}
             </button>
             <button
               style={{ ...btnBase, width: '100%', background: 'transparent', color: '#FF9933', borderColor: '#FF9933' }}
-              onMouseEnter={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = 'rgba(255,153,51,.08)'; b.style.transform = 'translateY(-1px)'; }}
-              onMouseLeave={e => { const b = e.currentTarget as HTMLButtonElement; b.style.background = 'transparent'; b.style.transform = ''; }}
+              onMouseEnter={e => { const b = e.currentTarget; b.style.background = 'rgba(255,153,51,.08)'; b.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={e => { const b = e.currentTarget; b.style.background = 'transparent'; b.style.transform = ''; }}
               onClick={() => router.push('/join')}
             >
               Join a Game
@@ -494,8 +494,8 @@ function LandingPage() {
             {SOCIAL_LINKS.map(({ label, href, Icon }) => (
               <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label}
                 style={{ color: 'rgba(250,248,240,.6)', transition: 'color .15s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(14px, 1.25vw, 18px)' }}
-                onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = '#FF9933'}
-                onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(250,248,240,.6)'}
+                onMouseEnter={e => e.currentTarget.style.color = '#FF9933'}
+                onMouseLeave={e => e.currentTarget.style.color = 'rgba(250,248,240,.6)'}
               >
                 <Icon />
               </a>
@@ -511,8 +511,8 @@ function LandingPage() {
               transition: 'color .15s',
               whiteSpace: 'nowrap',
             }}
-              onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = '#FF9933'}
-              onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(250,248,240,0.35)'}
+              onMouseEnter={e => e.currentTarget.style.color = '#FF9933'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(250,248,240,0.35)'}
             >
               Curious what&apos;s in the deck? →
             </a>
@@ -521,12 +521,12 @@ function LandingPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             {/* Legal links */}
             <a href="/privacy" style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 'clamp(9px, 0.76vw, 11px)', letterSpacing: '0.08em', color: 'rgba(250,248,240,0.35)', textDecoration: 'none', whiteSpace: 'nowrap', transition: 'color .15s' }}
-              onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = '#FF9933'}
-              onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(250,248,240,0.35)'}
+              onMouseEnter={e => e.currentTarget.style.color = '#FF9933'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(250,248,240,0.35)'}
             >Privacy</a>
             <a href="/terms" style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 'clamp(9px, 0.76vw, 11px)', letterSpacing: '0.08em', color: 'rgba(250,248,240,0.35)', textDecoration: 'none', whiteSpace: 'nowrap', transition: 'color .15s' }}
-              onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = '#FF9933'}
-              onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(250,248,240,0.35)'}
+              onMouseEnter={e => e.currentTarget.style.color = '#FF9933'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(250,248,240,0.35)'}
             >Terms</a>
             {/* Music toggle — sits in bottom strip, never overlaps content */}
             <button
@@ -539,8 +539,8 @@ function LandingPage() {
                 padding: 0, lineHeight: 1,
                 transition: 'color .15s ease',
               }}
-              onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = musicOn ? '#FF9933' : 'rgba(250,248,240,0.6)'}
-              onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = musicOn ? 'rgba(255,153,51,0.7)' : 'rgba(250,248,240,0.3)'}
+              onMouseEnter={e => e.currentTarget.style.color = musicOn ? '#FF9933' : 'rgba(250,248,240,0.6)'}
+              onMouseLeave={e => e.currentTarget.style.color = musicOn ? 'rgba(255,153,51,0.7)' : 'rgba(250,248,240,0.3)'}
             >
               {musicOn ? '🔊' : '🔇'}
             </button>
