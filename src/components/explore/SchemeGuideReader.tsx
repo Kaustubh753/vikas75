@@ -32,11 +32,17 @@ interface Props {
  *    declaration and the page collapses to zero width.
  *
  * 2. ZOOM IS A REAL SCALE, NOT A REFLOW. The page keeps its fitted width and takes a
- *    `transform: scale(z)`, with a wrapper sized to the scaled box so scroll extents are
- *    right. Capping the zoom at the viewport width is not a zoom at all — the text stays
- *    the same size, which is the only reason anyone zooms. `z` is measured from the scroll
- *    container's live `clientWidth`: once the page overflows, the scrollbar takes width off
- *    the well and a viewport-derived target overshoots and clips.
+ *    `transform: scale(z)`, with a wrapper sized to the scaled box so the scroll extents are
+ *    right. The target is the asset's OWN 921px — never derived from the container. On a
+ *    phone the fitted page is height-limited and already nearly spans the screen, so a
+ *    "fill the container" zoom works out at about 1.1x and leaves the text exactly as small
+ *    as it was, which is not a zoom at all. Three CSS traps live here, all of which present
+ *    as "the zoom does nothing" or "it opens hard against the left edge": the page wrapper
+ *    needs `flexShrink: 0` or the browser squeezes it back to the container and there is no
+ *    scroll range whatsoever; the scroller must be START-aligned when zoomed, because
+ *    centred flex alignment only ever exposes the overflow past the END of a child and the
+ *    left half becomes unreachable; and the wrapper's width must not transition, or the
+ *    centring write clamps to whatever range happens to exist at that instant.
  *
  * 3. TRAVERSAL IS ASYMMETRIC — "deal off the stack". Forward, the top card and its page are
  *    dealt up and out of frame and the next settles from underneath. Backward, nothing is
