@@ -82,8 +82,18 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
   const [traversing, setTraversing] = useState(false);
   const [out, setOut] = useState<{ i: number; dir: 1 | -1 } | null>(null);
   const [edge, setEdge] = useState<1 | -1 | null>(null);
-  const [vw, setVw] = useState(1280);
-  const [vh, setVh] = useState(800);
+  // Seed from the REAL window, not a fixed guess. These drive every dimension on the screen
+  // — rail width, the fitted page, the card — so a placeholder means the first painted frame
+  // is laid out for a screen the reader is not on, and the effect below then snaps everything
+  // into place. On a 2000x1300 display that snap moved the page 110px left and the card 169px
+  // left while resizing it, which reads exactly like the page sliding in from the left and the
+  // card reloading. A lazy initialiser costs nothing and removes the jump entirely.
+  //
+  // Reading `window` here is safe: this component is only ever rendered from client state
+  // (the deck sets an index on tap), so it never runs on the server. The guard is belt and
+  // braces for anything that might mount it differently later.
+  const [vw, setVw] = useState(() => (typeof window === 'undefined' ? 1280 : window.innerWidth));
+  const [vh, setVh] = useState(() => (typeof window === 'undefined' ? 800 : window.innerHeight));
   // Set once on mount: the rail's rise belongs to entering the reader, and must not be
   // re-added when a later flag flips back.
   const [entryRise, setEntryRise] = useState(!flightFrom);
@@ -112,6 +122,24 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
   useEffect(() => {
     const t = setTimeout(() => setEntering(false), 720);
     return () => clearTimeout(t);
+  }, []);
+
+  // Lock the document while the reader is up. The reader is a fixed overlay, but the deck
+  // underneath is still a tall scrollable page — so without this its scrollbar sits on screen
+  // beside the reader and the wheel scrolls the deck around behind it. The padding replaces
+  // the width the scrollbar was occupying, so removing it doesn't shift the deck sideways as
+  // it fades out. (Overlay scrollbars report a gap of 0 and simply skip the padding.)
+  useEffect(() => {
+    const { body } = document;
+    const prevOverflow = body.style.overflow;
+    const prevPadRight = body.style.paddingRight;
+    const gap = window.innerWidth - document.documentElement.clientWidth;
+    body.style.overflow = 'hidden';
+    if (gap > 0) body.style.paddingRight = `${gap}px`;
+    return () => {
+      body.style.overflow = prevOverflow;
+      body.style.paddingRight = prevPadRight;
+    };
   }, []);
 
   // Viewport. Read in an effect, not at render, so the server and first client render agree.
@@ -238,7 +266,10 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
     // bigger is not a zoom; the container pans instead.
     const z = zoom ? Math.max(1, PAGE_W / fitW) : 1;
     const cardW = phone ? 150 : Math.round(Math.min(250, Math.max(132, railW * 0.55), (fitH - 120) * 0.62));
-    return { fitH, railW, fitW, pageH, z, cardW };
+    // Width the scroller gets when zoomed: the rail has collapsed and the gap is gone, so the
+    // well is the stage's whole content box.
+    const zoomAvail = Math.max(0, vw - (phone ? 24 : 48));
+    return { fitH, railW, fitW, pageH, z, cardW, zoomOverflows: fitW * z > zoomAvail + 1 };
   }, [phone, tight, vh, vw, zoom]);
 
   // Centre the zoomed page horizontally, per the design's "scroll to top and centre on
@@ -251,6 +282,8 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
   }, [zoom, geo.z, geo.fitW]);
 
   // ── Choreography ──────────────────────────────────────────────
+  const { zoomOverflows } = geo;
+
   const alt = seq % 2 ? '2' : '';
   const dsuf = dir > 0 ? '-r' : '-l';
   const back = dir < 0;
@@ -474,7 +507,13 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
               // zoomed page could never be panned back to its left edge. Zoomed, the page is
               // start-aligned and centred by scroll offset instead, which keeps the whole
               // width reachable.
-              justifyContent: zoom ? 'flex-start' : 'center',
+              // Centre unless the zoomed page genuinely overflows. Centred flex alignment only
+              // ever exposes the overflow past the END of a child, so an overflowing page
+              // could never be panned back to its left edge — hence start-alignment there,
+              // with the scroll offset doing the centring. But when the page FITS (a wide
+              // screen: 921px of page in a ~1950px well) start-alignment just pins it to the
+              // left with a screenful of dead space beside it.
+              justifyContent: zoom && zoomOverflows ? 'flex-start' : 'center',
               maxWidth: '100%', overflow: zoom ? 'auto' : 'visible',
               height: zoom ? geo.fitH : 'auto', width: zoom ? '100%' : 'auto',
               WebkitOverflowScrolling: 'touch',
