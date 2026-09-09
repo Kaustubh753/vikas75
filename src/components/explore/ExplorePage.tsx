@@ -1,8 +1,8 @@
 'use client';
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
-import SchemeDetailSheet from '@/components/explore/SchemeDetailSheet';
+import SchemeGuideReader from '@/components/explore/SchemeGuideReader';
 import { hasSchemeDetail } from '@/lib/scheme-details';
 import { getSchemeCardImage } from '@/lib/cards';
 
@@ -24,17 +24,28 @@ const C = {
   bg:      '#08070f',
   panel:   'rgba(5,11,28,0.92)',
   saffron: '#FF9933',
+  gold:    '#FFD700',
   white:   '#faf8f0',
   w70:     'rgba(250,248,240,0.70)',
+  w55:     'rgba(250,248,240,0.55)',
   w40:     'rgba(250,248,240,0.40)',
+  w18:     'rgba(250,248,240,0.18)',
   w14:     'rgba(250,248,240,0.14)',
   w06:     'rgba(250,248,240,0.06)',
 };
 
+const ENTER = 'cubic-bezier(.16,1,.3,1)';
+const EXIT = 'cubic-bezier(.45,0,.9,.4)';
+
 // ── Main component ────────────────────────────────────────────
 export default function ExplorePage({ schemes }: Props) {
-  const [query, setQuery]   = useState('');
-  const [active, setActive] = useState<SchemeCard | null>(null);
+  const [query, setQuery] = useState('');
+  // The reader traverses by index; `modal` is the fallback for the one card with no guide.
+  const [readerIdx, setReaderIdx] = useState<number | null>(null);
+  const [flightFrom, setFlightFrom] = useState<DOMRect | null>(null);
+  const [leaving, setLeaving] = useState(false);
+  const [modal, setModal] = useState<SchemeCard | null>(null);
+  const leaveT = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -45,6 +56,33 @@ export default function ExplorePage({ schemes }: Props) {
       s.desc.toLowerCase().includes(q)
     );
   }, [schemes, query]);
+
+  // ← / → move through what the reader is actually looking at: the filtered view, minus the
+  // cards with no guide (currently only Digital India), which have nothing to page to.
+  const readable = useMemo(() => filtered.filter(s => hasSchemeDetail(s.id)), [filtered]);
+
+  useEffect(() => () => { if (leaveT.current) clearTimeout(leaveT.current); }, []);
+
+  const open = useCallback((card: SchemeCard, from: DOMRect | null) => {
+    const i = readable.findIndex(s => s.id === card.id);
+    if (i < 0) { setModal(card); return; }   // no guide — the card's own detail panel
+    setFlightFrom(from);
+    setReaderIdx(i);
+    // The deck stays mounted a beat and fades out over the reader. Cutting it on the frame
+    // the clone appears is what makes a takeoff feel abrupt — the card leaves a screen that
+    // has already gone.
+    if (from) {
+      setLeaving(true);
+      if (leaveT.current) clearTimeout(leaveT.current);
+      leaveT.current = setTimeout(() => setLeaving(false), 380);
+    }
+  }, [readable]);
+
+  const closeReader = useCallback(() => {
+    setReaderIdx(null);
+    setFlightFrom(null);
+    setLeaving(false);
+  }, []);
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, color: C.white, fontFamily: 'var(--font-inter),sans-serif', position: 'relative' }}>
@@ -98,37 +136,42 @@ export default function ExplorePage({ schemes }: Props) {
         </div>
       </header>
 
-      {/* ── Body ─────────────────────────────────────────────── */}
+      {/* ── Body ─────────────────────────────────────────────────
+          While a card is in flight the deck lifts ABOVE the reader and fades, so the reader
+          is revealed from under it rather than simply appearing on top. The flight clone
+          (z 20 inside the reader) still flies over both. */}
       <main style={{
-        position: 'relative', zIndex: 1,
-        maxWidth: 1400, margin: '0 auto',
-        padding: 'clamp(28px,4vh,52px) clamp(20px,4vw,64px)',
+        position: 'relative', zIndex: leaving ? 310 : 1,
+        maxWidth: 1100, margin: '0 auto',
+        padding: '3.5rem 2rem 5rem',
+        pointerEvents: leaving ? 'none' : undefined,
+        animation: leaving ? `vk-deck-out .38s ${EXIT} both` : undefined,
       }}>
         <DeckTab
           schemes={filtered}
           query={query}
           onQuery={setQuery}
           total={schemes.length}
-          onOpen={setActive}
+          onOpen={open}
         />
       </main>
 
-      {/* ── Detail view ──────────────────────────────────────────
-          Tapping a card opens its full scheme guide directly. The old text panel restated
-          exactly what is already printed on the card face (name, Hindi name, description,
-          key points), so it was a second stop on the way to the only screen that adds
-          anything. It survives as the fallback for the one card with no guide. */}
+      {/* ── Reader ───────────────────────────────────────────────
+          Tapping a card flies it into the guide reader. The card's own text panel survives
+          only as the fallback for a card with no guide: for every other card it restated
+          exactly what the card face already prints, so it was a second stop on the way to
+          the only screen that adds anything. */}
+      {readerIdx !== null && readable[readerIdx] && (
+        <SchemeGuideReader
+          schemes={readable}
+          index={readerIdx}
+          onIndexChange={setReaderIdx}
+          onClose={closeReader}
+          flightFrom={flightFrom}
+        />
+      )}
       <AnimatePresence>
-        {active && (
-          hasSchemeDetail(active.id)
-            ? <SchemeDetailSheet
-                schemeId={active.id}
-                schemeName={active.name}
-                schemeHi={active.hi}
-                onClose={() => setActive(null)}
-              />
-            : <CardModal card={active} onClose={() => setActive(null)} />
-        )}
+        {modal && <CardModal card={modal} onClose={() => setModal(null)} />}
       </AnimatePresence>
     </div>
   );
@@ -140,22 +183,25 @@ function DeckTab({ schemes, query, onQuery, total, onOpen }: {
   query: string;
   onQuery: (q: string) => void;
   total: number;
-  onOpen: (s: SchemeCard) => void;
+  onOpen: (s: SchemeCard, from: DOMRect | null) => void;
 }) {
   return (
     <div>
       {/* Header row */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 32 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}>
         <div>
           <h2 style={{
             fontFamily: 'var(--font-bebas),sans-serif',
-            fontSize: 'clamp(28px,4vw,52px)', lineHeight: 1,
-            color: C.white, margin: '0 0 6px',
+            fontSize: 'clamp(2rem,4vw,3rem)', lineHeight: 1, letterSpacing: '.03em',
+            color: C.white, margin: 0,
           }}>
-            The Deck
+            Know Your Deck
           </h2>
-          <p style={{ fontSize: 14, color: C.w40, margin: 0 }}>
-            {total} government schemes. Pick one. Defend it.
+          <p style={{
+            fontFamily: 'var(--font-devanagari),sans-serif', fontWeight: 500,
+            fontSize: '.95rem', color: C.saffron, margin: '.3rem 0 0',
+          }}>
+            अपनी डेक जानें
           </p>
         </div>
 
@@ -191,11 +237,18 @@ function DeckTab({ schemes, query, onQuery, total, onOpen }: {
         </div>
       </div>
 
-      {query && (
-        <p style={{ fontSize: 12, color: C.w40, marginBottom: 20, letterSpacing: '0.06em' }}>
-          {schemes.length} result{schemes.length !== 1 ? 's' : ''} for &ldquo;{query}&rdquo;
-        </p>
-      )}
+      {/* Tricolour rule, wiped in left to right. */}
+      <div style={{
+        height: 3, borderRadius: 2, margin: '1.25rem 0 2rem', opacity: .8,
+        background: `linear-gradient(90deg, ${C.saffron} 0 33.3%, ${C.white} 33.3% 66.6%, #138808 66.6% 100%)`,
+        animation: `vk-reveal .9s ${ENTER} both .1s`,
+      }} />
+
+      <p style={{ fontSize: '.8rem', color: 'rgba(250,248,240,.6)', margin: '0 0 1.5rem' }}>
+        {query
+          ? `${schemes.length} of ${total} match “${query}”`
+          : `${total} schemes in the deck`}
+      </p>
 
       {schemes.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '80px 0', color: C.w40 }}>
@@ -205,79 +258,81 @@ function DeckTab({ schemes, query, onQuery, total, onOpen }: {
       ) : (
         <div style={{
           display: 'grid',
-          // Fluid column count: ~5 on a desktop content width, 4 on tablets, 2 on phones.
-          // The old hard repeat(5, 1fr) overflowed the viewport on phones — five columns of
-          // unbreakable card names forced the grid wider than the screen and clipped the
-          // right column.
-          gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(150px, 16vw, 220px), 1fr))',
-          gap: 'clamp(12px,1.4vw,20px)',
+          // Fluid column count. The old hard repeat(5, 1fr) overflowed the viewport on
+          // phones — five columns of unbreakable card names forced the grid wider than the
+          // screen and clipped the right column.
+          gridTemplateColumns: 'repeat(auto-fill, minmax(min(170px, 100%), 1fr))',
+          gap: '1.25rem',
         }}>
           {schemes.map(s => (
             <CardTile key={s.id} card={s} onOpen={onOpen} />
           ))}
         </div>
       )}
+
+      <p style={{ marginTop: '2.5rem', fontSize: '.8rem', lineHeight: 1.7, color: C.w55 }}>
+        Tap a card to open its scheme guide. Then{' '}
+        <strong style={{ color: C.gold }}>←</strong> / <strong style={{ color: C.gold }}>→</strong>{' '}
+        to move between schemes, <strong style={{ color: C.gold }}>Enter</strong> to zoom,{' '}
+        <strong style={{ color: C.gold }}>Esc</strong> to come back here.
+      </p>
     </div>
   );
 }
 
-// ── Card tile — actual card image ─────────────────────────────
-function CardTile({ card, onOpen }: { card: SchemeCard; onOpen: (s: SchemeCard) => void }) {
+// ── Card tile ─────────────────────────────────────────────────
+// The tile is the flight's origin: its rect is measured on tap and handed to the reader,
+// which mounts a fixed clone there and flies it to the rail. The measurement has to happen
+// on the click itself — after the deck starts fading, the rect is of a moving element.
+function CardTile({ card, onOpen }: { card: SchemeCard; onOpen: (s: SchemeCard, from: DOMRect | null) => void }) {
   const [hovered, setHovered] = useState(false);
+  const tile = useRef<HTMLDivElement>(null);
   const imgSrc = getSchemeCardImage(card.id);
 
-  // Card aspect ratio matches physical card: ~2.5×3.5 inches = 5:7
   return (
     <button
-      onClick={() => onOpen(card)}
+      onClick={() => onOpen(card, tile.current?.getBoundingClientRect() ?? null)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      aria-label={`${card.name} — open scheme guide`}
       style={{
         background: 'none', border: 'none', padding: 0,
-        cursor: 'pointer', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', gap: 10, minWidth: 0,
+        cursor: 'pointer', display: 'block', width: '100%', minWidth: 0,
       }}
     >
-      {/* Card image wrapper */}
-      <div style={{
-        position: 'relative', width: '100%',
-        aspectRatio: '5 / 7',
-        borderRadius: 10,
-        overflow: 'hidden',
-        boxShadow: hovered
-          ? '0 20px 48px rgba(0,0,0,0.7), 0 0 0 2px rgba(255,153,51,0.6), 0 0 32px rgba(255,153,51,0.18)'
-          : '0 8px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,153,51,0.12)',
-        transform: hovered ? 'translateY(-6px) scale(1.03)' : 'none',
-        transition: 'transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .22s ease',
-        willChange: 'transform',
-      }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
+      <div
+        ref={tile}
+        style={{
+          position: 'relative', width: '100%',
+          aspectRatio: '412 / 554',
+          borderRadius: 12, overflow: 'hidden', background: C.white,
+          boxShadow: hovered
+            ? `0 0 0 1px ${C.w18}, 0 26px 48px rgba(0,0,0,.7), 0 0 32px rgba(255,153,51,.18)`
+            : `0 0 0 1px ${C.w18}, 0 18px 36px rgba(0,0,0,.6)`,
+          transform: hovered ? 'translateY(-6px) scale(1.03)' : 'none',
+          transition: 'transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .22s ease',
+          willChange: 'transform',
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- pre-baked static card art */}
         <img
           src={imgSrc}
           alt={card.name}
-          style={{
-            width: '100%', height: '100%',
-            objectFit: 'cover', display: 'block',
-            transition: 'filter .22s ease',
-            filter: hovered ? 'brightness(1.08)' : 'brightness(0.95)',
-          }}
+          style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
         />
 
-        {/* Hover overlay — slides up from bottom */}
+        {/* Hover overlay — the Hindi name and the affordance, over the card's own art. */}
         <div style={{
           position: 'absolute', inset: 0,
           background: 'linear-gradient(to top, rgba(4,8,18,0.92) 0%, rgba(4,8,18,0.5) 45%, transparent 75%)',
           opacity: hovered ? 1 : 0,
           transition: 'opacity .2s ease',
-          display: 'flex', flexDirection: 'column',
-          justifyContent: 'flex-end',
-          padding: '12px 10px',
-          gap: 3,
+          display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+          padding: '12px 10px', gap: 3,
         }}>
           <span style={{
             fontFamily: 'var(--font-devanagari),sans-serif',
-            fontSize: 11, fontWeight: 600, color: C.saffron,
-            lineHeight: 1.3,
+            fontSize: 11, fontWeight: 600, color: C.saffron, lineHeight: 1.3,
           }}>
             {card.hi}
           </span>
@@ -285,25 +340,10 @@ function CardTile({ card, onOpen }: { card: SchemeCard; onOpen: (s: SchemeCard) 
             fontSize: 10, fontWeight: 600, color: C.w70,
             letterSpacing: '0.14em', textTransform: 'uppercase',
           }}>
-            Know more →
+            Read the guide →
           </span>
         </div>
       </div>
-
-      {/* Name below card */}
-      <span style={{
-        fontSize: 12, fontWeight: 600, lineHeight: 1.3,
-        color: hovered ? C.white : C.w70,
-        textAlign: 'center',
-        transition: 'color .18s',
-        maxWidth: '100%',
-        display: '-webkit-box',
-        WebkitLineClamp: 2,
-        WebkitBoxOrient: 'vertical' as React.CSSProperties['WebkitBoxOrient'],
-        overflow: 'hidden',
-      }}>
-        {card.name}
-      </span>
     </button>
   );
 }

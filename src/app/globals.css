@@ -129,3 +129,59 @@ input, textarea, select { font-size: max(16px, 1em); }
   animation: skeleton-pulse 1.5s ease-in-out infinite;
 }
 
+
+/* ── Scheme guide reader ──────────────────────────────────────────────────────
+   Motion for /explore's guide reader (SchemeGuideReader.tsx). These live here
+   rather than inline because several are infinite ambient loops that the
+   prefers-reduced-motion block above has to be able to collapse.
+
+   Two pairs below are deliberate duplicates (`-2` suffixes). An unchanged
+   `animation-name` never restarts, so traversing twice in the same direction
+   would silently do nothing; the component alternates between the two on a
+   parity counter so a repeat move actually replays. */
+
+/* The room: a tricolour ribbon whose chevron texture drifts. */
+@keyframes vk-ribbon { 0% { background-position: 0 0; } 100% { background-position: 320px 0; } }
+/* Left-to-right wipe for the deck's tricolour rule. */
+@keyframes vk-reveal { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes vk-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes vk-fade { from { opacity: 0; } to { opacity: 1; } }
+/* Slow gold rim breathing on the guide page. */
+@keyframes vk-rim {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(255,215,0,.24), 0 30px 62px rgba(0,0,0,.68); }
+  50%      { box-shadow: 0 0 0 1px rgba(255,215,0,.8),  0 30px 62px rgba(0,0,0,.68); }
+}
+/* The collectible's resting float. Must stay on its own element — a second
+   animation writing `transform` on the same node silently wins and the deal
+   animation is discarded. */
+@keyframes vk-float {
+  0%, 100% { transform: rotate(-3deg) translateY(0); }
+  50%      { transform: rotate(-3deg) translateY(-9px); }
+}
+@keyframes vk-shine {
+  0%        { transform: translateX(-130%) skewX(-16deg); }
+  55%, 100% { transform: translateX(340%) skewX(-16deg); }
+}
+@keyframes vk-tap { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.045); } }
+@keyframes vk-nudge-y { 0%, 100% { transform: translateY(0); opacity: .6; } 50% { transform: translateY(7px); opacity: 1; } }
+/* The deck fading out under a card already in flight. */
+@keyframes vk-deck-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: scale(.985) translateY(-8px); } }
+
+/* "Deal off the stack". Forward, the top card and its page travel up-left out of
+   frame; whatever was underneath settles down onto the stack. Nothing fades —
+   opacity stays at 1 and the frame clip is what removes it. Backward, nothing is
+   dealt: the card that left returns along the path it took and lands on top. */
+@keyframes vk-deal-out-card { from { transform: rotate(-3deg); } to { transform: translate(-118%, -7%) rotate(-12deg); } }
+@keyframes vk-deal-out  { from { transform: none; } to { transform: translate(-118%, -7%) rotate(-9deg); } }
+@keyframes vk-deal-back  { from { transform: translate(-118%, -7%) rotate(-9deg); } to { transform: none; } }
+@keyframes vk-deal-back2 { from { transform: translate(-118%, -7%) rotate(-9deg); } to { transform: none; } }
+@keyframes vk-settle  { from { transform: translateY(10px) scale(.972); } to { transform: none; } }
+@keyframes vk-settle2 { from { transform: translateY(10px) scale(.972); } to { transform: none; } }
+
+/* The rail's title group leads the deal with a flick out and back. */
+@keyframes vk-rail-r  { 0% { opacity: 1; transform: none; } 36% { opacity: .12; transform: translateX(-26px); } 100% { opacity: 1; transform: none; } }
+@keyframes vk-rail-l  { 0% { opacity: 1; transform: none; } 36% { opacity: .12; transform: translateX(26px);  } 100% { opacity: 1; transform: none; } }
+@keyframes vk-rail-r2 { 0% { opacity: 1; transform: none; } 36% { opacity: .12; transform: translateX(-26px); } 100% { opacity: 1; transform: none; } }
+@keyframes vk-rail-l2 { 0% { opacity: 1; transform: none; } 36% { opacity: .12; transform: translateX(26px);  } 100% { opacity: 1; transform: none; } }
+
+@keyframes vk-mote { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: .55; } 100% { transform: translateY(-260px); opacity: 0; } }
