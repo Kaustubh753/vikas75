@@ -130,15 +130,24 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
   // the width the scrollbar was occupying, so removing it doesn't shift the deck sideways as
   // it fades out. (Overlay scrollbars report a gap of 0 and simply skip the padding.)
   useEffect(() => {
-    const { body } = document;
-    const prevOverflow = body.style.overflow;
-    const prevPadRight = body.style.paddingRight;
-    const gap = window.innerWidth - document.documentElement.clientWidth;
+    const { body, documentElement: html } = document;
+    const prev = {
+      bodyOverflow: body.style.overflow,
+      htmlOverflow: html.style.overflow,
+      pad: body.style.paddingRight,
+    };
+    const gap = window.innerWidth - html.clientWidth;
+    // BOTH elements: `body { overflow: hidden }` on its own does not reliably stop the
+    // viewport or hide its scrollbar here, because globals.css already gives html an
+    // overflow value (`overflow-x: hidden`), and the viewport's scroll then propagates from
+    // html rather than from body.
+    html.style.overflow = 'hidden';
     body.style.overflow = 'hidden';
     if (gap > 0) body.style.paddingRight = `${gap}px`;
     return () => {
-      body.style.overflow = prevOverflow;
-      body.style.paddingRight = prevPadRight;
+      html.style.overflow = prev.htmlOverflow;
+      body.style.overflow = prev.bodyOverflow;
+      body.style.paddingRight = prev.pad;
     };
   }, []);
 

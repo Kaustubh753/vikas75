@@ -186,8 +186,9 @@ input, textarea, select { font-size: max(16px, 1em); }
 
 @keyframes vk-mote { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: .55; } 100% { transform: translateY(-260px); opacity: 0; } }
 
-/* The guide page's arrival. The card flies in from its deck tile on the left, so the page
-   comes in from the right and the two converge on the centre; without it the page only
-   faded, which read as flat beside a card that visibly travelled. Transform only — the
-   well's `vk-fade` already carries the opacity, and doubling it just muddies the arrival. */
-@keyframes vk-enter-right { from { transform: translateX(110px); } to { transform: none; } }
+/* The guide page's arrival. It travels RIGHTWARD — starting left of where it settles — so
+   that as the card flies left into the rail the page moves right into the well and the two
+   read as opening apart. (Starting it on the right instead made the page slide leftward,
+   which tracked the card and looked like both were sliding off the same way.) Transform only:
+   the well's `vk-fade` already carries the opacity, and doubling it muddies the arrival. */
+@keyframes vk-enter-right { from { transform: translateX(-110px); } to { transform: none; } }
