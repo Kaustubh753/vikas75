@@ -87,6 +87,10 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
   // Set once on mount: the rail's rise belongs to entering the reader, and must not be
   // re-added when a later flag flips back.
   const [entryRise, setEntryRise] = useState(!flightFrom);
+  // The page's one-shot arrival. Cleared once it has played so the wrapper is transform-free
+  // before any traverse: a lingering transform on an ancestor of the deal keyframes would
+  // give them a contaminated origin.
+  const [entering, setEntering] = useState(true);
   const [flyer, setFlyer] = useState<{ src: string; from: DOMRect; to: DOMRect | null } | null>(
     flightFrom ? { src: getSchemeCardImage(schemes[index]?.id ?? ''), from: flightFrom, to: null } : null,
   );
@@ -104,6 +108,11 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
   }, []);
 
   useEffect(() => () => { timers.current.forEach(clearTimeout); timers.current = []; }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => setEntering(false), 720);
+    return () => clearTimeout(t);
+  }, []);
 
   // Viewport. Read in an effect, not at render, so the server and first client render agree.
   useEffect(() => {
@@ -154,6 +163,10 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
     endFlight();
     timers.current.forEach(clearTimeout);
     timers.current = [];
+    // Drop the arrival immediately: a traverse fired while it is still running would leave a
+    // partial transform on the deal keyframes' ancestor, which is the contaminated origin the
+    // well is deliberately kept flat to avoid.
+    setEntering(false);
     setZoom(false);
     setDir(d);
     setSeq((s) => s + 1);
@@ -479,6 +492,12 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
               // zoomed page has no scroll range at all — the page then cannot be panned and
               // the centring silently clamps to the left edge.
               flexShrink: 0,
+              // The arrival lives HERE rather than on the well, which must stay opacity-only:
+              // a transform on the well makes it a transformed ancestor of the page's own
+              // traverse keyframes, and they then animate from a contaminated origin. This
+              // wrapper also holds the registration brackets, so they travel in with the page
+              // instead of sitting waiting for it.
+              animation: entering ? `vk-enter-right .62s ${ENTER} both` : undefined,
             }}>
               {/* The incoming page gets its OWN wrapper, a sibling of the outgoing one —
                   share a wrapper and the departing page inherits the arrival animation. */}
