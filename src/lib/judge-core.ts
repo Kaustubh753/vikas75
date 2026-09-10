@@ -111,6 +111,24 @@ export function seededShuffle<T>(items: readonly T[], rand: () => number): T[] {
   return out;
 }
 
+/**
+ * Order the local fallback judge's entries: best tier first, uniformly random within a tier.
+ *
+ * The fallback exists for "no API key, or every live call failed", and it used to crown purely
+ * at random. It needn't: two signals are available offline and cost nothing. Whether the played
+ * scheme is on the game's own list of schemes that address this challenge, and whether the
+ * player wrote anything at all — an auto-submit at timer expiry plays a random card with an
+ * empty explanation, and that should never beat someone who actually made a case.
+ *
+ * A shuffle FIRST, then a stable sort by tier, is what keeps the debiasing intact: within a
+ * tier the order is uniformly random, and the tier itself is a function of the card id and the
+ * explanation text — never of submission order or player id. (`Array.prototype.sort` is
+ * required to be stable, so the shuffle's order survives inside each tier.)
+ */
+export function rankFallback<T>(entries: readonly T[], rand: () => number, tierOf: (item: T) => number): T[] {
+  return seededShuffle(entries, rand).sort((a, b) => tierOf(b) - tierOf(a));
+}
+
 // ── Labels & presentation orders ──────────────────────────────────────────────
 
 /**

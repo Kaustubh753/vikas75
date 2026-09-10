@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {
   fnv1a32, mulberry32, seededShuffle, drawLabels, roundSeed, assignLabels, makeCallOrders,
-  buildUserMessage, parseCallResult, aggregateCalls, assembleVerdict, scrubLabels, capText,
+  buildUserMessage, parseCallResult, aggregateCalls, assembleVerdict, scrubLabels, capText, rankFallback,
   callTopVote, topVotePosition, isStructuredOutputRejection, clean,
   deadlineMsFor, maxTokensFor, JUDGING_LOCK_TTL_MS, BRIEF_THRESHOLD, LABEL_POOL_SIZE, CALL_SCHEMA,
 } from '../src/lib/judge-core.ts';
@@ -422,6 +422,43 @@ test('assembleVerdict throws when the placement is incomplete', () => {
 });
 
 // ── budgets & error classification ──
+test('rankFallback ranks by tier, is uniform within a tier, and ignores input order', () => {
+  // Tier here is the fallback judge's own: on-brief scheme (2) + wrote an explanation (1).
+  const items = [
+    { id: 'off-blank', tier: 0 },
+    { id: 'off-wrote', tier: 1 },
+    { id: 'on-blank', tier: 2 },
+    { id: 'on-wrote', tier: 3 },
+  ];
+  const tierOf = (x) => x.tier;
+
+  // Every tier boundary is respected, from every input order.
+  for (const seed of [1, 2, 3, 7, 99]) {
+    for (const rotate of [0, 1, 2, 3]) {
+      const input = [...items.slice(rotate), ...items.slice(0, rotate)];
+      const out = rankFallback(input, mulberry32(seed), tierOf);
+      assert.deepEqual(out.map((x) => x.id), ['on-wrote', 'on-blank', 'off-wrote', 'off-blank'],
+        `seed ${seed} rotation ${rotate}`);
+    }
+  }
+
+  // Within a tier the order must be a real coin toss, not the input order. Four entries all on
+  // the same tier: over many draws every one of them should reach first place roughly a quarter
+  // of the time. (A comparator shuffle, or no shuffle at all, would pin the input's first.)
+  const flat = ['a', 'b', 'c', 'd'];
+  const firstCount = Object.fromEntries(flat.map((k) => [k, 0]));
+  const N = 4000;
+  for (let i = 0; i < N; i++) firstCount[rankFallback(flat, mulberry32(i), () => 0)[0]]++;
+  for (const k of flat) {
+    const share = firstCount[k] / N;
+    assert.ok(share > 0.19 && share < 0.31, `${k} first ${(share * 100).toFixed(1)}% of the time — not uniform`);
+  }
+
+  // And the input is not mutated.
+  const original = [...items];
+  rankFallback(items, mulberry32(5), tierOf);
+  assert.deepEqual(items, original);
+});
 test('budgets grow with the table and stay inside the judging lock', () => {
   assert.equal(deadlineMsFor(1), 9_900);
   assert.equal(deadlineMsFor(4), 12_600);

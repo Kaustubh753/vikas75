@@ -15,8 +15,8 @@ import {
   makeCallOrders,
   maxTokensFor,
   parseCallResult,
+  rankFallback,
   roundSeed,
-  seededShuffle,
   topVotePosition,
   type CallResult,
 } from '@/lib/judge-core';
@@ -381,10 +381,20 @@ async function claudeJudge(challenge: ChallengeCard, submissions: Submission[], 
   return verdict;
 }
 
-function fallbackJudge(submissions: Submission[]): JudgeVerdict {
-  // A real Fisher–Yates shuffle. The old `sort(() => Math.random() - 0.5)` is biased toward the
-  // input order — which here is submission order, i.e. it quietly favoured the fastest player.
-  const shuffled = seededShuffle(submissions, Math.random);
+function fallbackJudge(challenge: ChallengeCard, submissions: Submission[]): JudgeVerdict {
+  // Not a coin toss. The office's problem→scheme mapping is already in memory, and it says
+  // whether a played card is one of the schemes that genuinely address this challenge — so
+  // even with no model available, an on-brief card should beat an off-brief one, and anyone
+  // who wrote a case should beat the empty explanation that timer-expiry auto-submits on a
+  // silent phone's behalf. Within a tier it is still a true Fisher–Yates shuffle (the old
+  // `sort(() => Math.random() - 0.5)` was biased toward the input order, i.e. toward the
+  // fastest submitter), and no tier depends on submission order or player id.
+  //
+  // What this deliberately does NOT do is rank by relevance within the on-brief set: the
+  // mapping is a SET, stored id-ascending in all 30 lists, so its order carries no signal.
+  const onBriefIds = ON_BRIEF_BY_CHALLENGE.get(challenge.id) ?? null;
+  const shuffled = rankFallback(submissions, Math.random, (s) =>
+    (onBriefIds?.has(s.schemeCard.id) ? 2 : 0) + (clean(s.explanation) ? 1 : 0));
   const reasoning = FALLBACK_VERDICTS[Math.floor(Math.random() * FALLBACK_VERDICTS.length)];
 
   const rankings: PlayerRanking[] = shuffled.map((sub, i) => {
@@ -450,9 +460,9 @@ export async function judgeRound(
       // Every live call failed or the shared deadline passed — fall back to local judging so
       // the round still resolves with a winner rather than stalling the game.
       console.error('[ai-judge] Claude call failed/timed out; using local fallback judge:', err instanceof Error ? err.message : err);
-      return fallbackJudge(submissions);
+      return fallbackJudge(challenge, submissions);
     }
   }
   // No API key configured — use the local judge.
-  return fallbackJudge(submissions);
+  return fallbackJudge(challenge, submissions);
 }

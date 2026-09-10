@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { after } from 'next/server';
-import { getRoom, setRoom, deleteRoom, checkRoomCreationLimit, checkRateLimit, acquireLock, releaseLock } from '@/lib/redis';
+import { getRoom, setRoom, createRoomIfAbsent, deleteRoom, checkRoomCreationLimit, checkRateLimit, acquireLock, releaseLock } from '@/lib/redis';
 import { getIp } from '@/lib/request-ip';
 import { broadcastRoom, triggerEvent, getRoomChannel } from '@/lib/pusher';
 import {
@@ -81,6 +81,11 @@ function tokenOk(room: GameRoom, playerId: string, token: unknown): boolean {
   return typeof token === 'string' && token === expected;
 }
 
+// Ceiling on a single room. Chosen above the ~20 the venue actually seats and well below the
+// ~400 at which the room's Redis value would stop being writable at all — high enough that no
+// real game meets it, low enough that a loop against a known code cannot brick the room.
+const MAX_PLAYERS = 30;
+
 // Real selectable avatars (a0 is the picker's "auto/random" sentinel — never stored).
 const VALID_AVATAR_IDS: AvatarId[] = ['a1','a2','a3','a4','a5','a6','a7','a8','a9','a10','a11'];
 
@@ -150,7 +155,9 @@ export async function POST(req: NextRequest) {
     switch (action) {
       case 'create-room': {
         const { hostId, hostName, totalRounds, timerDuration } = body;
-        const safeName = sanitizeName(hostName);
+        // filterText as well as sanitizeName — the host's name shows on the projector and in
+        // every broadcast exactly like a player's, and player names have always been filtered.
+        const safeName = filterText(sanitizeName(hostName));
         if (!safeName) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
         if (!hostId || typeof hostId !== 'string' || hostId.length > 64) return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
         // Clamp settings (mirrors update-settings) so a hand-crafted request can't seed a room
@@ -166,16 +173,16 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: 'Too many rooms created. Please try again later.' }, { status: 429 });
         }
 
-        // Generate a unique room code — retry up to 10 times to avoid collisions
-        let roomCode: string | null = null;
+        // Claim a unique room code — up to 10 attempts. The claim IS the write
+        // (createRoomIfAbsent = SET NX): checking "is this code free?" and then writing as two
+        // steps let two hosts drawing the same candidate both see it free, and the second write
+        // silently destroyed the first host's room.
+        let room: GameRoom | null = null;
         for (let attempt = 0; attempt < 10; attempt++) {
-          const candidate = generateRoomCode();
-          if (!(await getRoom(candidate))) { roomCode = candidate; break; }
+          const candidate = createRoom(hostId, safeName, generateRoomCode(), safeRounds, safeTimer);
+          if (await createRoomIfAbsent(candidate)) { room = candidate; break; }
         }
-        if (!roomCode) return NextResponse.json({ error: 'Could not generate unique room code — try again' }, { status: 500 });
-
-        const room = createRoom(hostId, safeName, roomCode, safeRounds, safeTimer);
-        await setRoom(room);
+        if (!room) return NextResponse.json({ error: 'Could not generate unique room code — try again' }, { status: 500 });
         return NextResponse.json({ room: stripSecrets(room) });
       }
 
@@ -258,6 +265,16 @@ export async function POST(req: NextRequest) {
           // above) and reconnecting dropped players (reclaim, above) are still allowed in.
           if (room.phase === 'submission') {
             return NextResponse.json({ error: 'A round is in progress — you can join when it ends.' }, { status: 400 });
+          }
+          // Cap NEW arrivals only — the existing-seat and reclaim branches above are exempt, so
+          // reconnection keeps working at a full table. Without a cap the room's single Redis
+          // value grows ~2.5 KB of hand JSON per player and eventually exceeds Upstash's 1 MB
+          // request limit, at which point EVERY mutating action throws, including end-game, and
+          // the host cannot even close the room — it just sits out its 24 h TTL. Well before
+          // that, past ~20 the broadcast exceeds Pusher's payload limit and the room silently
+          // drops to polling (bug #18).
+          if (Object.keys(room.players).length >= MAX_PLAYERS) {
+            return NextResponse.json({ error: `This room is full (${MAX_PLAYERS} players).` }, { status: 400 });
           }
           const updated = addPlayer(room, playerId, safeName, resolveAvatar(room, avatarId));
           const token = crypto.randomUUID();
@@ -449,6 +466,23 @@ export async function POST(req: NextRequest) {
         const { code } = body;
         if (!code || typeof code !== 'string') return NextResponse.json({ ok: true });
         const upperCode = code.toUpperCase();
+        // Unauthenticated by design (the phase + elapsed-timer check is the real guard), so
+        // bound it per room: in normal play every player AND the projector fire this within
+        // milliseconds of each other, and without a cap anyone holding a 4-char code can loop
+        // it. Generous enough for a full table firing once each per round.
+        if (!(await checkRateLimit(`ratelimit:expire:${upperCode}`, 40, 60))) {
+          return NextResponse.json({ ok: true });
+        }
+        // Cheap unlocked pre-check BEFORE the write lock. Only one of those N+1 callers can do
+        // any work; the rest used to queue for the room's write lock (each with its own Redis
+        // read) purely to discover the phase had already moved on — contending with the very
+        // submissions still trying to land. The authoritative check is still inside the lock
+        // below; this only skips callers that definitely have nothing to do. The 1 s margin
+        // keeps the marginal "timer is about to elapse" case on the old serialize-and-recheck
+        // path, so no expiry is lost to a race between the read and the check.
+        const pre = await getRoom(upperCode);
+        if (!pre || pre.phase !== 'submission') return NextResponse.json({ ok: true });
+        if (pre.timerEndsAt && Date.now() < pre.timerEndsAt - 1_000) return NextResponse.json({ ok: true });
         // Shared per-room write lock (with brief retry) — serializes with submit/heartbeat/
         // judging so a timer expiry can't race the auto-advance or a submission write.
         await withRoomLock(upperCode, async () => {

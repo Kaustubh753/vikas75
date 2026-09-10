@@ -77,6 +77,32 @@ export async function setRoom(room: GameRoom): Promise<void> {
   }
 }
 
+/**
+ * Claim a room code and write the room in one atomic step — returns false if the code was
+ * already taken.
+ *
+ * `create-room` picks a candidate code, checks it is free, then writes. Those are two separate
+ * round trips, so two hosts drawing the same code can both see it free and the second write
+ * silently destroys the first host's room. The code space makes that rare, not impossible, and
+ * the failure is invisible to the host it happens to — their room simply is not theirs any more.
+ * SET NX makes the claim the same operation as the write.
+ */
+export async function createRoomIfAbsent(room: GameRoom): Promise<boolean> {
+  room.rev = (room.rev ?? 0) + 1;
+  const key = `${ROOM_PREFIX}${room.code}`;
+  if (!isRedisConfigured()) {
+    const existing = devStore.get(key);
+    if (existing && existing.expiresAt >= Date.now()) return false;
+    devStore.set(key, { value: room, expiresAt: Date.now() + ROOM_TTL * 1000 });
+    return true;
+  }
+  try {
+    return (await getRedis().set(key, room, { ex: ROOM_TTL, nx: true })) !== null;
+  } catch (err) {
+    throw new Error(`Failed to save room state: ${err instanceof Error ? err.message : 'Redis unavailable'}`);
+  }
+}
+
 export async function deleteRoom(code: string): Promise<void> {
   if (!isRedisConfigured()) {
     devStore.delete(`${ROOM_PREFIX}${code}`);
