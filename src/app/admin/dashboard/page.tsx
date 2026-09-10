@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import LogoLockup from '@/components/ui/LogoLockup';
 import Avatar from '@/lib/avatars';
+import { rankPlayers } from '@/lib/standings';
 import type { GameRoom } from '@/types/game';
 
 /** Coarse age of a room, for spotting the stale ones that outlive their game. Rooms are
@@ -130,7 +131,10 @@ export default function AdminDashboard() {
         ) : (
           <div className="space-y-4">
             {rooms.map((room) => {
-              const players = Object.values(room.players);
+              // One ranking, the game's own: round wins first, then points. This list used to
+              // sort on `score` alone — the exact wrong key behind bug #25, and the one surface
+              // the rankPlayers fix missed, so an ops view could contradict every player screen.
+              const players = rankPlayers(Object.values(room.players)).players;
               const isEnding = endingRoom === room.code;
               return (
                 <div key={room.code} className="bg-white/5 border border-white/10 rounded-2xl p-5">
@@ -172,7 +176,6 @@ export default function AdminDashboard() {
                   {players.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       {players
-                        .sort((a, b) => b.score - a.score)
                         .map((p) => (
                           <div
                             key={p.id}
@@ -185,7 +188,10 @@ export default function AdminDashboard() {
                               {p.name}
                             </span>
                             <span className="text-[#FF9933] text-xs font-bold font-[family-name:var(--font-inter)]">
-                              {p.score}
+                              {p.roundsWon ?? 0} 🏆
+                            </span>
+                            <span className="text-white/40 text-xs font-[family-name:var(--font-inter)]">
+                              {p.score} pts
                             </span>
                           </div>
                         ))}

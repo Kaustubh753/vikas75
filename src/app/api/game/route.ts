@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { after } from 'next/server';
-import { getRoom, setRoom, deleteRoom, checkRoomCreationLimit, checkRateLimit, acquireLock, releaseLock } from '@/lib/redis';
+import { getRoom, setRoom, createRoomIfAbsent, deleteRoom, checkRoomCreationLimit, checkRateLimit, acquireLock, releaseLock } from '@/lib/redis';
 import { getIp } from '@/lib/request-ip';
 import { broadcastRoom, triggerEvent, getRoomChannel } from '@/lib/pusher';
 import {
@@ -40,12 +40,36 @@ function stripSecrets(room: GameRoom): Omit<GameRoom, 'hostId' | 'tokens'> {
 
 /** Client-facing room for a specific player: secrets removed, and every hand except the
  *  named player's stripped (hands are private). */
+/**
+ * Blank out other players' answers while the round is still being played.
+ *
+ * Submissions accumulate in the room as people play, and the whole room object is served by
+ * GET and broadcast over Pusher — so during `submission` anyone with devtools could read the
+ * scheme and the reasoning of everyone who had already gone, and answer against them. That is
+ * a straightforward competitive advantage in a game whose entire scoring is comparative.
+ *
+ * The KEYS are kept: `ProjectorSubmission` and the lobby list only need to know who has
+ * submitted, and `allPlayersSubmitted` runs server-side. Only the content is withheld, and only
+ * until `reveal`, which is the phase that exists to show exactly this. A player always sees
+ * their own answer back.
+ */
+function hideUnrevealedSubmissions(room: GameRoom, viewerId: string): GameRoom['submissions'] {
+  if (room.phase !== 'submission') return room.submissions;
+  return Object.fromEntries(
+    Object.entries(room.submissions).map(([id, sub]) => [
+      id,
+      id === viewerId ? sub : { ...sub, explanation: '', schemeCard: { id: '', name: '', hi: '', desc: '', bullets: [] } },
+    ]),
+  );
+}
+
 function scrubRoomFor(room: GameRoom, playerId: string) {
   return {
     ...stripSecrets(room),
     players: Object.fromEntries(
       Object.entries(room.players).map(([id, p]) => [id, { ...p, hand: id === playerId ? p.hand : [] }]),
     ),
+    submissions: hideUnrevealedSubmissions(room, playerId),
   };
 }
 
@@ -56,6 +80,11 @@ function tokenOk(room: GameRoom, playerId: string, token: unknown): boolean {
   if (!expected) return true; // legacy / no token issued — allow (transitional)
   return typeof token === 'string' && token === expected;
 }
+
+// Ceiling on a single room. Chosen above the ~20 the venue actually seats and well below the
+// ~400 at which the room's Redis value would stop being writable at all — high enough that no
+// real game meets it, low enough that a loop against a known code cannot brick the room.
+const MAX_PLAYERS = 30;
 
 // Real selectable avatars (a0 is the picker's "auto/random" sentinel — never stored).
 const VALID_AVATAR_IDS: AvatarId[] = ['a1','a2','a3','a4','a5','a6','a7','a8','a9','a10','a11'];
@@ -106,22 +135,29 @@ function reapWindowMs(phase: GameRoom['phase']): number {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    // Parse and shape-check BEFORE destructuring. `await req.json()` throws on malformed JSON,
+    // and `const { action } = body` throws on a literal `null` body — both surfacing as a 500,
+    // which is a lie about whose fault it is and buries genuine 500s in monitoring.
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
     const { action } = body;
 
     // Every code-bearing action eventually calls code.toUpperCase() (directly or via
     // withRoomLock). A non-string code (e.g. a client bug sending `code: 123`) would throw a
-    // TypeError and surface as a generic 500; reject it once, here, with a clean 400. Guard the
-    // `in` check with an object test — `'code' in <primitive>` itself throws — so a bare-primitive
-    // body still falls through to the default "Unknown action" 400. create-room carries no code.
-    if (body !== null && typeof body === 'object' && 'code' in body && body.code !== undefined && typeof body.code !== 'string') {
+    // TypeError and surface as a generic 500; reject it once, here, with a clean 400.
+    // create-room carries no code.
+    if ('code' in body && body.code !== undefined && typeof body.code !== 'string') {
       return NextResponse.json({ error: 'Invalid room code' }, { status: 400 });
     }
 
     switch (action) {
       case 'create-room': {
         const { hostId, hostName, totalRounds, timerDuration } = body;
-        const safeName = sanitizeName(hostName);
+        // filterText as well as sanitizeName — the host's name shows on the projector and in
+        // every broadcast exactly like a player's, and player names have always been filtered.
+        const safeName = filterText(sanitizeName(hostName));
         if (!safeName) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
         if (!hostId || typeof hostId !== 'string' || hostId.length > 64) return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
         // Clamp settings (mirrors update-settings) so a hand-crafted request can't seed a room
@@ -137,16 +173,16 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: 'Too many rooms created. Please try again later.' }, { status: 429 });
         }
 
-        // Generate a unique room code — retry up to 10 times to avoid collisions
-        let roomCode: string | null = null;
+        // Claim a unique room code — up to 10 attempts. The claim IS the write
+        // (createRoomIfAbsent = SET NX): checking "is this code free?" and then writing as two
+        // steps let two hosts drawing the same candidate both see it free, and the second write
+        // silently destroyed the first host's room.
+        let room: GameRoom | null = null;
         for (let attempt = 0; attempt < 10; attempt++) {
-          const candidate = generateRoomCode();
-          if (!(await getRoom(candidate))) { roomCode = candidate; break; }
+          const candidate = createRoom(hostId, safeName, generateRoomCode(), safeRounds, safeTimer);
+          if (await createRoomIfAbsent(candidate)) { room = candidate; break; }
         }
-        if (!roomCode) return NextResponse.json({ error: 'Could not generate unique room code — try again' }, { status: 500 });
-
-        const room = createRoom(hostId, safeName, roomCode, safeRounds, safeTimer);
-        await setRoom(room);
+        if (!room) return NextResponse.json({ error: 'Could not generate unique room code — try again' }, { status: 500 });
         return NextResponse.json({ room: stripSecrets(room) });
       }
 
@@ -230,6 +266,16 @@ export async function POST(req: NextRequest) {
           if (room.phase === 'submission') {
             return NextResponse.json({ error: 'A round is in progress — you can join when it ends.' }, { status: 400 });
           }
+          // Cap NEW arrivals only — the existing-seat and reclaim branches above are exempt, so
+          // reconnection keeps working at a full table. Without a cap the room's single Redis
+          // value grows ~2.5 KB of hand JSON per player and eventually exceeds Upstash's 1 MB
+          // request limit, at which point EVERY mutating action throws, including end-game, and
+          // the host cannot even close the room — it just sits out its 24 h TTL. Well before
+          // that, past ~20 the broadcast exceeds Pusher's payload limit and the room silently
+          // drops to polling (bug #18).
+          if (Object.keys(room.players).length >= MAX_PLAYERS) {
+            return NextResponse.json({ error: `This room is full (${MAX_PLAYERS} players).` }, { status: 400 });
+          }
           const updated = addPlayer(room, playerId, safeName, resolveAvatar(room, avatarId));
           const token = crypto.randomUUID();
           updated.tokens = { ...(updated.tokens ?? {}), [playerId]: token };
@@ -257,8 +303,15 @@ export async function POST(req: NextRequest) {
           if (!hostId || room.hostId !== hostId) return NextResponse.json({ error: 'Not the host' }, { status: 403 });
           // Idempotent — already gone is success, not an error.
           if (!room.players[targetId]) return NextResponse.json({ room: scrubRoomFor(room, '') });
-          const updated = removePlayer(room, targetId);
+          let updated = removePlayer(room, targetId);
           if (updated.tokens) delete updated.tokens[targetId]; // revoke the kicked seat's credential
+          // Kicking the one player everyone is waiting on is usually WHY the host kicked them.
+          // removePlayer drops their pending submission too, so the round may now be complete —
+          // but allPlayersSubmitted is only ever re-evaluated by `submit`, so nothing noticed and
+          // the room sat on the submission screen until the timer expired (up to 300 s).
+          if (updated.phase === 'submission' && allPlayersSubmitted(updated)) {
+            updated = advancePhase(updated);
+          }
           await setRoom(updated);
           await broadcastRoom(updated); // the kicked client sees itself gone from players → exits
           return NextResponse.json({ room: scrubRoomFor(updated, '') });
@@ -333,11 +386,15 @@ export async function POST(req: NextRequest) {
           // Validate submitter is an active player and holds the matching token (can't submit
           // on another player's behalf).
           const submittingPlayer = room.players[submission.playerId];
+          // `code: 'identity'` on the two identity failures below (and the chat pair) is the
+          // client's only way to tell "your seat or credential is gone" from "that card isn't
+          // in your hand". Without it a player whose token was rotated by the name-based
+          // reclaim saw a normal, live game and silently failed every action for the rest of it.
           if (!submittingPlayer) {
-            return NextResponse.json({ error: 'Player not in this room' }, { status: 403 });
+            return NextResponse.json({ error: 'Player not in this room', code: 'identity' }, { status: 403 });
           }
           if (!tokenOk(room, submission.playerId, token)) {
-            return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+            return NextResponse.json({ error: 'Not authorized', code: 'identity' }, { status: 403 });
           }
           // Validate the submitted card is actually in the player's hand — use server-side card data
           const serverCard = submittingPlayer.hand.find((c) => c.id === submission.schemeCard?.id);
@@ -409,6 +466,23 @@ export async function POST(req: NextRequest) {
         const { code } = body;
         if (!code || typeof code !== 'string') return NextResponse.json({ ok: true });
         const upperCode = code.toUpperCase();
+        // Unauthenticated by design (the phase + elapsed-timer check is the real guard), so
+        // bound it per room: in normal play every player AND the projector fire this within
+        // milliseconds of each other, and without a cap anyone holding a 4-char code can loop
+        // it. Generous enough for a full table firing once each per round.
+        if (!(await checkRateLimit(`ratelimit:expire:${upperCode}`, 40, 60))) {
+          return NextResponse.json({ ok: true });
+        }
+        // Cheap unlocked pre-check BEFORE the write lock. Only one of those N+1 callers can do
+        // any work; the rest used to queue for the room's write lock (each with its own Redis
+        // read) purely to discover the phase had already moved on — contending with the very
+        // submissions still trying to land. The authoritative check is still inside the lock
+        // below; this only skips callers that definitely have nothing to do. The 1 s margin
+        // keeps the marginal "timer is about to elapse" case on the old serialize-and-recheck
+        // path, so no expiry is lost to a race between the read and the check.
+        const pre = await getRoom(upperCode);
+        if (!pre || pre.phase !== 'submission') return NextResponse.json({ ok: true });
+        if (pre.timerEndsAt && Date.now() < pre.timerEndsAt - 1_000) return NextResponse.json({ ok: true });
         // Shared per-room write lock (with brief retry) — serializes with submit/heartbeat/
         // judging so a timer expiry can't race the auto-advance or a submission write.
         await withRoomLock(upperCode, async () => {
@@ -479,15 +553,19 @@ export async function POST(req: NextRequest) {
           if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
           // Validate sender is an actual room player and holds the matching token.
           const chatPlayer = room.players[message?.playerId];
-          if (!chatPlayer) return NextResponse.json({ error: 'Player not in room' }, { status: 403 });
-          if (!tokenOk(room, message.playerId, token)) return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+          if (!chatPlayer) return NextResponse.json({ error: 'Player not in room', code: 'identity' }, { status: 403 });
+          if (!tokenOk(room, message.playerId, token)) return NextResponse.json({ error: 'Not authorized', code: 'identity' }, { status: 403 });
           // Rate-limit AFTER auth (30 messages/player/minute): the bucket is keyed on playerId,
           // so charging it before the token check let anyone spoof a victim's playerId and burn
           // the victim's own quota. Now only an authenticated sender charges their own bucket.
           if (!(await checkRateLimit(`ratelimit:chat:${message.playerId}`, 30, 60))) {
             return NextResponse.json({ error: 'Sending too fast' }, { status: 429 });
           }
-          const rawText = typeof message?.text === 'string' ? message.text.trim() : '';
+          // Cap BEFORE filtering. filterText normalises and runs ~29 global regex passes, and
+          // this runs inside withRoomLock — an unbounded string here burns CPU while holding the
+          // room's write lock, stalling submissions and heartbeats behind it. join and submit
+          // already truncate first; chat was the one place the cap sat on the wrong side.
+          const rawText = typeof message?.text === 'string' ? message.text.slice(0, 500).trim() : '';
           const filtered = filterText(rawText);
           if (!filtered) return NextResponse.json({ ok: true });
           const chatMsg: ChatMessage = {
@@ -665,9 +743,14 @@ export async function GET(req: NextRequest) {
 async function withRoomLock<T>(code: string, fn: () => Promise<T>): Promise<T | null> {
   const key = `lock:room:${code.toUpperCase()}`;
   for (let i = 0; i < 40; i++) {
-    if (await acquireLock(key, 10)) {
+    // The token is what makes the release safe. A critical section that awaits a slow network
+    // call can outrun the 10 s TTL, by which point Redis has handed the lock to the next
+    // writer; releasing by key alone would then delete THAT writer's lock and let a third in
+    // on a stale snapshot. Releasing by token makes the late release a no-op instead.
+    const token = await acquireLock(key, 10);
+    if (token) {
       try { return await fn(); }
-      finally { await releaseLock(key); }
+      finally { await releaseLock(key, token); }
     }
     await new Promise((r) => setTimeout(r, 25));
   }
@@ -771,11 +854,18 @@ export async function DELETE(req: NextRequest) {
   if (!code || !/^[A-Z]{4}$/.test(code)) {
     return NextResponse.json({ error: 'Invalid room code' }, { status: 400 });
   }
-  const room = await getRoom(code);
-  if (!room) {
-    return NextResponse.json({ error: 'Room not found' }, { status: 404 });
-  }
-  await deleteRoom(code);
+  // Under the room lock, and re-read inside it, for the same reason the GET reaper does: a
+  // concurrent locked mutation (a heartbeat is in flight a few percent of the time in an
+  // occupied room) holds a pre-delete snapshot and would setRoom it straight back afterwards.
+  // End Room would report success, the room would vanish from the list, and it would reappear
+  // on refresh and run out its full 24 h TTL.
+  const deleted = await withRoomLock(code, async () => {
+    const room = await getRoom(code);
+    if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+    await deleteRoom(code);
+    return null;
+  });
+  if (deleted) return deleted;
   // Clients discover deletion via the GET 404 path ("Room Closed" screen); there is no
   // 'game:room-closed' Pusher listener, so no broadcast here.
   return NextResponse.json({ ok: true });

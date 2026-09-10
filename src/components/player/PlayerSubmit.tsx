@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { SchemeCard, ChallengeCard } from '@/types/game';
 import { getChallengeCardImage, getSchemeCardImage, BLUR_NAVY, BLUR_CREAM } from '@/lib/cards';
 import PlayerWaiting from '@/components/player/PlayerWaiting';
+import { useCountdown } from '@/lib/use-countdown';
 
 interface Props {
   hand: SchemeCard[];
@@ -18,13 +19,7 @@ interface Props {
 }
 
 function TimerBar({ total, endsAt }: { total: number; endsAt: number }) {
-  const [remaining, setRemaining] = useState(Math.max(0, Math.ceil((endsAt - Date.now()) / 1000)));
-  useEffect(() => {
-    const tick = setInterval(() => {
-      setRemaining(Math.max(0, Math.ceil((endsAt - Date.now()) / 1000)));
-    }, 1000); // 1s is sufficient — displayed value is already integer seconds
-    return () => clearInterval(tick);
-  }, [endsAt]);
+  const remaining = useCountdown(endsAt, 0);
 
   const frac = Math.max(0, remaining / total);
   const urgent = remaining <= 10;
@@ -159,7 +154,14 @@ export default function PlayerSubmit({
   // whose phones are closed, so everyone ends the round with a card in play.
   useEffect(() => {
     if (!timerEndsAt || submitted || autoFiredRef.current) return;
-    const LEAD_MS = 1500;
+    // Jittered, not a fixed lead. Every unsubmitted client used to fire at exactly
+    // timerEndsAt - 1500, and each submit serializes through the room's write lock (which gives
+    // up after ~1 s), so at a full table the tail of that burst could be rejected — and
+    // PlayerView deliberately stays SILENT on an auto-submit failure, after which the server's
+    // own expiry safety net plays a RANDOM card with no explanation on their behalf. The player
+    // sees no error and a card they never chose. Spreading the burst over ~800 ms costs nothing
+    // and all of it still lands before the deadline.
+    const lead = 1500 + Math.random() * 800;
     const fire = () => {
       if (autoFiredRef.current || submitted) return;
       const card = selected ?? (hand.length ? hand[Math.floor(Math.random() * hand.length)] : null);
@@ -167,11 +169,18 @@ export default function PlayerSubmit({
       autoFiredRef.current = true;
       void onSubmit(card, explanation.trim(), true);
     };
-    const delay = timerEndsAt - Date.now() - LEAD_MS;
-    if (delay <= 0) { fire(); return; }
+    // `timerEndsAt` is the SERVER's clock. A device running ahead by more than the round length
+    // computes a negative delay the moment the phase opens and would fire instantly — playing a
+    // random card with an empty explanation before the player has seen the challenge, then
+    // showing "Time's up" for the rest of the round. A delay outside the round's own length is
+    // therefore not trusted: fall back to counting the full duration from the moment this client
+    // first saw the phase, which needs no clock agreement at all.
+    const raw = timerEndsAt - Date.now() - lead;
+    const plausible = raw > 0 && raw <= timerDuration * 1000;
+    const delay = plausible ? raw : Math.max(0, timerDuration * 1000 - lead);
     const t = setTimeout(fire, delay);
     return () => clearTimeout(t);
-  }, [timerEndsAt, submitted, selected, explanation, hand, onSubmit]);
+  }, [timerEndsAt, timerDuration, submitted, selected, explanation, hand, onSubmit]);
 
   const wordCount = countWords(explanation);
   const wordsLeft = MAX_WORDS - wordCount;

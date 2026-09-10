@@ -15,8 +15,8 @@ import {
   makeCallOrders,
   maxTokensFor,
   parseCallResult,
+  rankFallback,
   roundSeed,
-  seededShuffle,
   topVotePosition,
   type CallResult,
 } from '@/lib/judge-core';
@@ -66,9 +66,20 @@ const JUDGE_MODEL = 'claude-sonnet-5';
  * Any call that times out, is truncated, refuses, or fails validation is dropped and the others
  * carry the round; if none survive, judgeRound falls back to the local random judge as before.
  */
+// Word budgets for the reply. `why` and `decider` are PRIVATE — they exist only to force the
+// model to articulate fit and argument before it commits to a number, and to compare the
+// contenders before it crowns one. Nothing renders them (grep: no `.why`/`decider` reader
+// outside this module), yet together they are roughly 40% of the output tokens, which are both
+// the dominant cost line and essentially all of the latency (~70 tok/s). They are therefore
+// budgeted tightly: the reasoning discipline comes from writing the field at all, not from its
+// length. `judgeComment` is the one field a player actually reads, so it is NOT cut.
+const WHY_WORDS = { full: 12, brief: 6 } as const;
+const COMMENT_WORDS = { full: 12, brief: 8 } as const;
+const DECIDER_WORDS = 20;
+
 function buildSystemPrompt(brief: boolean): string {
-  const whyWords = brief ? 8 : 18;
-  const commentWords = brief ? 8 : 12;
+  const whyWords = brief ? WHY_WORDS.brief : WHY_WORDS.full;
+  const commentWords = brief ? COMMENT_WORDS.brief : COMMENT_WORDS.full;
   return `You are the AI Judge for Vikas 75, a game show about Indian government schemes. Each round,
 players answer a challenge card by playing one scheme card and explaining, in a sentence or two,
 how that scheme addresses the problem. You assess every answer, then crown exactly ONE winner.
@@ -142,8 +153,8 @@ language.
   name or by quoting a phrase from the explanation. Never write a label ("ANS-42"), never
   "Player 2", "the first answer" or a placement word ("winner", "last place") — placement is
   decided by the referee from all judges' winners and scores.
-- decider: at most 30 words, private: the two or three real contenders, by scheme name, and the
-  single thing that separates first from second.
+- decider: at most ${DECIDER_WORDS} words, private: the two or three real contenders, by scheme
+  name, and the single thing that separates first from second.
 - reasoning: 2–3 sentences about the round as a whole, naming the winning answer by its scheme
   name and what made it win. Same rules: no labels, no player numbers, no positions.
 
@@ -156,7 +167,7 @@ with the fields in this order:
       "why": "<at most ${whyWords} words>", "judgeComment": "<one sentence>", "judgeScore": <integer 1–10> },
     ... one entry per answer, in the order the answers were shown ...
   ],
-  "decider": "<at most 30 words>",
+  "decider": "<at most ${DECIDER_WORDS} words>",
   "winner": "<the label of the single best answer>",
   "reasoning": "<2–3 sentences>"
 }
@@ -370,10 +381,20 @@ async function claudeJudge(challenge: ChallengeCard, submissions: Submission[], 
   return verdict;
 }
 
-function fallbackJudge(submissions: Submission[]): JudgeVerdict {
-  // A real Fisher–Yates shuffle. The old `sort(() => Math.random() - 0.5)` is biased toward the
-  // input order — which here is submission order, i.e. it quietly favoured the fastest player.
-  const shuffled = seededShuffle(submissions, Math.random);
+function fallbackJudge(challenge: ChallengeCard, submissions: Submission[]): JudgeVerdict {
+  // Not a coin toss. The office's problem→scheme mapping is already in memory, and it says
+  // whether a played card is one of the schemes that genuinely address this challenge — so
+  // even with no model available, an on-brief card should beat an off-brief one, and anyone
+  // who wrote a case should beat the empty explanation that timer-expiry auto-submits on a
+  // silent phone's behalf. Within a tier it is still a true Fisher–Yates shuffle (the old
+  // `sort(() => Math.random() - 0.5)` was biased toward the input order, i.e. toward the
+  // fastest submitter), and no tier depends on submission order or player id.
+  //
+  // What this deliberately does NOT do is rank by relevance within the on-brief set: the
+  // mapping is a SET, stored id-ascending in all 30 lists, so its order carries no signal.
+  const onBriefIds = ON_BRIEF_BY_CHALLENGE.get(challenge.id) ?? null;
+  const shuffled = rankFallback(submissions, Math.random, (s) =>
+    (onBriefIds?.has(s.schemeCard.id) ? 2 : 0) + (clean(s.explanation) ? 1 : 0));
   const reasoning = FALLBACK_VERDICTS[Math.floor(Math.random() * FALLBACK_VERDICTS.length)];
 
   const rankings: PlayerRanking[] = shuffled.map((sub, i) => {
@@ -439,9 +460,9 @@ export async function judgeRound(
       // Every live call failed or the shared deadline passed — fall back to local judging so
       // the round still resolves with a winner rather than stalling the game.
       console.error('[ai-judge] Claude call failed/timed out; using local fallback judge:', err instanceof Error ? err.message : err);
-      return fallbackJudge(submissions);
+      return fallbackJudge(challenge, submissions);
     }
   }
   // No API key configured — use the local judge.
-  return fallbackJudge(submissions);
+  return fallbackJudge(challenge, submissions);
 }

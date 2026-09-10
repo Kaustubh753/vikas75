@@ -1,5 +1,6 @@
 'use client';
 import type { JudgeVerdict } from '@/types/game';
+import Stars from '@/components/ui/Stars';
 
 interface Props {
   verdict: JudgeVerdict;
@@ -16,28 +17,6 @@ const CREAM = 'rgba(250,248,240,';
  *
  * Stars render fractionally (width-clipped overlay), exactly like ProjectorWinner's Stars —
  * judgeScore is a 1-decimal mean of the judge panel, so 8.3 must show as 4.15 stars here too. */
-function Stars({ score }: { score: number }) {
-  const outOfFive = Math.max(0, Math.min(10, score)) / 2;
-  return (
-    <span
-      className="inline-flex items-center gap-[2px] leading-none"
-      role="img"
-      aria-label={`Answer quality ${outOfFive.toFixed(1)} out of 5`}
-    >
-      {[0, 1, 2, 3, 4].map((i) => {
-        const fill = Math.max(0, Math.min(1, outOfFive - i));
-        return (
-          <span key={i} className="relative text-xl" style={{ color: 'rgba(255,255,255,0.18)' }}>
-            ★
-            <span className="absolute left-0 top-0 overflow-hidden" style={{ width: `${fill * 100}%`, color: SAFFRON }}>
-              ★
-            </span>
-          </span>
-        );
-      })}
-    </span>
-  );
-}
 
 const PLACE_LABEL = ['🥇 1st', '🥈 2nd', '🥉 3rd'];
 
@@ -81,7 +60,7 @@ export default function PlayerScorecard({ verdict, playerId }: Props) {
           {placeLabel}
         </span>
         <span className="flex items-center gap-2">
-          <Stars score={mine.judgeScore} />
+          <Stars score={mine.judgeScore} size="xl" />
           <span className="font-[family-name:var(--font-inter)] text-xs font-semibold" style={{ color: `${CREAM}0.6)` }}>
             {mine.judgeScore}/10
           </span>

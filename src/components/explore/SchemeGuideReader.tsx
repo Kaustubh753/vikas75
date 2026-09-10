@@ -200,6 +200,11 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
     endFlight();
     timers.current.forEach(clearTimeout);
     timers.current = [];
+    // Clearing the timers also cancels a pending edge-flare reset, so the flare has to be
+    // dropped by hand here. Otherwise: bounce off the last scheme (flare lights, reset queued
+    // for +420 ms), traverse the other way inside that window, and the gold bar stays lit until
+    // the next bounce or close.
+    setEdge(null);
     // Drop the arrival immediately: a traverse fired while it is still running would leave a
     // partial transform on the deal keyframes' ancestor, which is the contaminated origin the
     // well is deliberately kept flat to avoid.
@@ -709,6 +714,9 @@ function Circle({ children, label, onClick, disabled, ref }: {
     <button
       ref={ref}
       onClick={onClick}
+      // The prop styled the button but never disabled it: an arrow at 0.35 opacity with a
+      // default cursor still fired `go()` on click, and assistive tech announced it as enabled.
+      disabled={disabled}
       aria-label={label}
       style={{
         width: 44, height: 44, borderRadius: '50%',

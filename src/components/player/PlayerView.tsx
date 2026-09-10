@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { getPusherClient, getRoomChannel } from '@/lib/pusher-client';
+import { subscribeRoom } from '@/lib/pusher-client';
 import { vibrate } from '@/lib/vibrate';
 import ConnectionBanner from '@/components/ui/ConnectionBanner';
 import LogoLockup from '@/components/ui/LogoLockup';
@@ -21,8 +21,10 @@ import EmotePanel from '@/components/player/EmotePanel';
 import ChatPanel from '@/components/player/ChatPanel';
 import { getLobbyMusic } from '@/lib/music-manager';
 import { staleRoom } from '@/lib/room-state';
+import { soundOn as readSoundOn } from '@/lib/sound-pref';
+import { pollIntervalMs } from '@/lib/poll';
 import { loadSeat, saveSeat, clearSeat, seatToken, seatPlayerId } from '@/lib/seat-storage';
-import type { GameRoom, SchemeCard, EmoteId, AvatarId, ChatMessage } from '@/types/game';
+import type { GameRoom, BroadcastRoom, SchemeCard, EmoteId, AvatarId, ChatMessage } from '@/types/game';
 
 interface Props {
   code: string;
@@ -55,6 +57,8 @@ export default function PlayerView({ code }: Props) {
   const [avatarId, setAvatarId] = useState<AvatarId>('a1');
   const [room, setRoom] = useState<GameRoom | null>(null);
   const [cachedHand, setCachedHand] = useState<SchemeCard[]>([]);
+  // Our own answer, kept from the moment we submit — see the note at the setter.
+  const [mySubmission, setMySubmission] = useState<{ round: number; schemeCard: SchemeCard; explanation: string } | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [overlay, setOverlay] = useState<OverlayInfo | null>(null);
   const [musicOn, setMusicOn] = useState(false);
@@ -63,6 +67,7 @@ export default function PlayerView({ code }: Props) {
   const visibilityNotifiedRef = useRef(false);
   const overlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timerFiredForRef = useRef<number>(0);
+  const missing404Ref = useRef(0);
 
   useEffect(() => {
     let pid = '', pname = '', avid: AvatarId = 'a1', soundOn = false;
@@ -92,7 +97,7 @@ export default function PlayerView({ code }: Props) {
         }
       }
       // Single shared "sound on" preference drives both lobby music and SFX.
-      soundOn = localStorage.getItem('vikas75-sound-on') === 'true';
+      soundOn = readSoundOn();
     } catch {
       // Storage access throws (not just returns null) when a device blocks site data — private
       // mode, enterprise policy. We can't recover an identity, so send the player to the join
@@ -116,6 +121,17 @@ export default function PlayerView({ code }: Props) {
       if (savedHand) setCachedHand(JSON.parse(savedHand));
     } catch { /* ignore */ }
     setHydrated(true);
+  }, [code, router]);
+
+  // Our seat or credential is gone — the name-based reclaim hands a returning device a FRESH
+  // token for the same playerId, which invalidates this one. Before this, the page kept showing
+  // a normal live game while every action failed for the rest of it: GET blanked our hand (an
+  // unverified `me`), heartbeat still answered 200 so nothing noticed, and submit just toasted
+  // the raw server error. Send us back through join, which already knows how to reclaim a seat.
+  const reclaimSeat = useCallback(() => {
+    clearSeat(code);
+    toast('Reconnecting your seat…', { icon: '🔄' });
+    router.replace(`/join?code=${code}`);
   }, [code, router]);
 
   const clearSessionAndGoHome = useCallback((message?: string) => {
@@ -150,10 +166,19 @@ export default function PlayerView({ code }: Props) {
         // or eject an active player; we stay put and let the next poll retry. (This used to also
         // eject on any non-ok response during the initial restore, which meant a single transient
         // failure on load erased a live player's seat mid-round.)
-        if (res.status === 404) clearSessionAndGoHome();
+        // Two in a row before ejecting. A 404 is meant to mean "the room is gone", but the
+        // documented in-memory fallback doesn't span serverless instances, so one poll can
+        // answer 404 for a room that is very much alive — and ejecting wipes the per-room seat
+        // record, destroying exactly the durable reconnection the seat store exists to give.
+        // ProjectorView already treats a lone 404 as recoverable; this is the same judgement.
+        if (res.status === 404) {
+          missing404Ref.current += 1;
+          if (missing404Ref.current >= 2) clearSessionAndGoHome();
+        }
         return;
       }
       const data = await res.json();
+      missing404Ref.current = 0; // a good response clears the streak
       const r: GameRoom = data.room;
       if (!r) {
         clearSessionAndGoHome();
@@ -167,14 +192,20 @@ export default function PlayerView({ code }: Props) {
         return;
       }
       // Merge messages: deduplicate by id so server's authoritative list wins without dropping local-only messages
+      let applied = true;
       setRoom(prev => {
-        if (staleRoom(prev, r)) return prev; // drop a slow poll that resolved after a newer update
+        if (staleRoom(prev, r)) { applied = false; return prev; } // drop a slow poll that resolved after a newer update
         const serverMsgs = r.messages ?? [];
         const localMsgs = prev?.messages ?? [];
         const merged = [...serverMsgs, ...localMsgs.filter(m => !serverMsgs.find(s => s.id === m.id))];
         return { ...r, messages: merged.slice(-20) };
       });
-      if (pid && r.players[pid]?.hand?.length) {
+      // Under the SAME stale guard as the room above. addSubmission removes the played card
+      // server-side, so an out-of-order poll carries a larger, older hand — and this write is
+      // persisted, so accepting it restored an already-played card that then survived a
+      // refresh. The player was offered a card they no longer held and got "Card not in your
+      // hand", which reads as their mistake.
+      if (applied && pid && r.players[pid]?.hand?.length) {
         const hand = r.players[pid].hand;
         setCachedHand(hand);
         // Persist so the hand survives a page refresh mid-submission
@@ -201,31 +232,19 @@ export default function PlayerView({ code }: Props) {
   // phases (lobby / between-rounds / game-over) poll slowly to save load.
   useEffect(() => {
     if (!hydrated) return;
-    const active = room?.phase === 'submission' || room?.phase === 'reveal'
-      || room?.phase === 'judging' || room?.phase === 'winner';
-    // Jitter per client so a large room (which falls back to polling once Pusher's limit is
-    // hit) doesn't stampede the API on the same 3s beat — spread the load across the window.
-    const base = active ? 3_000 : 30_000;
-    const id = setInterval(fetchRoom, base + Math.random() * (active ? 1_500 : 8_000));
+    const id = setInterval(fetchRoom, pollIntervalMs(room?.phase));
     return () => clearInterval(id);
   }, [hydrated, fetchRoom, room?.phase]);
 
   useEffect(() => {
     if (!hydrated) return;
-    const pusher = getPusherClient();
-    if (!pusher) return; // realtime unconfigured — the GET poll below keeps state fresh
-    const channel = pusher.subscribe(getRoomChannel(code));
 
-    const onRoomUpdated = (updated: GameRoom) => {
-      setRoom(prev => staleRoom(prev, updated) ? prev : { ...updated, messages: prev?.messages ?? [] });
-      // Also sync cachedHand — Pusher payload is the full room, so the hand is here.
-      // fetchRoom() does the same thing, but can lose a race when Pusher fires first.
-      const pid = seatPlayerId(code);
-      if (pid && updated.players[pid]?.hand?.length) {
-        const hand = updated.players[pid].hand;
-        setCachedHand(hand);
-        try { localStorage.setItem(`vikas75_hand_${code}`, JSON.stringify(hand)); } catch { /* ignore */ }
-      }
+    // No hand sync here: stripForBroadcast empties every hand before broadcasting (each is
+    // ~3 KB against Pusher's 10 KB limit), so the branch that used to live here — guarded on
+    // `updated.players[pid]?.hand?.length` — could never run, and its comment claiming the
+    // payload carries the hand was simply wrong. The GET is the only hand source.
+    const onRoomUpdated = (updated: BroadcastRoom) => {
+      setRoom(prev => staleRoom(prev, updated) ? prev : { ...(updated as GameRoom), messages: prev?.messages ?? [] });
     };
 
     const onChat = (msg: ChatMessage) => {
@@ -236,15 +255,36 @@ export default function PlayerView({ code }: Props) {
       });
     };
 
-    channel.bind('game:room-updated', onRoomUpdated);
-    channel.bind('game:chat', onChat);
-
-    return () => {
-      channel.unbind('game:room-updated', onRoomUpdated);
-      channel.unbind('game:chat', onChat);
-      pusher.unsubscribe(getRoomChannel(code));
-    };
+    return subscribeRoom(code, { 'game:room-updated': onRoomUpdated, 'game:chat': onChat });
   }, [code, hydrated]);
+
+  // Judging watchdog. The projector already kicks a stalled judge every 12 s, and the host is
+  // on the projector route too (/host redirects there) — but a host who locks their phone
+  // during judging freezes that interval, and if the after()-scheduled judge died (the exact
+  // failure the watchdog exists for) nothing else recovers it: the 30 s judging lock expires
+  // and the room sits in `judging` while every poll faithfully reports `judging`. That is
+  // bug #11's shape ("timer never auto-expired without projector") in a new place, and the
+  // fix is the same — don't let one device's wakefulness decide whether the game continues.
+  //
+  // Deliberately slower and jittered, so the projector gets first crack and a full table
+  // doesn't burn the server's per-room kick budget (6/min): first kick after ~20-35 s in
+  // phase, then every ~30-40 s. A kick while the lock is held is a no-op server-side.
+  useEffect(() => {
+    if (room?.phase !== 'judging') return;
+    const kick = () => {
+      fetch('/api/game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'kick-judge', code }),
+      }).catch(() => {});
+    };
+    const first = setTimeout(() => {
+      kick();
+      iv = setInterval(kick, 30_000 + Math.random() * 10_000);
+    }, 20_000 + Math.random() * 15_000);
+    let iv: ReturnType<typeof setInterval> | undefined;
+    return () => { clearTimeout(first); if (iv) clearInterval(iv); };
+  }, [room?.phase, code]);
 
   // Clean up overlay timer on unmount
   useEffect(() => () => {
@@ -286,9 +326,13 @@ export default function PlayerView({ code }: Props) {
     }
   }, [hydrated, room?.phase, fetchRoom]);
 
+  // Stamps the remembered answer with the round it belongs to, so last round's card can
+  // never be shown as this round's confirmation.
+  const currentRound = room?.round ?? 0;
+
   const handleSubmit = useCallback(async (card: SchemeCard, explanation: string, auto = false) => {
     try {
-      const res = await fetch('/api/game', {
+      const send = () => fetch('/api/game', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -306,22 +350,42 @@ export default function PlayerView({ code }: Props) {
           },
         }),
       });
+      let res = await send();
+      // 409 is "the room's write lock is contended right now", which at timer expiry is a burst
+      // of auto-submits all landing at once. Losing that race silently means the server's expiry
+      // safety net plays a RANDOM card with no explanation for a player who had actually chosen
+      // one and typed a case. One short retry is the difference between their answer and a
+      // stranger's card.
+      if (res.status === 409) {
+        await new Promise((r) => setTimeout(r, 350 + Math.random() * 350));
+        res = await send();
+      }
       if (!res.ok) {
         // Room vanished mid-game — send the player home cleanly rather than showing an error.
         if (res.status === 404) { clearSessionAndGoHome(); return; }
+        const data = await res.json().catch(() => ({})) as { error?: string; code?: string };
+        // Our seat/credential is gone (rotated token, or reclaimed by another device). Recover
+        // rather than failing silently forever — and check this BEFORE the auto-submit's quiet
+        // return, since an auto-submit is exactly when a locked phone discovers it.
+        if (res.status === 403 && data.code === 'identity') { reclaimSeat(); return; }
         // An auto-submit racing the phase advance can legitimately fail (round already moved
         // on) — stay silent rather than alarming the player.
         if (auto) return;
-        const data = await res.json().catch(() => ({}));
-        toast.error((data as { error?: string }).error || 'Submission failed — please try again');
+        toast.error(data.error || 'Submission failed — please try again');
         return;
       }
+      // Keep our own answer locally. The server withholds every submission's content until the
+      // reveal (so a player still choosing can't read the answers already played), and the
+      // Pusher broadcast is one payload for the whole room, so it cannot make an exception for
+      // the reader the way the GET does. Without this, a broadcast arriving after we submitted
+      // would blank our own confirmation back to us.
+      setMySubmission({ round: currentRound, schemeCard: card, explanation });
       toast.success(auto ? 'Time! Your answer was submitted.' : 'Answer submitted!');
       vibrate(50);
     } catch {
       toast.error('Network error — please check your connection and try again');
     }
-  }, [code, playerId, playerName, avatarId, clearSessionAndGoHome]);
+  }, [code, playerId, playerName, avatarId, currentRound, clearSessionAndGoHome, reclaimSeat]);
 
   const handleEmote = useCallback(async (emoteId: EmoteId) => {
     vibrate(30);
@@ -466,7 +530,11 @@ export default function PlayerView({ code }: Props) {
 
   if (!hydrated || !room) return <PlayerLoading />;
 
-  const mySubmission = room.submissions[playerId];
+  // Present in the room's submission keys (always broadcast) — the content may be withheld
+  // until the reveal, in which case our own copy from `submit` fills it in.
+  const serverSubmission = room.submissions[playerId];
+  const ownAnswer = serverSubmission?.schemeCard?.id ? serverSubmission
+    : mySubmission?.round === room.round ? mySubmission : undefined;
   const phase = room.phase;
   // Show "join next round" screen when:
   // (a) player isn't in room.players yet (navigated directly), or
@@ -508,9 +576,9 @@ export default function PlayerView({ code }: Props) {
               hand={cachedHand}
               challenge={room.currentChallenge}
               onSubmit={handleSubmit}
-              submitted={!!mySubmission}
-              submittedCard={mySubmission?.schemeCard}
-              submittedExplanation={mySubmission?.explanation}
+              submitted={!!serverSubmission}
+              submittedCard={ownAnswer?.schemeCard}
+              submittedExplanation={ownAnswer?.explanation}
               timerEndsAt={room.timerEndsAt ?? undefined}
               timerDuration={room.timerDuration}
             />

@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { getPusherClient, getRoomChannel } from '@/lib/pusher-client';
+import { subscribeRoom } from '@/lib/pusher-client';
 import { getLobbyMusic } from '@/lib/music-manager';
 import { getMusicManager } from '@/lib/music';
 import EmoteOverlay from '@/components/projector/EmoteOverlay';
@@ -19,7 +19,8 @@ import ProjectorGameOver from '@/components/projector/ProjectorGameOver';
 import MobileHostContent from '@/components/projector/MobileHostContent';
 import ProjectorLoading from '@/components/projector/ProjectorLoading';
 import { staleRoom } from '@/lib/room-state';
-import type { GameRoom } from '@/types/game';
+import { pollIntervalMs } from '@/lib/poll';
+import type { GameRoom, BroadcastRoom } from '@/types/game';
 
 interface Props { code: string; hostId?: string }
 
@@ -112,10 +113,6 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
     // motion so phase changes — round ends after everyone submits, and the judge's verdict —
     // reach the big screen within a few seconds instead of stalling for 30s (which looks like
     // "the round won't end" or "stuck on AI deliberating"). Idle phases poll slowly.
-    const active = room?.phase === 'submission' || room?.phase === 'reveal'
-      || room?.phase === 'judging' || room?.phase === 'winner';
-    // Jitter per client so fallback polls don't all land on the same beat under load.
-    const base = active ? 3_000 : 30_000;
     const poll = setInterval(() => {
       fetch(`/api/game?code=${code}`)
         .then(async (r) => {
@@ -124,21 +121,22 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
         })
         .then((d) => { if (d?.room) { setRoom(prev => staleRoom(prev, d.room) ? prev : d.room); setRoomMissing(false); } })
         .catch(() => {});
-    }, base + Math.random() * (active ? 1_500 : 8_000));
+    }, pollIntervalMs(room?.phase));
     return () => clearInterval(poll);
   }, [code, room?.phase]);
 
   useEffect(() => {
-    const pusher = getPusherClient();
-    if (!pusher) return; // realtime unconfigured — the GET poll below keeps the screen live
-    const channel = pusher.subscribe(getRoomChannel(code));
-    const onRoomUpdated = (updated: GameRoom) => {
+    const onRoomUpdated = (updated: BroadcastRoom) => {
       // A live room event proves the room exists — clear any "Room Closed" state a single
       // transient poll 404 may have latched, which only the GET paths reset otherwise (so the
       // projector could sit on "Room Closed" for up to a poll interval while Pusher kept
       // delivering valid updates).
       setRoomMissing(false);
-      setRoom(prev => staleRoom(prev, updated) ? prev : updated);
+      // `updated` is a BroadcastRoom — the payload genuinely has no hostId/tokens (nothing
+      // client-side ever does). The state is typed GameRoom only because every child component
+      // is; the cast is the boundary where that shortcut is admitted, not a claim the secrets
+      // are present. The typed PusherEventMap is what made the gap visible.
+      setRoom(prev => staleRoom(prev, updated) ? prev : (updated as GameRoom));
     };
     // Host remote-mute: silence BOTH the lobby background track (forceMute, a transient lever
     // that doesn't clobber the stored preference) AND the phase SFX stings — the ticking clock,
@@ -148,13 +146,9 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
       getLobbyMusic().forceMute(payload.muted);
       getMusicManager().setMuted(payload.muted);
     };
-    channel.bind('game:room-updated', onRoomUpdated);
-    channel.bind('music:toggle', onMusicToggle);
-    return () => {
-      channel.unbind('game:room-updated', onRoomUpdated);
-      channel.unbind('music:toggle', onMusicToggle);
-      pusher.unsubscribe(getRoomChannel(code));
-    };
+    // Refcounted: EmoteOverlay subscribes to the same channel, and a plain unsubscribe by
+    // either one would delete it from pusher-js's registry and orphan the other's bindings.
+    return subscribeRoom(code, { 'game:room-updated': onRoomUpdated, 'music:toggle': onMusicToggle });
   }, [code]);
 
   // Phase transition overlays

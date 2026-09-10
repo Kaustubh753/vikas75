@@ -3,7 +3,10 @@ export interface ChallengeCard {
   id: string;
   en: string;
   hi: string;
-  icon: string;
+  // No `icon`. context/cards_challenges.json still carries one per card — leftover from a
+  // hand-drawn card component that no longer exists, since cards render as pre-baked webp —
+  // and nothing in the app has read it since. The JSON is the office's file and is left alone;
+  // `challengesData as ChallengeCard[]` tolerates the extra key.
 }
 
 export interface SchemeCard {

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { getMusicManager } from '@/lib/music';
 import { getLobbyMusic } from '@/lib/music-manager';
+import { soundOn as readSoundOn } from '@/lib/sound-pref';
 
 /* The single sound control for the projector — music and SFX together, off one shared
  * preference (`vikas75-sound-on`).
@@ -20,7 +21,7 @@ export default function MuteButton() {
   const [muted, setMuted] = useState(false);
 
   useEffect(() => {
-    const soundOn = localStorage.getItem('vikas75-sound-on') === 'true';
+    const soundOn = readSoundOn();
     getMusicManager().setMuted(!soundOn);
     setMuted(!soundOn);
   }, []);

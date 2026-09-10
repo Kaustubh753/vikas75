@@ -196,14 +196,23 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
           // If the server reclaimed a disconnected seat with this name, adopt that seat's id
           // so our localStorage identity points at the restored player (score/hand preserved).
           const effectiveId = data.reclaimedPlayerId || playerId;
-          localStorage.setItem('vikas75_playerId', effectiveId);
-          if (data.token) localStorage.setItem('vikas75_token', data.token); // auth credential
-          localStorage.setItem('vikas75_playerName', name.trim());
+          // Guarded because storage throws on a device that blocks site data, and these writes
+          // sit inside the try whose catch reports "Network error. Please try again." The join
+          // had already SUCCEEDED server-side at this point, so a throw here left the player
+          // never navigating, retrying forever against a misleading error. The reads in
+          // PlayerView degrade to the name-based reclaim, so losing these is survivable.
+          try {
+            localStorage.setItem('vikas75_playerId', effectiveId);
+            if (data.token) localStorage.setItem('vikas75_token', data.token); // auth credential
+            localStorage.setItem('vikas75_playerName', name.trim());
+          } catch { /* blocked storage — the seat record below is attempted too, then we navigate */ }
           // Store the avatar the server actually assigned (the revolving default, or our pick),
           // not the requested value — which may be the 'a0' auto sentinel.
           const assignedAvatar = (data.room?.players?.[effectiveId]?.avatarId as AvatarId) || (avatarId === 'a0' ? 'a1' : avatarId);
-          localStorage.setItem('vikas75_avatarId', assignedAvatar);
-          localStorage.setItem('vikas75_roomCode', trimmedCode);
+          try {
+            localStorage.setItem('vikas75_avatarId', assignedAvatar);
+            localStorage.setItem('vikas75_roomCode', trimmedCode);
+          } catch { /* as above */ }
           // The per-room seat record — the durable credential this device reconnects with.
           saveSeat(trimmedCode, {
             playerId: effectiveId,

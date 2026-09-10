@@ -1,10 +1,11 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { getMusicManager } from '@/lib/music';
 import type { GameRoom } from '@/types/game';
 import { getChallengeCardImage, BLUR_NAVY } from '@/lib/cards';
+import { useCountdown } from '@/lib/use-countdown';
 
 interface Props { room: GameRoom }
 
@@ -46,22 +47,11 @@ function AwaitingSubmissionBanner() {
 
 export default function ProjectorChallengeReveal({ room }: Props) {
   const challenge = room.currentChallenge;
-  // Initialize to actual remaining time so a mid-round open shows the correct countdown
-  const [remaining, setRemaining] = useState(() =>
-    room.timerEndsAt ? Math.max(0, Math.ceil((room.timerEndsAt - Date.now()) / 1000)) : room.timerDuration
-  );
+  const remaining = useCountdown(room.timerEndsAt, room.timerDuration);
 
   useEffect(() => {
     getMusicManager().play('challenge');
   }, []);
-
-  useEffect(() => {
-    if (!room.timerEndsAt) return;
-    const tick = setInterval(() => {
-      setRemaining(Math.max(0, Math.ceil((room.timerEndsAt! - Date.now()) / 1000)));
-    }, 1000);
-    return () => clearInterval(tick);
-  }, [room.timerEndsAt]);
 
   if (!challenge) return null;
 

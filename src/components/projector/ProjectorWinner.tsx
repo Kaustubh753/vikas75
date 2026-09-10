@@ -3,38 +3,10 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Avatar from '@/lib/avatars';
 import Confetti from '@/components/ui/Confetti';
+import Stars from '@/components/ui/Stars';
 import { getMusicManager } from '@/lib/music';
 import { vibrate } from '@/lib/vibrate';
 import type { GameRoom } from '@/types/game';
-
-/** Answer quality for the round, shown as 5 stars. The judge still scores 1–10 (finer grain
- *  keeps the ranking order clean), so this halves it and fills to the nearest half star.
- *  Quality is display only — points come from placement, not from this. */
-function Stars({ score }: { score: number }) {
-  const outOfFive = Math.max(0, Math.min(10, score)) / 2;
-  return (
-    <span
-      className="inline-flex items-center gap-[3px] leading-none"
-      role="img"
-      aria-label={`Answer quality ${outOfFive.toFixed(1)} out of 5`}
-    >
-      {[0, 1, 2, 3, 4].map((i) => {
-        const fill = Math.max(0, Math.min(1, outOfFive - i)); // 0 → empty, 1 → full
-        return (
-          <span key={i} className="relative text-lg" style={{ color: 'rgba(255,255,255,0.18)' }}>
-            ★
-            <span
-              className="absolute left-0 top-0 overflow-hidden"
-              style={{ width: `${fill * 100}%`, color: '#FF9933' }}
-            >
-              ★
-            </span>
-          </span>
-        );
-      })}
-    </span>
-  );
-}
 
 interface Props { room: GameRoom }
 
@@ -96,6 +68,23 @@ export default function ProjectorWinner({ room }: Props) {
     );
   }
 
+  // The rankings list has to fit the screen it is projected onto. It is inside an
+  // `overflow-hidden` column with `justify-center` and no scroll, so anything too tall is
+  // silently clipped at BOTH ends: measured at 1920x1080 with 20 players, the list ran from
+  // y=-251 to y=1431 and the visible window started at rank 4 — the winner, the rest of the
+  // podium and the heading were all off the top of the screen, on the one screen whose entire
+  // job is to announce the winner. The game explicitly supports 15+ players.
+  //
+  // So density scales with the table, the same way ProjectorReveal's pacing does (bug #17).
+  // The judge's one-liner is the first thing dropped, because it is the only element here that
+  // every player is already reading in full on their own phone.
+  const n = rankings.length;
+  const density = n <= 8
+    ? { avatar: 40, padY: 12, gap: 12, name: 16, scheme: 12, headGap: 32, showComment: true }
+    : n <= 13
+      ? { avatar: 32, padY: 8, gap: 8, name: 15, scheme: 11, headGap: 20, showComment: true }
+      : { avatar: 26, padY: 3, gap: 4, name: 14, scheme: 11, headGap: 10, showComment: false };
+
   return (
     <div className="w-full h-full bg-[#08070f] flex flex-col items-center justify-center overflow-hidden relative">
       {stage >= 1 && <Confetti />}
@@ -149,22 +138,23 @@ export default function ProjectorWinner({ room }: Props) {
 
       {/* Stage 2: all rankings */}
       {stage === 2 && (
-        <div className="w-full px-12 animate-slide-up">
-          <h2 className="font-[family-name:var(--font-bebas)] text-white text-4xl tracking-widest text-center mb-8">
+        <div className="w-full px-12 animate-slide-up" style={{ maxHeight: '100%' }}>
+          <h2 className="font-[family-name:var(--font-bebas)] text-white text-4xl tracking-widest text-center" style={{ marginBottom: 8 }}>
             Round {room.round} Rankings
           </h2>
           {/* Says what the stars mean without spelling it out twice — points come from placement,
               the stars rate the answer itself. */}
-          <p className="text-center text-white/40 text-sm tracking-widest uppercase font-[family-name:var(--font-inter)] -mt-6 mb-8">
+          <p className="text-center text-white/40 text-sm tracking-widest uppercase font-[family-name:var(--font-inter)]" style={{ marginBottom: density.headGap }}>
             Stars rate this round&apos;s answer
           </p>
-          <div className="space-y-3 max-w-3xl mx-auto">
+          <div className="max-w-3xl mx-auto" style={{ display: 'flex', flexDirection: 'column', gap: density.gap }}>
             {rankings.map((r, i) => (
               <motion.div
                 key={r.playerId}
-                className={`flex items-center gap-4 rounded-2xl px-6 py-3 ${
+                className={`flex items-center rounded-2xl px-6 ${
                   i === 0 ? 'bg-[#FFD700]/10 border border-[#FFD700]/30' : 'bg-white/5 border border-white/5'
                 }`}
+                style={{ paddingTop: density.padY, paddingBottom: density.padY, gap: density.gap + 4 }}
                 initial={{ opacity: 0, x: 40 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.1 }}
@@ -172,16 +162,23 @@ export default function ProjectorWinner({ room }: Props) {
                 <span className={`font-[family-name:var(--font-bebas)] text-2xl w-8 ${i === 0 ? 'text-[#FFD700]' : 'text-white/40'}`}>
                   {i + 1}
                 </span>
-                <div className="rounded-xl overflow-hidden">
-                  <Avatar id={r.avatarId} size={40} />
+                <div className="rounded-xl overflow-hidden shrink-0">
+                  <Avatar id={r.avatarId} size={density.avatar} />
                 </div>
-                <div className="flex-1">
-                  <p className="font-[family-name:var(--font-inter)] text-white font-bold">{r.playerName}</p>
-                  <p className="text-white/50 text-xs font-[family-name:var(--font-inter)]">{r.schemeCard.name}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-[family-name:var(--font-inter)] text-white font-bold truncate leading-tight" style={{ fontSize: density.name }}>{r.playerName}</p>
+                  <p className="text-white/50 font-[family-name:var(--font-inter)] truncate leading-tight" style={{ fontSize: density.scheme }}>{r.schemeCard.name}</p>
                 </div>
-                <div className="text-right">
+                <div className="text-right shrink-0">
                   <Stars score={r.judgeScore} />
-                  <p className="text-white/40 text-xs font-[family-name:var(--font-inter)] italic truncate max-w-[200px]">{r.judgeComment}</p>
+                  {/* Two lines, not one truncated one. The judge is told to write at most 12
+                      words (~65 characters); `truncate max-w-[200px]` at text-xs showed about
+                      half of that and cut the rest mid-word, so the punchline the model was
+                      asked to front-load routinely never arrived on the big screen. The phone
+                      has always shown it in full. */}
+                  {density.showComment && (
+                    <p className="text-white/40 text-xs font-[family-name:var(--font-inter)] italic line-clamp-2 max-w-[260px] text-balance">{r.judgeComment}</p>
+                  )}
                 </div>
               </motion.div>
             ))}

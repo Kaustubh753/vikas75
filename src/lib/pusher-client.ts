@@ -1,4 +1,6 @@
 import PusherClient from 'pusher-js';
+import { getRoomChannel } from '@/lib/room-channel';
+import type { PusherEventMap } from '@/types/game';
 
 let pusherClientInstance: PusherClient | null = null;
 
@@ -26,9 +28,51 @@ export function getPusherClient(): PusherClient | null {
   return pusherClientInstance;
 }
 
-export function getRoomChannel(code: string): string {
-  // private- prefix triggers Pusher channel auth; must match server-side getRoomChannel in pusher.ts
-  return `private-game-${code.toUpperCase()}`;
+export { getRoomChannel } from '@/lib/room-channel';
+
+/**
+ * Subscribe to a room's channel and bind handlers, returning a release function.
+ *
+ * Why this exists rather than `pusher.subscribe`/`pusher.unsubscribe` at each call site:
+ * pusher-js keeps ONE channel object per name on the singleton client — `Channels.add` returns
+ * the cached one — and `pusher.unsubscribe(name)` DELETES it from the registry, while inbound
+ * events are routed by looking the name up in that registry. Two components on the same screen
+ * (ProjectorView for `game:room-updated`/`music:toggle`, EmoteOverlay for `emote`) therefore
+ * shared one channel, and whichever unmounted first silently orphaned the other's bindings —
+ * permanently, since neither effect re-runs while `code` is unchanged. The projector would drop
+ * to poll-only for the rest of the session, with no error anywhere, the moment a transient 404
+ * unmounted the emote layer for one render.
+ *
+ * Refcounting the name fixes it for every consumer, including any added later: the real
+ * `unsubscribe` happens only when the last subscriber releases.
+ */
+const roomSubscribers = new Map<string, number>();
+
+type ChannelHandlers = { [E in keyof PusherEventMap]?: (payload: PusherEventMap[E]) => void };
+
+export function subscribeRoom(code: string, handlers: ChannelHandlers): () => void {
+  const pusher = getPusherClient();
+  if (!pusher) return () => {}; // realtime unconfigured — callers fall back to their GET poll
+  const name = getRoomChannel(code);
+  const channel = pusher.subscribe(name);
+  roomSubscribers.set(name, (roomSubscribers.get(name) ?? 0) + 1);
+
+  const bound = Object.entries(handlers) as [string, (payload: never) => void][];
+  for (const [event, fn] of bound) channel.bind(event, fn);
+
+  let released = false;
+  return () => {
+    if (released) return; // an effect cleanup must never double-decrement the refcount
+    released = true;
+    for (const [event, fn] of bound) channel.unbind(event, fn);
+    const left = (roomSubscribers.get(name) ?? 1) - 1;
+    if (left > 0) {
+      roomSubscribers.set(name, left);
+      return;
+    }
+    roomSubscribers.delete(name);
+    pusher.unsubscribe(name);
+  };
 }
 
 export type PusherConnectionState = 'connected' | 'connecting' | 'unavailable' | 'disconnected' | 'failed';
