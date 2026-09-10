@@ -175,6 +175,16 @@ input, textarea, select { font-size: max(16px, 1em); }
 @keyframes vk-deal-out  { from { transform: none; } to { transform: translate(-118%, -7%) rotate(-9deg); } }
 @keyframes vk-deal-back  { from { transform: translate(-118%, -7%) rotate(-9deg); } to { transform: none; } }
 @keyframes vk-deal-back2 { from { transform: translate(-118%, -7%) rotate(-9deg); } to { transform: none; } }
+
+/* The guide page's half of the deal, and it goes the OTHER WAY. Forward, the collectible
+   leaves up-and-LEFT (it rests on the left rail) while the page leaves up-and-RIGHT (it sits
+   in the right-hand well) — each object exits toward the edge it is already nearest, so the
+   pair splits apart. Backward they return along those same two paths. Sending both left, as
+   this originally did by reusing the card's keyframes for the page, makes the two objects
+   travel as one lump and loses the "dealt off the stack" read entirely. */
+@keyframes vk-deal-out-pg   { from { transform: none; } to { transform: translate(118%, -7%) rotate(9deg); } }
+@keyframes vk-deal-back-pg  { from { transform: translate(118%, -7%) rotate(9deg); } to { transform: none; } }
+@keyframes vk-deal-back-pg2 { from { transform: translate(118%, -7%) rotate(9deg); } to { transform: none; } }
 @keyframes vk-settle  { from { transform: translateY(10px) scale(.972); } to { transform: none; } }
 @keyframes vk-settle2 { from { transform: translateY(10px) scale(.972); } to { transform: none; } }
 

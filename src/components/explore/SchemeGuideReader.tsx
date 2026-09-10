@@ -301,7 +301,11 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
   const alt = seq % 2 ? '2' : '';
   const dsuf = dir > 0 ? '-r' : '-l';
   const back = dir < 0;
+  // Two arrival names, because the two objects return from opposite sides: the collectible
+  // from the left rail, the guide page from the right well. Forward they both simply settle
+  // onto the stack, which is direction-neutral.
   const inName = (back ? 'vk-deal-back' : 'vk-settle') + alt;
+  const inNamePg = (back ? 'vk-deal-back-pg' : 'vk-settle') + alt;
   const inZ = back ? 4 : 1;
   const outZ = back ? 1 : 4;
   const outScheme = out ? schemes[out.i] : null;
@@ -557,7 +561,7 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
               <div style={{
                 position: 'absolute', left: 0, top: 0, width: '100%', height: '100%', zIndex: inZ,
                 animation: traversing
-                  ? `${inName} ${back ? '.82s' : '.62s'} ${ENTER} both ${back ? '.18s' : '.26s'}`
+                  ? `${inNamePg} ${back ? '.82s' : '.62s'} ${ENTER} both ${back ? '.18s' : '.26s'}`
                   : undefined,
               }}>
                 <div
@@ -589,7 +593,7 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
                   position: 'absolute', left: 0, top: 0, width: geo.fitW,
                   borderRadius: 8, overflow: 'hidden', background: PAPER, display: 'flex',
                   pointerEvents: 'none', zIndex: outZ, boxShadow: '0 30px 62px rgba(0,0,0,.6)',
-                  animation: back ? undefined : `vk-deal-out .74s ${MOVE} both .18s`,
+                  animation: back ? undefined : `vk-deal-out-pg .74s ${MOVE} both .18s`,
                 }}>
                   {/* eslint-disable-next-line @next/next/no-img-element -- see above */}
                   <img src={outSrc} alt="" style={{ display: 'block', height: 'auto', width: '100%' }} />
