@@ -1,9 +1,10 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { getMusicManager } from '@/lib/music';
 import CountUp from '@/components/ui/CountUp';
 import Avatar from '@/lib/avatars';
 import type { GameRoom } from '@/types/game';
+import { useCountdown } from '@/lib/use-countdown';
 
 interface Props { room: GameRoom }
 
@@ -51,9 +52,7 @@ function TimerRing({ total, remaining }: { total: number; remaining: number }) {
 }
 
 export default function ProjectorSubmission({ room }: Props) {
-  const [remaining, setRemaining] = useState(() =>
-    room.timerEndsAt ? Math.max(0, Math.ceil((room.timerEndsAt - Date.now()) / 1000)) : room.timerDuration
-  );
+  const remaining = useCountdown(room.timerEndsAt, room.timerDuration);
   const challenge = room.currentChallenge;
   const players = Object.values(room.players);
   const submittedIds = new Set(Object.keys(room.submissions));
@@ -63,14 +62,6 @@ export default function ProjectorSubmission({ room }: Props) {
   useEffect(() => {
     getMusicManager().play('ticking');
   }, []);
-
-  useEffect(() => {
-    if (!room.timerEndsAt) return;
-    const tick = setInterval(() => {
-      setRemaining(Math.max(0, Math.ceil((room.timerEndsAt! - Date.now()) / 1000)));
-    }, 500);
-    return () => clearInterval(tick);
-  }, [room.timerEndsAt]);
 
   // Adaptive tile size — fewer players get larger tiles so the screen fills nicely
   const minTile = n <= 4 ? 220 : n <= 8 ? 180 : n <= 12 ? 150 : 120;

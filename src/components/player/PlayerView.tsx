@@ -332,7 +332,7 @@ export default function PlayerView({ code }: Props) {
 
   const handleSubmit = useCallback(async (card: SchemeCard, explanation: string, auto = false) => {
     try {
-      const res = await fetch('/api/game', {
+      const send = () => fetch('/api/game', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -350,6 +350,16 @@ export default function PlayerView({ code }: Props) {
           },
         }),
       });
+      let res = await send();
+      // 409 is "the room's write lock is contended right now", which at timer expiry is a burst
+      // of auto-submits all landing at once. Losing that race silently means the server's expiry
+      // safety net plays a RANDOM card with no explanation for a player who had actually chosen
+      // one and typed a case. One short retry is the difference between their answer and a
+      // stranger's card.
+      if (res.status === 409) {
+        await new Promise((r) => setTimeout(r, 350 + Math.random() * 350));
+        res = await send();
+      }
       if (!res.ok) {
         // Room vanished mid-game — send the player home cleanly rather than showing an error.
         if (res.status === 404) { clearSessionAndGoHome(); return; }

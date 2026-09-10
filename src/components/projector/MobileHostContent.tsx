@@ -1,8 +1,8 @@
 'use client';
-import { useState, useEffect } from 'react';
 import Avatar from '@/lib/avatars';
 import { rankPlayers } from '@/lib/standings';
 import type { GameRoom } from '@/types/game';
+import { useCountdown } from '@/lib/use-countdown';
 
 // Compact, portrait-native view of the live game state for a host running the game from a
 // phone. The TV/projector phase layouts are designed for a 16:9 screen and look cramped on a
@@ -34,14 +34,7 @@ export default function MobileHostContent({ room }: { room: GameRoom }) {
   const challenge = room.currentChallenge;
   const verdict = room.lastVerdict;
 
-  const [remaining, setRemaining] = useState(() =>
-    room.timerEndsAt ? Math.max(0, Math.ceil((room.timerEndsAt - Date.now()) / 1000)) : 0,
-  );
-  useEffect(() => {
-    if (room.phase !== 'submission' || !room.timerEndsAt) return;
-    const t = setInterval(() => setRemaining(Math.max(0, Math.ceil((room.timerEndsAt! - Date.now()) / 1000))), 500);
-    return () => clearInterval(t);
-  }, [room.phase, room.timerEndsAt]);
+  const remaining = useCountdown(room.phase === 'submission' ? room.timerEndsAt : null, 0);
 
   const { players: leaderboard, ranks, isLeader } = rankPlayers(players);
 
