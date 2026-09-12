@@ -19,7 +19,7 @@ import {
 import { judgeRound, noWinnerVerdict } from '@/lib/ai-judge';
 import { JUDGING_LOCK_TTL_MS } from '@/lib/judge-core';
 import { isEmoteId } from '@/lib/emotes';
-import { filterText } from '@/lib/word-filter';
+import { filterText, sanitizeName } from '@/lib/word-filter';
 import type { Submission, AvatarId, ChatMessage, GameRoom } from '@/types/game';
 
 // The judge fans out up to three parallel Claude calls under a 22 s deadline (see ai-judge.ts)
@@ -76,7 +76,10 @@ function scrubRoomFor(room: GameRoom, playerId: string) {
 /** A player's action/own-hand read is allowed if no token has been issued for them (legacy
  *  rooms created before tokens existed) or the supplied token matches the issued one. */
 function tokenOk(room: GameRoom, playerId: string, token: unknown): boolean {
-  const expected = room.tokens?.[playerId];
+  // Object.hasOwn, not a truthiness read: `room.tokens?.['toString']` resolves up the prototype
+  // chain to a function, and `room.tokens?.['__proto__']` to undefined — the first is a wrong
+  // "token exists", the second a wrong "no token, allow".
+  const expected = Object.hasOwn(room.tokens ?? {}, playerId) ? room.tokens![playerId] : undefined;
   if (!expected) return true; // legacy / no token issued — allow (transitional)
   return typeof token === 'string' && token === expected;
 }
@@ -113,10 +116,28 @@ function resolveAvatar(room: GameRoom, requested: unknown, excludePlayerId?: str
   return VALID_AVATAR_IDS[order % VALID_AVATAR_IDS.length];
 }
 
-function sanitizeName(name: unknown): string {
-  if (typeof name !== 'string') return '';
-  return name.replace(/[<>]/g, '').trim().slice(0, 30);
-}
+/**
+ * A player id is a credential-shaped key we look up in `room.players` and `room.tokens`, so it
+ * must never be a prototype key. `room.players['__proto__']` is Object.prototype — truthy — and
+ * `room.tokens?.['__proto__']` is undefined, which `tokenOk` reads as "no token issued, allow",
+ * so an unauthenticated request could take the seat branch and write to Object.prototype for the
+ * life of the serverless instance. Membership is also checked with Object.hasOwn below; this
+ * guard is the belt to that pair of braces.
+ */
+const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+/**
+ * ...and the character class alone is not enough: `__proto__`, `constructor` and `toString` are
+ * all letters and underscores, so they sail through ID_RE. These are rejected by name. Every
+ * lookup also uses Object.hasOwn, so this is defence in depth rather than the only guard — but
+ * an id that resolves to something on Object.prototype has no business being a player key.
+ */
+const RESERVED_IDS = new Set([
+  '__proto__', 'constructor', 'prototype', 'toString', 'toLocaleString', 'valueOf',
+  'hasOwnProperty', 'isPrototypeOf', 'propertyIsEnumerable',
+  '__defineGetter__', '__defineSetter__', '__lookupGetter__', '__lookupSetter__',
+]);
+/** Room codes are always four letters. Without this, `code` becomes an arbitrary Redis key. */
+const CODE_RE = /^[A-Za-z]{4}$/;
 
 // ── Auto-shutdown ────────────────────────────────────────────────────────────
 // Idle-room cleanup, not a disconnection detector. Only a room nobody is playing may be
@@ -144,12 +165,23 @@ export async function POST(req: NextRequest) {
     }
     const { action } = body;
 
-    // Every code-bearing action eventually calls code.toUpperCase() (directly or via
-    // withRoomLock). A non-string code (e.g. a client bug sending `code: 123`) would throw a
-    // TypeError and surface as a generic 500; reject it once, here, with a clean 400.
-    // create-room carries no code.
-    if ('code' in body && body.code !== undefined && typeof body.code !== 'string') {
+    // Shape-guard the two fields that become Redis keys or object keys, once, here — every
+    // handler downstream then gets to assume they are well-formed.
+    //
+    // `code` must be four letters. Unchecked it is an arbitrary string that `getRoom`,
+    // `withRoomLock` and `checkRateLimit` all turn into Redis keys, so a megabyte of `code`, or
+    // a fresh one per request, is unbounded unauthenticated key creation on the `timer-expire`
+    // path (which has no IP bucket by design). create-room carries no code.
+    if ('code' in body && body.code !== undefined && !CODE_RE.test(String(body.code ?? ''))) {
       return NextResponse.json({ error: 'Invalid room code' }, { status: 400 });
+    }
+    // `playerId` is looked up in `room.players` and `room.tokens`. See ID_RE — a prototype key
+    // there passes both the membership truthiness test and tokenOk's "no token issued, allow".
+    for (const field of ['playerId', 'hostId'] as const) {
+      const v = (body as Record<string, unknown>)[field];
+      if (v !== undefined && (typeof v !== 'string' || !ID_RE.test(v) || RESERVED_IDS.has(v))) {
+        return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+      }
     }
 
     switch (action) {
@@ -157,7 +189,7 @@ export async function POST(req: NextRequest) {
         const { hostId, hostName, totalRounds, timerDuration } = body;
         // filterText as well as sanitizeName — the host's name shows on the projector and in
         // every broadcast exactly like a player's, and player names have always been filtered.
-        const safeName = filterText(sanitizeName(hostName));
+        const safeName = sanitizeName(hostName);  // filters, strips and caps, in that order
         if (!safeName) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
         if (!hostId || typeof hostId !== 'string' || hostId.length > 64) return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
         // Clamp settings (mirrors update-settings) so a hand-crafted request can't seed a room
@@ -198,7 +230,7 @@ export async function POST(req: NextRequest) {
         if (!(await checkRateLimit(`ratelimit:join:${ip}`, 60, 60))) {
           return NextResponse.json({ error: 'Too many requests — slow down' }, { status: 429 });
         }
-        const safeName = filterText(sanitizeName(playerName));
+        const safeName = sanitizeName(playerName);  // filters, strips and caps, in that order
         if (!safeName) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
         if (!playerId || typeof playerId !== 'string' || playerId.length > 64) return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
         const res = await withRoomLock(code, async () => {
@@ -210,7 +242,7 @@ export async function POST(req: NextRequest) {
           // token (tokenOk also passes for a legacy seat that never had a token issued). A caller
           // who can't authenticate is rejected here; genuine reconnection with a lost id goes
           // through the stale-seat reclaim path below (fresh id + same name).
-          if (room.players[playerId]) {
+          if (Object.hasOwn(room.players, playerId)) {
             if (!tokenOk(room, playerId, joinToken)) {
               return NextResponse.json({ error: 'Not authorized for this seat' }, { status: 403 });
             }
@@ -302,7 +334,7 @@ export async function POST(req: NextRequest) {
           // Host-only: match the raw hostId credential against the room's.
           if (!hostId || room.hostId !== hostId) return NextResponse.json({ error: 'Not the host' }, { status: 403 });
           // Idempotent — already gone is success, not an error.
-          if (!room.players[targetId]) return NextResponse.json({ room: scrubRoomFor(room, '') });
+          if (!Object.hasOwn(room.players, targetId)) return NextResponse.json({ room: scrubRoomFor(room, '') });
           let updated = removePlayer(room, targetId);
           if (updated.tokens) delete updated.tokens[targetId]; // revoke the kicked seat's credential
           // Kicking the one player everyone is waiting on is usually WHY the host kicked them.
@@ -385,7 +417,7 @@ export async function POST(req: NextRequest) {
           }
           // Validate submitter is an active player and holds the matching token (can't submit
           // on another player's behalf).
-          const submittingPlayer = room.players[submission.playerId];
+          const submittingPlayer = Object.hasOwn(room.players, submission.playerId) ? room.players[submission.playerId] : undefined;
           // `code: 'identity'` on the two identity failures below (and the chat pair) is the
           // client's only way to tell "your seat or credential is gone" from "that card isn't
           // in your hand". Without it a player whose token was rotated by the name-based
@@ -403,7 +435,10 @@ export async function POST(req: NextRequest) {
           }
           // Sanitize and filter explanation
           const safeExplanation = typeof submission.explanation === 'string'
-            ? filterText(submission.explanation.trim().slice(0, 200))
+            // Cap AFTER filtering: filterText NFKC-normalises, and one squared-katakana
+            // character becomes six — slicing first let 200 typed characters store 1200,
+            // with a word count of 1 that sailed past the 25-word check below.
+            ? filterText(submission.explanation).trim().slice(0, 200)
             : '';
           // A manual submit requires a justification; an auto-submit at timer expiry (the
           // player's own device flushing its draft) may have an empty one — they still play
@@ -528,7 +563,7 @@ export async function POST(req: NextRequest) {
         // Single source of truth — a hardcoded copy here would silently drift when emotes change.
         if (!isEmoteId(emote)) return NextResponse.json({ ok: true });
         const emoteRoom = await getRoom(code?.toUpperCase());
-        const emotePlayer = emoteRoom?.players[playerId];
+        const emotePlayer = emoteRoom && Object.hasOwn(emoteRoom.players, playerId) ? emoteRoom.players[playerId] : undefined;
         if (!emotePlayer) return NextResponse.json({ ok: true }); // silently drop unknown senders
         if (!tokenOk(emoteRoom!, playerId, token)) return NextResponse.json({ ok: true }); // can't emote as another player
         // Rate-limit AFTER auth: the bucket is keyed on playerId, so charging it before the
@@ -548,11 +583,25 @@ export async function POST(req: NextRequest) {
 
       case 'chat': {
         const { code, message, token } = body as { code: string; message: Omit<ChatMessage, 'id' | 'sentAt'> & { text: string }; token?: string };
+        // Same reasoning as heartbeat: authenticate on an unlocked read first, so an
+        // unauthenticated flood cannot hold the room's write lock. The per-sender bucket still
+        // lives inside the lock (it is charged only to an authenticated player, on purpose);
+        // this per-room cap is what an unauthenticated caller hits.
+        if (!(await checkRateLimit(`ratelimit:chatroom:${String(code ?? '').toUpperCase()}`, 240, 60))) {
+          return NextResponse.json({ error: 'Sending too fast' }, { status: 429 });
+        }
+        {
+          const pre = await getRoom(String(code ?? '').toUpperCase());
+          const pid = message?.playerId;
+          if (!pre || typeof pid !== 'string' || !Object.hasOwn(pre.players, pid) || !tokenOk(pre, pid, token)) {
+            return NextResponse.json({ error: 'Not authorized' , code: 'identity' }, { status: 403 });
+          }
+        }
         const res = await withRoomLock(code ?? '', async () => {
           const room = await getRoom(code?.toUpperCase());
           if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
           // Validate sender is an actual room player and holds the matching token.
-          const chatPlayer = room.players[message?.playerId];
+          const chatPlayer = Object.hasOwn(room.players, message?.playerId ?? '') ? room.players[message.playerId] : undefined;
           if (!chatPlayer) return NextResponse.json({ error: 'Player not in room', code: 'identity' }, { status: 403 });
           if (!tokenOk(room, message.playerId, token)) return NextResponse.json({ error: 'Not authorized', code: 'identity' }, { status: 403 });
           // Rate-limit AFTER auth (30 messages/player/minute): the bucket is keyed on playerId,
@@ -565,8 +614,10 @@ export async function POST(req: NextRequest) {
           // this runs inside withRoomLock — an unbounded string here burns CPU while holding the
           // room's write lock, stalling submissions and heartbeats behind it. join and submit
           // already truncate first; chat was the one place the cap sat on the wrong side.
+          // Pre-slice bounds the CPU cost inside the room lock; the post-slice is the real cap,
+          // because filterText expands what it normalises.
           const rawText = typeof message?.text === 'string' ? message.text.slice(0, 500).trim() : '';
-          const filtered = filterText(rawText);
+          const filtered = filterText(rawText).slice(0, 500);
           if (!filtered) return NextResponse.json({ ok: true });
           const chatMsg: ChatMessage = {
             id: crypto.randomUUID(),
@@ -587,11 +638,29 @@ export async function POST(req: NextRequest) {
       case 'heartbeat': {
         const { code: hbCode, playerId: hbPid, token: hbToken } = body as { code: string; playerId: string; token?: string };
         if (!hbCode || !hbPid) return NextResponse.json({ ok: true });
+        // Authenticate on an UNLOCKED read before queuing for the room's write lock.
+        //
+        // This is the seat-theft chain, and it is why the order matters. `withRoomLock` polls for
+        // ~1 s and there is no queue, so a flood of unauthenticated heartbeats — each of which
+        // used to take the lock and only then discover it had no business writing — starves
+        // legitimate writers. PlayerView beats every 20 s, fire-and-forget with no retry, so
+        // roughly a minute of starvation drops three beats and a player sitting there with their
+        // phone open goes `lastSeen`-stale. The name-based reclaim then hands their seat, hand
+        // and score to anyone who can read their name off the projector. The reclaim tradeoff
+        // assumes "this player actually left"; without this check, any seat is stealable on
+        // demand. Rate-limited per room as well, so the flood cannot even reach the read.
+        if (!(await checkRateLimit(`ratelimit:hb:${hbCode.toUpperCase()}`, 300, 60))) {
+          return NextResponse.json({ ok: true });
+        }
+        const hbPre = await getRoom(hbCode.toUpperCase());
+        if (!hbPre || !Object.hasOwn(hbPre.players, hbPid) || !tokenOk(hbPre, hbPid, hbToken)) {
+          return NextResponse.json({ ok: true });   // same opaque reply as before — no oracle
+        }
         // Under the room lock so this frequent full-room write never clobbers a concurrent
         // submission or verdict (the prior unlocked write was the main room-state race).
         await withRoomLock(hbCode, async () => {
           const hbRoom = await getRoom(hbCode.toUpperCase());
-          if (!hbRoom || !hbRoom.players[hbPid]) return;
+          if (!hbRoom || !Object.hasOwn(hbRoom.players, hbPid)) return;
           if (!tokenOk(hbRoom, hbPid, hbToken)) return; // can't refresh another player's presence
 
           const prevSeen = hbRoom.players[hbPid].lastSeen ?? 0;
@@ -844,6 +913,18 @@ function checkAdminAuth(req: NextRequest): boolean {
 }
 
 export async function DELETE(req: NextRequest) {
+  // This endpoint runs admin Basic Auth and nothing else, which made it a better brute-force
+  // door than /api/admin (which IS throttled): unlimited guesses, and a perfect oracle — 401 for
+  // wrong credentials, 400/404 for right ones. Charge every attempt, keyed on the supplied
+  // credential as well as the IP, so a wrong password costs the guesser regardless of where it
+  // comes from and a whole venue sharing one egress IP cannot lock the real operator out.
+  const attempt = crypto.createHash('sha256')
+    .update(`${getIp(req)}|${req.headers.get('authorization') ?? ''}`)
+    .digest('hex')
+    .slice(0, 32);
+  if (!(await checkRateLimit(`ratelimit:admindel:${attempt}`, 10, 900))) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
   if (!checkAdminAuth(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, {
       status: 401,
