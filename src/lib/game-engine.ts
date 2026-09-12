@@ -64,6 +64,10 @@ export function createRoom(
     totalRounds,
     timerDuration,
     players: {},  // host is not a player
+    // Present from the start, not created lazily on first join. While it was undefined,
+    // `tokenOk` read "no token issued for this player" for EVERY id and allowed the action —
+    // so between create-room and the first join, the public playerId was the only credential.
+    tokens: {},
     currentChallenge: null,
     submissions: {},
     lastVerdict: null,

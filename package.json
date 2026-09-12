@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "test:judge": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/test-judge-core.mjs",
     "test:standings": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/test-standings.mjs",
-    "test": "npm run test:judge && npm run test:standings"
+    "test": "npm run test:judge && npm run test:standings && npm run test:filter",
+    "test:filter": "node scripts/test-word-filter.mjs"
   },
   "engines": {
     "node": ">=22.18"

@@ -1,5 +1,6 @@
 import type { ChallengeCard, Submission, JudgeVerdict, PlayerRanking } from '@/types/game';
 import mappingData from '@/../context/cards_mapping.json';
+import { filterText } from '@/lib/word-filter';
 import {
   BRIEF_THRESHOLD,
   CALL_SCHEMA,
@@ -364,7 +365,16 @@ async function claudeJudge(challenge: ChallengeCard, submissions: Submission[], 
   const calls = outcomes.map((o) => o.result);
   const agg = aggregateCalls(calls, labels, seed);
   const scrubbed = { count: 0 };
-  const verdict = assembleVerdict(agg, calls, labelled, scrubbed);
+  const raw = assembleVerdict(agg, calls, labelled, scrubbed);
+  // Filter the MODEL's words too, not just the players'. The system prompt asks the judge to
+  // refer to an answer "by quoting a phrase from the explanation", which is a sanctioned channel
+  // from untrusted player text straight onto the projector — and the verdict is the one screen
+  // everyone in the hall is looking at. (judge-core stays pure; this is the I/O edge.)
+  const verdict: JudgeVerdict = {
+    ...raw,
+    reasoning: filterText(raw.reasoning),
+    rankings: raw.rankings.map((r) => ({ ...r, judgeComment: filterText(r.judgeComment) })),
+  };
 
   const winnerStats = agg.stats.get(agg.order[0])!;
   console.log(
@@ -463,6 +473,10 @@ export async function judgeRound(
       return fallbackJudge(challenge, submissions);
     }
   }
-  // No API key configured — use the local judge.
+  // No API key configured — use the local judge. Log it EVERY round, loudly: env.ts only warns
+  // about optional vars in development, and nothing on the projector distinguishes a fallback
+  // verdict from a real one, so a key that is missing or expired in production would otherwise
+  // let every round of a public event be decided locally with nobody any the wiser.
+  console.error(`[ai-judge] ${opts.tag ? `[${opts.tag}] ` : ''}ANTHROPIC_API_KEY is not set — this round was decided by the local fallback judge, not Claude.`);
   return fallbackJudge(challenge, submissions);
 }
