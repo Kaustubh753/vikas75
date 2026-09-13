@@ -5,6 +5,11 @@ on:
     branches: ['**']
   pull_request:
 
+# Read-only token: this job installs and runs the repo's own checks and needs nothing else.
+# Without it the workflow inherits the repository default, which may be read/write.
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
