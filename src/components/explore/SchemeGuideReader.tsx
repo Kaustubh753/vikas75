@@ -1,7 +1,8 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getSchemeCardImage } from '@/lib/cards';
-import { schemeDetailImage } from '@/lib/scheme-details';
+import { schemeDetailImage, type GuideLang } from '@/lib/scheme-details';
+import { EXPLORE_COPY } from '@/lib/explore-copy';
 
 export interface ReaderScheme {
   id: string;
@@ -18,6 +19,9 @@ interface Props {
   onClose: () => void;
   /** The tapped deck tile's rect, when the reader was entered by tapping a card. */
   flightFrom?: DOMRect | null;
+  /** Which deck to serve and which language the chrome speaks. The two decks cover the same
+   *  74 cards, so the traversal list is identical either way — only the images differ. */
+  lang?: GuideLang;
 }
 
 /* The scheme guide reader: the office's one-page guide for a scheme, with the collectible
@@ -54,6 +58,11 @@ interface Props {
  *    is keyed to it.
  */
 
+// The printed deck's size, which is what the counter reports. Deliberately NOT `schemes.length`:
+// that is the traversal list, already filtered by the search box and by which cards have a guide,
+// so a search for "kisan" would have the reader announce "Card 01 of 3".
+const DECK_SIZE = 75;
+
 // ── Tokens ────────────────────────────────────────────────────
 const INK = '#08070f';
 const PAPER = '#faf8f0';
@@ -75,7 +84,9 @@ const SHORT_BP = 720;
 /** Guard every computed dimension: a NaN reaching a style value drops the declaration. */
 const fin = (n: number, fallback: number) => (Number.isFinite(n) && n > 0 ? n : fallback);
 
-export default function SchemeGuideReader({ schemes, index, onIndexChange, onClose, flightFrom }: Props) {
+export default function SchemeGuideReader({ schemes, index, onIndexChange, onClose, flightFrom, lang = 'en' }: Props) {
+  const t = EXPLORE_COPY[lang];
+  const hindi = lang === 'hi';
   const [zoom, setZoom] = useState(false);
   const [dir, setDir] = useState<1 | -1>(1);
   const [seq, setSeq] = useState(0);
@@ -162,7 +173,7 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
   const phone = vw < MOBILE_BP;
   const tight = vh < SHORT_BP;
   const scheme = schemes[index];
-  const src = scheme ? schemeDetailImage(scheme.id) : null;
+  const src = scheme ? schemeDetailImage(scheme.id, lang) : null;
 
   // ── Flight: land the clone on the rail card ───────────────────
   const endFlight = useCallback(() => {
@@ -255,11 +266,11 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
     for (const i of [index - 1, index + 1]) {
       const s = schemes[i];
       if (!s) continue;
-      const g = schemeDetailImage(s.id);
+      const g = schemeDetailImage(s.id, lang);
       if (g) { const im = new Image(); im.src = g; }
       const c = new Image(); c.src = getSchemeCardImage(s.id);
     }
-  }, [index, schemes]);
+  }, [index, schemes, lang]);
 
   // ── Sizing ────────────────────────────────────────────────────
   const geo = useMemo(() => {
@@ -309,7 +320,7 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
   const inZ = back ? 4 : 1;
   const outZ = back ? 1 : 4;
   const outScheme = out ? schemes[out.i] : null;
-  const outSrc = outScheme ? schemeDetailImage(outScheme.id) : null;
+  const outSrc = outScheme ? schemeDetailImage(outScheme.id, lang) : null;
 
   if (!scheme || !src) return null;
 
@@ -319,7 +330,7 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`${scheme.name} — scheme guide`}
+      aria-label={t.guideAria(hindi ? scheme.hi : scheme.name)}
       style={{ position: 'fixed', inset: 0, zIndex: 300, background: INK, overflow: 'hidden' }}
     >
       {/* ── The room ────────────────────────────────────────── */}
@@ -398,22 +409,7 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
               minHeight: tight ? 108 : 132,
               animation: traversing ? `vk-rail${dsuf}${alt} .6s ${MOVE} both` : undefined,
             }}>
-              <p style={{ margin: 0, fontSize: '.75rem', color: 'rgba(250,248,240,.62)' }}>
-                Card {String(schemeNumber(scheme.id)).padStart(2, '0')} of 75
-              </p>
-              <h1 style={{
-                margin: '.35rem 0 0', fontFamily: 'var(--font-bebas),sans-serif',
-                fontSize: 'clamp(1.9rem, 3.2vw, 3.25rem)', lineHeight: .93,
-                letterSpacing: '.015em', textWrap: 'balance', color: PAPER,
-              }}>
-                {scheme.name}
-              </h1>
-              <p style={{
-                margin: '.44rem 0 0', fontFamily: 'var(--font-devanagari),sans-serif', fontWeight: 500,
-                fontSize: 'clamp(1rem, 1.5vw, 1.44rem)', lineHeight: 1.45, color: SAFFRON,
-              }}>
-                {scheme.hi}
-              </p>
+              <SchemeHeading scheme={scheme} lang={lang} size="rail" />
             </div>
 
             {/* The collectible. The resting float lives on the inner element and the deal on
@@ -466,13 +462,21 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
               )}
             </div>
 
+            {/* The one-liner has no Hindi in the card data (`cards_schemes.json` carries `hi`
+                for the name only), so in Hindi mode it stays English rather than disappearing —
+                the guide page beside it, which is what is actually being read, is entirely in
+                Hindi. Add a Hindi `desc` to the card data and this follows automatically. */}
             {!tight && (
               <p style={{ margin: '.7rem 0 0', fontSize: '.78rem', lineHeight: 1.6, color: 'rgba(250,248,240,.85)', maxWidth: '18rem' }}>
                 {scheme.desc}
               </p>
             )}
-            <p style={{ margin: 0, fontSize: '.72rem', lineHeight: 1.7, color: 'rgba(250,248,240,.72)', maxWidth: '24rem' }}>
-              Details are for general awareness. Always confirm on the official portal linked in the guide.
+            <p style={{
+              margin: 0, fontSize: '.72rem', lineHeight: hindi ? 1.85 : 1.7,
+              color: 'rgba(250,248,240,.72)', maxWidth: '24rem',
+              fontFamily: hindi ? 'var(--font-devanagari),var(--font-inter),sans-serif' : undefined,
+            }}>
+              {t.disclaimer}
             </p>
           </div>
         )}
@@ -489,31 +493,17 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
           alignItems: 'center', justifyContent: 'center', gap: '.9rem',
           animation: `vk-fade ${flyer ? '.64s' : '.6s'} ${ENTER} both ${flyer ? '.26s' : '.22s'}`,
         }}>
-          {/* The scheme's name, on a phone. The rail carries it on desktop and is hidden
-              below 900px, which would otherwise leave the reader with no heading at all —
-              and the guide pages are English-only, so the Devanagari name has nowhere else
-              to appear. Hidden while zoomed: nothing may cover the page while it is read. */}
+          {/* The scheme's name, on a phone. The rail carries it on desktop and is hidden below
+              900px, which would otherwise leave the reader with no heading at all. Hidden while
+              zoomed: nothing may cover the page while it is read. Same component as the rail's,
+              on purpose — when these were two hand-written copies, translating the reader
+              translated the rail and left the phone in English with the Hindi guide beside it. */}
           {phone && !zoom && (
             <div style={{
               width: '100%', maxWidth: geo.fitW, textAlign: 'left',
               animation: traversing ? `vk-rail${dsuf}${alt} .6s ${MOVE} both` : undefined,
             }}>
-              <p style={{ margin: 0, fontSize: '.68rem', color: 'rgba(250,248,240,.62)' }}>
-                Card {String(schemeNumber(scheme.id)).padStart(2, '0')} of 75
-              </p>
-              <h1 style={{
-                margin: '.1rem 0 0', fontFamily: 'var(--font-bebas),sans-serif',
-                fontSize: '1.5rem', lineHeight: 1, letterSpacing: '.015em',
-                textWrap: 'balance', color: PAPER,
-              }}>
-                {scheme.name}
-              </h1>
-              <p style={{
-                margin: '.15rem 0 0', fontFamily: 'var(--font-devanagari),sans-serif', fontWeight: 500,
-                fontSize: '.85rem', lineHeight: 1.35, color: SAFFRON,
-              }}>
-                {scheme.hi}
-              </p>
+              <SchemeHeading scheme={scheme} lang={lang} size="phone" />
             </div>
           )}
           <div
@@ -617,20 +607,22 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
               display: 'flex', alignItems: 'center', gap: '.55rem', height: 40, padding: '0 1.25rem',
               borderRadius: 999, background: 'rgba(255,215,0,.1)', border: `1px solid rgba(255,215,0,.5)`,
               color: GOLD, fontSize: '.8rem', fontWeight: 600, cursor: 'pointer',
-              fontFamily: 'var(--font-inter),sans-serif', animation: `vk-tap 3.6s ${ENTER} infinite`,
+              fontFamily: hindi ? 'var(--font-devanagari),var(--font-inter),sans-serif' : 'var(--font-inter),sans-serif',
+              animation: `vk-tap 3.6s ${ENTER} infinite`,
             }}
           >
             <span style={{ animation: 'vk-nudge-y 3.6s ease-in-out infinite' }}>{zoom ? '⤡' : '⤢'}</span>
-            {zoom ? 'Zoomed — drag to read, Esc to fit' : phone ? 'Tap to read full size' : 'Click to read full size'}
+            {zoom ? t.zoomed : phone ? t.zoomInPhone : t.zoomIn}
           </button>
 
           {/* The disclaimer lives in the rail on desktop; on a phone it belongs here. */}
           {phone && !zoom && (
             <p style={{
-              margin: 0, maxWidth: geo.fitW, fontSize: '.66rem', lineHeight: 1.55,
+              margin: 0, maxWidth: geo.fitW, fontSize: '.66rem', lineHeight: hindi ? 1.75 : 1.55,
               color: 'rgba(250,248,240,.6)', textAlign: 'center',
+              fontFamily: hindi ? 'var(--font-devanagari),var(--font-inter),sans-serif' : undefined,
             }}>
-              Details are for general awareness. Always confirm on the official portal linked in the guide.
+              {t.disclaimer}
             </p>
           )}
         </div>
@@ -638,9 +630,9 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
 
       {/* ── Controls. 44px is the minimum hit target — keep it. ── */}
       <div style={{ position: 'absolute', right: '1.6rem', top: '1.6rem', display: 'flex', gap: '.6rem', zIndex: 6 }}>
-        <Circle label="Previous scheme" onClick={() => go(-1)} disabled={index === 0}>‹</Circle>
-        <Circle label="Next scheme" onClick={() => go(1)} disabled={index === schemes.length - 1}>›</Circle>
-        <Circle label="Close scheme guide" onClick={onClose} ref={closeRef}>✕</Circle>
+        <Circle label={t.prevScheme} onClick={() => go(-1)} disabled={index === 0}>‹</Circle>
+        <Circle label={t.nextScheme} onClick={() => go(1)} disabled={index === schemes.length - 1}>›</Circle>
+        <Circle label={t.closeGuide} onClick={onClose} ref={closeRef}>✕</Circle>
       </div>
 
       {!phone && (
@@ -649,14 +641,14 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
           padding: '.4rem .85rem', borderRadius: 999, background: 'rgba(8,7,15,.88)',
           border: '1px solid rgba(250,248,240,.16)', fontSize: '.72rem',
           color: 'rgba(250,248,240,.8)', whiteSpace: 'nowrap',
-          fontFamily: 'var(--font-inter),sans-serif',
+          fontFamily: hindi ? 'var(--font-devanagari),var(--font-inter),sans-serif' : 'var(--font-inter),sans-serif',
         }}>
           <strong style={{ color: GOLD, fontWeight: 600 }}>←</strong>{' '}
-          <strong style={{ color: GOLD, fontWeight: 600 }}>→</strong> scheme
+          <strong style={{ color: GOLD, fontWeight: 600 }}>→</strong> {t.keyScheme}
           {'  ·  '}
-          <strong style={{ color: GOLD, fontWeight: 600 }}>Enter</strong> {zoom ? 'fit' : 'zoom'}
+          <strong style={{ color: GOLD, fontWeight: 600 }}>Enter</strong> {zoom ? t.keyFit : t.keyZoom}
           {'  ·  '}
-          <strong style={{ color: GOLD, fontWeight: 600 }}>Esc</strong> {zoom ? 'fit' : 'deck'}
+          <strong style={{ color: GOLD, fontWeight: 600 }}>Esc</strong> {zoom ? t.keyFit : t.keyDeck}
         </div>
       )}
 
@@ -702,6 +694,62 @@ export default function SchemeGuideReader({ schemes, index, onIndexChange, onClo
 }
 
 /** "s073" → 73. The rail prints the card's place in the deck of 75. */
+/**
+ * The scheme's name, ranked by language: the dominant language takes the display line and the
+ * other becomes the gloss under it. ONE component for both places it appears — the desktop rail
+ * and, when the rail is hidden below 900px, the phone's well.
+ *
+ * Two typographic facts drive the sizes. Bebas is the display face and carries **no
+ * Devanagari**, so a Hindi headline set in it falls through to a generic sans at the wrong
+ * weight; Hindi headlines therefore take the Devanagari face, at a smaller size, which is where
+ * the two optically match. And Devanagari needs a taller line box than Latin at the same size —
+ * at `lineHeight: .93` the matras of one line collide with the line above.
+ */
+function SchemeHeading({ scheme, lang, size }: {
+  scheme: ReaderScheme;
+  lang: GuideLang;
+  size: 'rail' | 'phone';
+}) {
+  const t = EXPLORE_COPY[lang];
+  const hi = lang === 'hi';
+  const rail = size === 'rail';
+  const n = String(schemeNumber(scheme.id)).padStart(2, '0');
+  return (
+    <>
+      <p style={{
+        margin: 0, fontSize: rail ? '.75rem' : '.68rem', color: 'rgba(250,248,240,.62)',
+        fontFamily: hi ? 'var(--font-devanagari),var(--font-inter),sans-serif' : undefined,
+      }}>
+        {t.cardCounter(n, DECK_SIZE)}
+      </p>
+      <h1 style={{
+        margin: rail ? '.35rem 0 0' : '.1rem 0 0',
+        fontFamily: hi ? 'var(--font-devanagari),sans-serif' : 'var(--font-bebas),sans-serif',
+        fontSize: rail
+          ? (hi ? 'clamp(1.4rem, 2.3vw, 2.3rem)' : 'clamp(1.9rem, 3.2vw, 3.25rem)')
+          : (hi ? '1.15rem' : '1.5rem'),
+        fontWeight: hi ? 700 : undefined,
+        lineHeight: hi ? 1.3 : (rail ? .93 : 1),
+        letterSpacing: hi ? 0 : '.015em', textWrap: 'balance', color: PAPER,
+      }}>
+        {hi ? scheme.hi : scheme.name}
+      </h1>
+      <p style={{
+        margin: rail ? '.44rem 0 0' : '.15rem 0 0',
+        fontFamily: hi ? 'var(--font-bebas),sans-serif' : 'var(--font-devanagari),sans-serif',
+        fontWeight: hi ? undefined : 500,
+        fontSize: rail
+          ? (hi ? 'clamp(1.05rem, 1.6vw, 1.5rem)' : 'clamp(1rem, 1.5vw, 1.44rem)')
+          : (hi ? '.8rem' : '.85rem'),
+        letterSpacing: hi ? '.04em' : undefined,
+        lineHeight: rail ? 1.45 : 1.35, color: SAFFRON,
+      }}>
+        {hi ? scheme.name : scheme.hi}
+      </p>
+    </>
+  );
+}
+
 function schemeNumber(id: string): number {
   const n = parseInt(id.replace(/\D/g, ''), 10);
   return Number.isFinite(n) ? n : 0;

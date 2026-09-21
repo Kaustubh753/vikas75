@@ -54,6 +54,12 @@ jobs:
           EOF
           echo "Bubblewrap config:"; cat "$HOME/.bubblewrap/config.json"
 
+      # The release keystore's passwords are NEVER written to $GITHUB_ENV. Anything in GITHUB_ENV
+      # becomes an environment variable for every later step in the job — including `bubblewrap
+      # update/build`, which runs third-party CLI code and pulls Gradle plugins — so a secret put
+      # there is readable by all of it. Each step that genuinely needs a password now takes it
+      # from `secrets.*` directly, and THROWAWAY (below) carries the only thing the steps need to
+      # know: whether this is a real release build or a generated test key.
       - name: Prepare signing keystore
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -76,8 +82,7 @@ jobs:
               exit 1
             fi
             echo "$KEYSTORE_B64" | base64 -d > android.keystore
-            echo "STOREPASS=$STORE_PW" >> "$GITHUB_ENV"
-            echo "KEYPASS=$KEY_PW" >> "$GITHUB_ENV"
+            echo "THROWAWAY=false" >> "$GITHUB_ENV"
             echo "Using provided release keystore (alias '$KEY_ALIAS')."
           else
             echo "::warning::No ANDROID_KEYSTORE_BASE64 secret set — generating a throwaway keystore. The APK installs and runs, but its fingerprint won't match your production assetlinks (the TWA will show a URL bar). Add the secret for a release build."
@@ -85,16 +90,22 @@ jobs:
               -keyalg RSA -keysize 2048 -validity 3650 \
               -storepass changeit -keypass changeit \
               -dname "CN=Vikas 75, O=Office of Sujeet Kumar, C=IN"
-            echo "STOREPASS=changeit" >> "$GITHUB_ENV"
-            echo "KEYPASS=changeit" >> "$GITHUB_ENV"
+            echo "THROWAWAY=true" >> "$GITHUB_ENV"
           fi
 
       - name: Build and sign
         env:
-          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ env.STOREPASS }}
-          BUBBLEWRAP_KEY_PASSWORD: ${{ env.KEYPASS }}
+          # Straight from secrets, scoped to this step only. `changeit` is the throwaway key's
+          # password, used only when no release keystore was supplied.
+          STORE_PW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PW: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           cd apk
+          if [ "$THROWAWAY" = "true" ]; then
+            export BUBBLEWRAP_KEYSTORE_PASSWORD=changeit BUBBLEWRAP_KEY_PASSWORD=changeit
+          else
+            export BUBBLEWRAP_KEYSTORE_PASSWORD="$STORE_PW" BUBBLEWRAP_KEY_PASSWORD="$KEY_PW"
+          fi
           # `bubblewrap build` compiles an EXISTING project — it does not scaffold — so `update`
           # first to (re)generate the Android project from twa-manifest.json. Bubblewrap downloads
           # iconUrl/maskableIconUrl from the LIVE site here, so `host` must be deployed and
@@ -105,10 +116,13 @@ jobs:
           bubblewrap build --skipPwaValidation
 
       - name: Show signing-key SHA-256 fingerprint (for assetlinks)
+        env:
+          STORE_PW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
           cd apk
+          if [ "$THROWAWAY" = "true" ]; then STORE_PW=changeit; fi
           echo "── Set TWA_SHA256_CERT_FINGERPRINTS on your deploy host to this SHA-256 value ──"
-          keytool -list -v -keystore android.keystore -alias "$ALIAS" -storepass "$STOREPASS" \
+          keytool -list -v -keystore android.keystore -alias "$ALIAS" -storepass "$STORE_PW" \
             | grep -i 'SHA256:' || echo "(could not read fingerprint — check the keystore alias/password)"
 
       - name: Upload APK / AAB

@@ -84,6 +84,44 @@ function tokenOk(room: GameRoom, playerId: string, token: unknown): boolean {
   return typeof token === 'string' && token === expected;
 }
 
+/**
+ * Host-only actions: prove the credential on an UNLOCKED read before queuing for the room's
+ * write lock, then charge a per-host budget.
+ *
+ * `heartbeat`, `chat` and `music-toggle` already authenticate ahead of the lock (bug #51).
+ * `advance`, `update-settings`, `end-game` and `kick-player` did not: they called withRoomLock
+ * first and checked `hostId` inside it, so anyone who can read the room code off the projector
+ * could make the server acquire the room lock and read Redis on every request, for free and
+ * without limit.
+ *
+ * What that is and is not: measured at 15 ms of simulated Redis latency, 400 concurrent
+ * credential-less `advance` calls held the lock ~78% of the time and all 30 concurrent
+ * legitimate player actions still succeeded — withRoomLock's 40×25 ms retry budget is enough to
+ * find a gap, and the attacker's own requests serialize through the very lock they are trying to
+ * monopolise. So this is cost control and defence in depth, not a repaired denial of service.
+ *
+ * The bucket is charged only AFTER the credential matches, and is keyed on the hostId, for the
+ * same reason the emote and chat buckets are: a limit charged before the check lets a stranger
+ * exhaust the real host's quota and lock them out of their own game.
+ *
+ * The check inside the lock stays — this snapshot can be stale by the time the lock is granted,
+ * so it is a filter, never the authority.
+ */
+async function hostPreCheck(code: string, hostId: unknown): Promise<NextResponse | null> {
+  const pre = await getRoom(code.toUpperCase());
+  if (!pre) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+  if (typeof hostId !== 'string' || !hostId || pre.hostId !== hostId) {
+    return NextResponse.json({ error: 'Not the host' }, { status: 403 });
+  }
+  // 120/min: a host presses advance a handful of times per round; a stuck client retrying hard
+  // still fits. Generous on purpose — locking the host out of their own room mid-game is worse
+  // than anything this limit prevents.
+  if (!(await checkRateLimit(`ratelimit:host:${hostId}`, 120, 60))) {
+    return NextResponse.json({ error: 'Too many requests — slow down' }, { status: 429 });
+  }
+  return null;
+}
+
 // Ceiling on a single room. Chosen above the ~20 the venue actually seats and well below the
 // ~400 at which the room's Redis value would stop being writable at all — high enough that no
 // real game meets it, low enough that a loop against a known code cannot brick the room.
@@ -328,6 +366,8 @@ export async function POST(req: NextRequest) {
         const { code, hostId, playerId: targetId } = body as { code: string; hostId: string; playerId: string };
         if (!code || typeof code !== 'string') return NextResponse.json({ error: 'Room code is required' }, { status: 400 });
         if (!targetId || typeof targetId !== 'string') return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+        const kpDenied = await hostPreCheck(code, hostId);
+        if (kpDenied) return kpDenied;
         const res = await withRoomLock(code, async () => {
           const room = await getRoom(code.toUpperCase());
           if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
@@ -353,9 +393,13 @@ export async function POST(req: NextRequest) {
 
       case 'advance': {
         const { code, hostId } = body;
-        const res = await withRoomLock(code ?? '', async () => {
-          const room = await getRoom(code?.toUpperCase());
+        if (!code || typeof code !== 'string') return NextResponse.json({ error: 'Room code is required' }, { status: 400 });
+        const advDenied = await hostPreCheck(code, hostId);
+        if (advDenied) return advDenied;
+        const res = await withRoomLock(code, async () => {
+          const room = await getRoom(code.toUpperCase());
           if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+          // Re-check under the lock: hostPreCheck read a snapshot that may already be stale.
           if (!hostId || room.hostId !== hostId) return NextResponse.json({ error: 'Not the host' }, { status: 403 });
           // Require at least 2 players before leaving lobby
           if (room.phase === 'lobby' && Object.keys(room.players).length < 2) {
@@ -369,7 +413,7 @@ export async function POST(req: NextRequest) {
           await setRoom(updated);
           await broadcastRoom(updated);
           if (updated.phase === 'judging') {
-            after(() => triggerJudge(code!.toUpperCase()).catch(() => {}));
+            after(() => triggerJudge(code.toUpperCase()).catch(() => {}));
           }
           return NextResponse.json({ room: scrubRoomFor(updated, '') });
         });
@@ -381,8 +425,11 @@ export async function POST(req: NextRequest) {
           code: string; hostId: string;
           totalRounds?: number; timerDuration?: number;
         };
-        const res = await withRoomLock(code ?? '', async () => {
-          const room = await getRoom(code?.toUpperCase());
+        if (!code || typeof code !== 'string') return NextResponse.json({ error: 'Room code is required' }, { status: 400 });
+        const usDenied = await hostPreCheck(code, hostId);
+        if (usDenied) return usDenied;
+        const res = await withRoomLock(code, async () => {
+          const room = await getRoom(code.toUpperCase());
           if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
           if (room.hostId !== hostId) return NextResponse.json({ error: 'Not the host' }, { status: 403 });
           if (room.phase !== 'lobby') return NextResponse.json({ error: 'Can only update settings in lobby' }, { status: 400 });
@@ -700,6 +747,8 @@ export async function POST(req: NextRequest) {
       case 'end-game': {
         const { code: egCode, hostId: egHostId } = body as { code: string; hostId: string };
         if (!egCode || !egHostId) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+        const egDenied = await hostPreCheck(egCode, egHostId);
+        if (egDenied) return egDenied;
         const res = await withRoomLock(egCode, async () => {
           const egRoom = await getRoom(egCode.toUpperCase());
           if (!egRoom) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
@@ -915,21 +964,24 @@ function checkAdminAuth(req: NextRequest): boolean {
 export async function DELETE(req: NextRequest) {
   // This endpoint runs admin Basic Auth and nothing else, which made it a better brute-force
   // door than /api/admin (which IS throttled): unlimited guesses, and a perfect oracle — 401 for
-  // wrong credentials, 400/404 for right ones. Charge every attempt, keyed on the supplied
-  // credential as well as the IP, so a wrong password costs the guesser regardless of where it
-  // comes from and a whole venue sharing one egress IP cannot lock the real operator out.
-  const attempt = crypto.createHash('sha256')
-    .update(`${getIp(req)}|${req.headers.get('authorization') ?? ''}`)
-    .digest('hex')
-    .slice(0, 32);
-  if (!(await checkRateLimit(`ratelimit:admindel:${attempt}`, 10, 900))) {
-    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
-  }
+  // wrong credentials, 400/404 for right ones.
+  //
+  // The first attempt to throttle it MIXED THE SUPPLIED `Authorization` HEADER INTO THE BUCKET
+  // KEY, reasoning that a whole venue behind one egress IP should not be able to lock the real
+  // operator out. That made the key attacker-controlled, and a brute-forcer varies the password
+  // on every attempt by definition — so every guess landed in its own fresh 10-attempt bucket
+  // and the limit never engaged at all. Measured: 14 consecutive wrong passwords, zero 429s.
+  //
+  // Counting only FAILED attempts, keyed on the IP alone, buys the operator's safety a different
+  // way: a correct credential is never counted and never blocked, whatever the bucket holds, so
+  // nobody on the shared Wi-Fi can throttle a host who actually knows the password. A guesser
+  // pays for every miss. (/api/admin's own GET bucket is per-IP for the same reason.)
   if (!checkAdminAuth(req)) {
-    return NextResponse.json({ error: 'Unauthorized' }, {
-      status: 401,
-      headers: { 'WWW-Authenticate': 'Basic realm="Vikas75 Admin"' },
-    });
+    const within = await checkRateLimit(`ratelimit:admindel:${getIp(req)}`, 10, 900);
+    return NextResponse.json(
+      { error: within ? 'Unauthorized' : 'Too many requests' },
+      { status: within ? 401 : 429, headers: { 'WWW-Authenticate': 'Basic realm="Vikas75 Admin"' } },
+    );
   }
   const code = req.nextUrl.searchParams.get('code')?.toUpperCase();
   if (!code || !/^[A-Z]{4}$/.test(code)) {

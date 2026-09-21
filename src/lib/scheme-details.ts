@@ -1,14 +1,23 @@
-// Which scheme cards have a full infographic guide in `public/scheme-details/`, and the path
-// to one. The images are the office's own per-scheme one-pagers (what the scheme is, its key
-// features, how to apply, the official portal link) — see `context/scheme_details_map.json`
-// for the PDF-page → scheme-id mapping and `scripts/build-scheme-details.mjs` to regenerate.
+// Which scheme cards have a full infographic guide, and the path to one in a given language.
+// The images are the office's own per-scheme one-pagers (what the scheme is, its key features,
+// how to apply, the official portal link) — see `context/scheme_details_map.json` and
+// `context/scheme_details_map_hi.json` for the PDF-page → scheme-id mappings and
+// `scripts/build-scheme-details.mjs` to regenerate either deck.
 //
-// The list is explicit rather than "assume every id has one": one deck card (Digital India)
-// has no matching page in the source deck, and a missing image would otherwise render as a
-// broken box inside the sheet. Callers should treat `null` as "no guide" and hide the entry
-// point entirely.
+// The list is explicit rather than "assume every id has one": one deck card (Digital India,
+// `s018`) has no guide in EITHER language. Both source PDFs make the same editorial choice —
+// their Digital India page is the Digital India *Internship* Scheme, far narrower than the broad
+// card — so the coverage is the same 74 of 75 both ways, and ONE list serves both decks. Do not
+// split it into a list per language unless the decks actually diverge: two hand-maintained
+// copies of the same 74 ids is exactly the arrangement that let six ranking comparators drift
+// apart in bug #25. `scripts/build-scheme-details.mjs` checks each map against this list.
+//
+// Callers must treat `null` as "no guide" and hide the entry point entirely; a missing image
+// otherwise renders as a broken box inside the sheet.
 
-const IDS_WITH_DETAILS = new Set([
+export type GuideLang = 'en' | 'hi';
+
+const IDS_WITH_GUIDE = new Set([
   's001','s002','s003','s004','s005','s006','s007','s008','s009','s010',
   's011','s012','s013','s014','s015','s016','s017','s019','s020',
   's021','s022','s023','s024','s025','s026','s027','s028','s029','s030',
@@ -19,11 +28,16 @@ const IDS_WITH_DETAILS = new Set([
   's071','s072','s073','s074','s075',
 ]);
 
+const GUIDE_DIR: Record<GuideLang, string> = {
+  en: '/scheme-details',
+  hi: '/scheme-details-hi',
+};
+
 export function hasSchemeDetail(schemeId: string): boolean {
-  return IDS_WITH_DETAILS.has(schemeId);
+  return IDS_WITH_GUIDE.has(schemeId);
 }
 
-/** Public path to a scheme's infographic guide, or null when the deck has none for it. */
-export function schemeDetailImage(schemeId: string): string | null {
-  return IDS_WITH_DETAILS.has(schemeId) ? `/scheme-details/${schemeId}.webp` : null;
+/** Public path to a scheme's infographic guide in `lang`, or null when there is none. */
+export function schemeDetailImage(schemeId: string, lang: GuideLang = 'en'): string | null {
+  return IDS_WITH_GUIDE.has(schemeId) ? `${GUIDE_DIR[lang]}/${schemeId}.webp` : null;
 }
