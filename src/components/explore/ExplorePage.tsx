@@ -3,7 +3,9 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
 import SchemeGuideReader from '@/components/explore/SchemeGuideReader';
-import { hasSchemeDetail } from '@/lib/scheme-details';
+import { hasSchemeDetail, type GuideLang } from '@/lib/scheme-details';
+import { exploreLang, setExploreLang } from '@/lib/explore-lang';
+import { EXPLORE_COPY, type ExploreCopy } from '@/lib/explore-copy';
 import { getSchemeCardImage } from '@/lib/cards';
 
 // ── Types ─────────────────────────────────────────────────────
@@ -40,6 +42,18 @@ const EXIT = 'cubic-bezier(.45,0,.9,.4)';
 // ── Main component ────────────────────────────────────────────
 export default function ExplorePage({ schemes }: Props) {
   const [query, setQuery] = useState('');
+  // Always 'en' on the first paint and swapped in an effect: the server cannot know the stored
+  // preference, so rendering it directly is a hydration mismatch (bugs #9 and #10).
+  const [lang, setLang] = useState<GuideLang>('en');
+  useEffect(() => { setLang(exploreLang()); }, []);
+  const t = EXPLORE_COPY[lang];
+  const switchLang = useCallback(() => {
+    setLang((prev) => {
+      const next: GuideLang = prev === 'en' ? 'hi' : 'en';
+      setExploreLang(next);
+      return next;
+    });
+  }, []);
   // The reader traverses by index; `modal` is the fallback for the one card with no guide.
   const [readerIdx, setReaderIdx] = useState<number | null>(null);
   const [flightFrom, setFlightFrom] = useState<DOMRect | null>(null);
@@ -47,6 +61,8 @@ export default function ExplorePage({ schemes }: Props) {
   const [modal, setModal] = useState<SchemeCard | null>(null);
   const leaveT = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Both scripts are searched in both modes on purpose: a Hindi reader with a Latin keyboard
+  // types "kisan", and an English reader pasting a scheme's Hindi name should still find it.
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return schemes;
@@ -58,7 +74,8 @@ export default function ExplorePage({ schemes }: Props) {
   }, [schemes, query]);
 
   // ← / → move through what the reader is actually looking at: the filtered view, minus the
-  // cards with no guide (currently only Digital India), which have nothing to page to.
+  // cards with no guide (currently only Digital India, in both languages — see
+  // scheme-details.ts), which have nothing to page to.
   const readable = useMemo(() => filtered.filter(s => hasSchemeDetail(s.id)), [filtered]);
 
   useEffect(() => () => { if (leaveT.current) clearTimeout(leaveT.current); }, []);
@@ -124,16 +141,44 @@ export default function ExplorePage({ schemes }: Props) {
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M9 2L4 7L9 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          Vikas 75
+          {t.back}
         </Link>
 
         <div style={{
           display: 'flex', alignItems: 'center',
-          fontFamily: 'var(--font-bebas),sans-serif',
-          fontSize: 22, color: C.white, letterSpacing: '0.02em',
+          // Bebas has no Devanagari, so the Hindi title would silently fall through to a generic
+          // sans and sit at the wrong weight beside everything else.
+          fontFamily: lang === 'hi' ? 'var(--font-devanagari),sans-serif' : 'var(--font-bebas),sans-serif',
+          fontSize: lang === 'hi' ? 17 : 22, fontWeight: lang === 'hi' ? 600 : undefined,
+          color: C.white, letterSpacing: lang === 'hi' ? 0 : '0.02em',
         }}>
-          Explore
+          {t.explore}
         </div>
+
+        {/* The switch is labelled in the language it takes you TO, and never translated — a
+            reader who cannot read the current language has to recognise their own. */}
+        <button
+          onClick={switchLang}
+          aria-label={lang === 'en' ? 'हिंदी में देखें' : 'View in English'}
+          style={{
+            marginLeft: 'auto', alignSelf: 'center',
+            display: 'flex', alignItems: 'center', gap: 6,
+            height: 30, padding: '0 12px', borderRadius: 999,
+            background: C.w06, border: `1px solid ${C.w18}`,
+            color: C.w70, cursor: 'pointer',
+            fontFamily: 'var(--font-devanagari),var(--font-inter),sans-serif',
+            fontSize: 12, fontWeight: 600, lineHeight: 1,
+            transition: 'color .15s, border-color .15s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.color = C.white; e.currentTarget.style.borderColor = C.saffron; }}
+          onMouseLeave={e => { e.currentTarget.style.color = C.w70; e.currentTarget.style.borderColor = C.w18; }}
+        >
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <circle cx="8" cy="8" r="6.4" stroke="currentColor" strokeWidth="1.4"/>
+            <path d="M1.6 8h12.8M8 1.6c1.7 1.8 2.6 4 2.6 6.4S9.7 12.6 8 14.4C6.3 12.6 5.4 10.4 5.4 8S6.3 3.4 8 1.6Z" stroke="currentColor" strokeWidth="1.2"/>
+          </svg>
+          {t.langSwitchLabel}
+        </button>
       </header>
 
       {/* ── Body ─────────────────────────────────────────────────
@@ -153,6 +198,8 @@ export default function ExplorePage({ schemes }: Props) {
           onQuery={setQuery}
           total={schemes.length}
           onOpen={open}
+          lang={lang}
+          t={t}
         />
       </main>
 
@@ -168,40 +215,53 @@ export default function ExplorePage({ schemes }: Props) {
           onIndexChange={setReaderIdx}
           onClose={closeReader}
           flightFrom={flightFrom}
+          lang={lang}
         />
       )}
       <AnimatePresence>
-        {modal && <CardModal card={modal} onClose={() => setModal(null)} />}
+        {modal && <CardModal card={modal} onClose={() => setModal(null)} lang={lang} t={t} />}
       </AnimatePresence>
     </div>
   );
 }
 
 // ── Deck tab ──────────────────────────────────────────────────
-function DeckTab({ schemes, query, onQuery, total, onOpen }: {
+function DeckTab({ schemes, query, onQuery, total, onOpen, lang, t }: {
   schemes: SchemeCard[];
   query: string;
   onQuery: (q: string) => void;
   total: number;
   onOpen: (s: SchemeCard, from: DOMRect | null) => void;
+  lang: GuideLang;
+  t: ExploreCopy;
 }) {
+  const hi = lang === 'hi';
   return (
     <div>
       {/* Header row */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}>
         <div>
+          {/* The two lines swap rank with the language, and so do their faces: Bebas is the
+              display type but carries no Devanagari, so a Hindi headline set in it silently
+              falls back to a generic sans. Hindi headlines use the Devanagari face at a
+              slightly smaller size, which is where the two optically match. */}
           <h2 style={{
-            fontFamily: 'var(--font-bebas),sans-serif',
-            fontSize: 'clamp(2rem,4vw,3rem)', lineHeight: 1, letterSpacing: '.03em',
+            fontFamily: hi ? 'var(--font-devanagari),sans-serif' : 'var(--font-bebas),sans-serif',
+            fontSize: hi ? 'clamp(1.6rem,3.2vw,2.4rem)' : 'clamp(2rem,4vw,3rem)',
+            fontWeight: hi ? 700 : undefined,
+            lineHeight: hi ? 1.25 : 1, letterSpacing: hi ? 0 : '.03em',
             color: C.white, margin: 0,
           }}>
-            Know Your Deck
+            {t.title}
           </h2>
           <p style={{
-            fontFamily: 'var(--font-devanagari),sans-serif', fontWeight: 500,
-            fontSize: '.95rem', color: C.saffron, margin: '.3rem 0 0',
+            fontFamily: hi ? 'var(--font-bebas),sans-serif' : 'var(--font-devanagari),sans-serif',
+            fontWeight: hi ? undefined : 500,
+            fontSize: hi ? '1.05rem' : '.95rem',
+            letterSpacing: hi ? '.06em' : undefined,
+            color: C.saffron, margin: '.3rem 0 0',
           }}>
-            अपनी डेक जानें
+            {t.subtitle}
           </p>
         </div>
 
@@ -214,21 +274,21 @@ function DeckTab({ schemes, query, onQuery, total, onOpen }: {
           </svg>
           <input
             type="text"
-            placeholder="Search schemes…"
+            placeholder={t.searchPlaceholder}
             value={query}
             onChange={e => onQuery(e.target.value)}
             style={{
               background: C.w06, border: `1px solid ${C.w14}`, borderRadius: 8,
               padding: '9px 32px 9px 34px',
               color: C.white, fontSize: 13, outline: 'none', width: 240,
-              fontFamily: 'var(--font-inter),sans-serif',
+              fontFamily: hi ? 'var(--font-devanagari),var(--font-inter),sans-serif' : 'var(--font-inter),sans-serif',
               transition: 'border-color .15s',
             }}
             onFocus={e => e.target.style.borderColor = C.saffron}
             onBlur={e => e.target.style.borderColor = C.w14}
           />
           {query && (
-            <button onClick={() => onQuery('')} aria-label="Clear search" style={{
+            <button onClick={() => onQuery('')} aria-label={t.clearSearch} style={{
               position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
               background: 'none', border: 'none', cursor: 'pointer',
               color: C.w40, fontSize: 16, lineHeight: 1, padding: 2,
@@ -244,16 +304,19 @@ function DeckTab({ schemes, query, onQuery, total, onOpen }: {
         animation: `vk-reveal .9s ${ENTER} both .1s`,
       }} />
 
-      <p style={{ fontSize: '.8rem', color: 'rgba(250,248,240,.6)', margin: '0 0 1.5rem' }}>
-        {query
-          ? `${schemes.length} of ${total} match “${query}”`
-          : `${total} schemes in the deck`}
+      <p style={{
+        fontSize: '.8rem', color: 'rgba(250,248,240,.6)', margin: '0 0 1.5rem',
+        fontFamily: hi ? 'var(--font-devanagari),var(--font-inter),sans-serif' : undefined,
+      }}>
+        {query ? t.matchCount(schemes.length, total, query) : t.deckCount(total)}
       </p>
 
       {schemes.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '80px 0', color: C.w40 }}>
           <p style={{ fontSize: 32, marginBottom: 12 }}>🔍</p>
-          <p style={{ fontSize: 15 }}>No schemes match &ldquo;{query}&rdquo;</p>
+          <p style={{ fontSize: 15, fontFamily: hi ? 'var(--font-devanagari),var(--font-inter),sans-serif' : undefined }}>
+            {t.noMatch(query)}
+          </p>
         </div>
       ) : (
         <div style={{
@@ -265,16 +328,19 @@ function DeckTab({ schemes, query, onQuery, total, onOpen }: {
           gap: '1.25rem',
         }}>
           {schemes.map(s => (
-            <CardTile key={s.id} card={s} onOpen={onOpen} />
+            <CardTile key={s.id} card={s} onOpen={onOpen} lang={lang} t={t} />
           ))}
         </div>
       )}
 
-      <p style={{ marginTop: '2.5rem', fontSize: '.8rem', lineHeight: 1.7, color: C.w55 }}>
-        Tap a card to open its scheme guide. Then{' '}
+      <p style={{
+        marginTop: '2.5rem', fontSize: '.8rem', lineHeight: hi ? 1.9 : 1.7, color: C.w55,
+        fontFamily: hi ? 'var(--font-devanagari),var(--font-inter),sans-serif' : undefined,
+      }}>
+        {t.hintLead}{' '}
         <strong style={{ color: C.gold }}>←</strong> / <strong style={{ color: C.gold }}>→</strong>{' '}
-        to move between schemes, <strong style={{ color: C.gold }}>Enter</strong> to zoom,{' '}
-        <strong style={{ color: C.gold }}>Esc</strong> to come back here.
+        {t.hintMove} <strong style={{ color: C.gold }}>Enter</strong> {t.hintZoom}{' '}
+        <strong style={{ color: C.gold }}>Esc</strong> {t.hintBack}
       </p>
     </div>
   );
@@ -284,17 +350,27 @@ function DeckTab({ schemes, query, onQuery, total, onOpen }: {
 // The tile is the flight's origin: its rect is measured on tap and handed to the reader,
 // which mounts a fixed clone there and flies it to the rail. The measurement has to happen
 // on the click itself — after the deck starts fading, the rect is of a moving element.
-function CardTile({ card, onOpen }: { card: SchemeCard; onOpen: (s: SchemeCard, from: DOMRect | null) => void }) {
+function CardTile({ card, onOpen, lang, t }: {
+  card: SchemeCard;
+  onOpen: (s: SchemeCard, from: DOMRect | null) => void;
+  lang: GuideLang;
+  t: ExploreCopy;
+}) {
   const [hovered, setHovered] = useState(false);
   const tile = useRef<HTMLDivElement>(null);
   const imgSrc = getSchemeCardImage(card.id);
+  const hi = lang === 'hi';
+  // The card ART is the printed English deck in both modes — that is the physical card a
+  // player holds at the table, and swapping it would name the same card two ways. What the
+  // language changes is the overlay: in Hindi the Devanagari name is the label and the English
+  // one is the gloss under it, so the tile reads as Hindi-first without hiding either.
 
   return (
     <button
       onClick={() => onOpen(card, tile.current?.getBoundingClientRect() ?? null)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      aria-label={`${card.name} — open scheme guide`}
+      aria-label={t.tileAria(hi ? card.hi : card.name)}
       style={{
         background: 'none', border: 'none', padding: 0,
         cursor: 'pointer', display: 'block', width: '100%', minWidth: 0,
@@ -332,15 +408,25 @@ function CardTile({ card, onOpen }: { card: SchemeCard; onOpen: (s: SchemeCard, 
         }}>
           <span style={{
             fontFamily: 'var(--font-devanagari),sans-serif',
-            fontSize: 11, fontWeight: 600, color: C.saffron, lineHeight: 1.3,
+            fontSize: hi ? 12.5 : 11, fontWeight: hi ? 700 : 600,
+            color: hi ? C.white : C.saffron, lineHeight: 1.3,
           }}>
             {card.hi}
           </span>
+          {hi && (
+            <span style={{ fontSize: 9.5, fontWeight: 600, color: C.saffron, lineHeight: 1.3 }}>
+              {card.name}
+            </span>
+          )}
           <span style={{
+            fontFamily: hi ? 'var(--font-devanagari),var(--font-inter),sans-serif' : undefined,
             fontSize: 10, fontWeight: 600, color: C.w70,
-            letterSpacing: '0.14em', textTransform: 'uppercase',
+            // Devanagari has no case, so uppercasing does nothing but the letter-spacing still
+            // pulls the matras away from their consonants.
+            letterSpacing: hi ? 0 : '0.14em',
+            textTransform: hi ? 'none' : 'uppercase',
           }}>
-            Read the guide →
+            {t.openGuide}
           </span>
         </div>
       </div>
@@ -349,9 +435,15 @@ function CardTile({ card, onOpen }: { card: SchemeCard; onOpen: (s: SchemeCard, 
 }
 
 // ── Card detail modal ─────────────────────────────────────────
-function CardModal({ card, onClose }: { card: SchemeCard; onClose: () => void }) {
+function CardModal({ card, onClose, lang, t }: {
+  card: SchemeCard;
+  onClose: () => void;
+  lang: GuideLang;
+  t: ExploreCopy;
+}) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const imgSrc = getSchemeCardImage(card.id);
+  const hi = lang === 'hi';
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -422,7 +514,7 @@ function CardModal({ card, onClose }: { card: SchemeCard; onClose: () => void })
           {/* Close */}
           <button
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t.close}
             style={{
               position: 'absolute', top: 14, right: 14,
               width: 28, height: 28, borderRadius: '50%',
@@ -442,22 +534,23 @@ function CardModal({ card, onClose }: { card: SchemeCard; onClose: () => void })
             {card.id}
           </span>
 
-          {/* Name */}
+          {/* Name, in whichever language leads. Hindi takes the Devanagari face at a smaller
+              size than Bebas because that is where the two optically match. */}
           <h3 style={{
-            fontFamily: 'var(--font-bebas),sans-serif',
-            fontSize: 'clamp(22px,3vw,34px)',
-            lineHeight: 1, color: C.white, margin: '0 0 6px',
+            fontFamily: hi ? 'var(--font-devanagari),sans-serif' : 'var(--font-bebas),sans-serif',
+            fontSize: hi ? 'clamp(18px,2.4vw,26px)' : 'clamp(22px,3vw,34px)',
+            fontWeight: hi ? 700 : undefined,
+            lineHeight: hi ? 1.3 : 1, color: C.white, margin: '0 0 6px',
           }}>
-            {card.name}
+            {hi ? card.hi : card.name}
           </h3>
 
-          {/* Hindi */}
           <p style={{
-            fontFamily: 'var(--font-devanagari),sans-serif',
+            fontFamily: hi ? 'var(--font-inter),sans-serif' : 'var(--font-devanagari),sans-serif',
             fontSize: 16, fontWeight: 600, color: C.saffron,
             margin: '0 0 18px', lineHeight: 1.4,
           }}>
-            {card.hi}
+            {hi ? card.name : card.hi}
           </p>
 
           <div style={{ height: 1, background: C.w14, marginBottom: 18 }} />
@@ -473,8 +566,13 @@ function CardModal({ card, onClose }: { card: SchemeCard; onClose: () => void })
             border: `1px solid rgba(255,153,51,0.14)`,
             borderRadius: 8, padding: '14px 16px',
           }}>
-            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.w40, margin: '0 0 10px' }}>
-              Key points
+            <p style={{
+              fontSize: 10, fontWeight: 700, color: C.w40, margin: '0 0 10px',
+              fontFamily: hi ? 'var(--font-devanagari),var(--font-inter),sans-serif' : undefined,
+              letterSpacing: hi ? 0 : '0.2em',
+              textTransform: hi ? 'none' : 'uppercase',
+            }}>
+              {t.keyPoints}
             </p>
             <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
               {card.bullets.map((b, i) => (
