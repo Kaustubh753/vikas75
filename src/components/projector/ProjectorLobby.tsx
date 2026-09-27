@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Avatar from '@/lib/avatars';
 import { getLobbyMusic } from '@/lib/music-manager';
+import { getMusicManager } from '@/lib/music';
 import type { GameRoom, Player } from '@/types/game';
 
 const QRCodeSVG = dynamic(
@@ -10,6 +11,8 @@ const QRCodeSVG = dynamic(
   { ssr: false }
 );
 
+// Verified scheme statistics for the ticker. The trailing "(source, date)" is split off and
+// set smaller so the fact itself reads from the room.
 const FACTS = [
   'Over 56 crore Jan Dhan accounts have been opened, making it the world\'s largest financial inclusion programme. (PIB, August 2025)',
   '56% of all Jan Dhan account holders are women. (PIB, August 2025)',
@@ -19,11 +22,6 @@ const FACTS = [
   '68% of all Mudra loans have gone to women entrepreneurs. (Dept. of Financial Services, April 2025)',
   'Ayushman Bharat is the world\'s largest government-funded health assurance scheme, covering 55 crore Indians. (National Health Authority)',
   'Over 10.30 crore hospital admissions have been authorised under Ayushman Bharat, saving families ₹1.48 lakh crore in cashless care. (News on Air, September 2025)',
-  'Ayushman Bharat now covers every Indian aged 70 and above, regardless of income. (Government of India, October 2024)',
-  'Swachh Bharat Mission built over 11 crore household toilets in rural India alone. (PIB, September 2024)',
-  'A peer-reviewed study in Nature Scientific Reports found Swachh Bharat saves 60,000 to 70,000 infant lives every year. (Chakrabarti et al., 2024)',
-  'Stand-Up India has sanctioned loans to nearly 2 lakh women entrepreneurs since 2016. (Inc42, February 2025)',
-  'Stand-Up India has sanctioned ₹61,020 crore in loans for first-time SC, ST, and women entrepreneurs. (Ministry of Finance, March 2025)',
   'Direct Benefit Transfer through Jan Dhan accounts saved the government an estimated ₹3.48 lakh crore by removing middlemen. (DBT Mission)',
   '₹6.9 lakh crore was transferred directly to citizens through DBT schemes in 2024–25 alone. (PIB, August 2025)',
   'PM Suraksha Bima Yojana provides accident insurance of ₹2 lakh for just ₹20 per year. (Ministry of Finance)',
@@ -32,164 +30,225 @@ const FACTS = [
   'PM Jan Dhan accounts now hold over ₹2.68 lakh crore in deposits, a 12-fold increase in a decade. (PIB, August 2025)',
   'Jan Dhan accounts now power Direct Benefit Transfer for 327 government schemes. (Dept. of Financial Services, August 2025)',
 ];
+const FACT_DWELL_MS = 10_000;
+function splitFact(fact: string): { text: string; cite: string } {
+  const m = fact.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+  return m ? { text: m[1], cite: m[2] } : { text: fact, cite: '' };
+}
 
 // The tile rotations for each letter — tiny rotations like playing cards freshly placed
 const TILE_ROTATIONS = ['-3deg', '1.5deg', '-1deg', '2.5deg'];
+const MAX_SEATS = 16;
+const CALLOUT_MS = 1700;
 
-interface BanterItem { name: string; key: number }
-interface Props { room: GameRoom }
+const INTER = 'var(--font-inter),sans-serif';
+const BEBAS = 'var(--font-bebas),sans-serif';
+const NAME_STACK = 'var(--font-inter),var(--font-devanagari),sans-serif';
+// Bebas has no Devanagari: names in the callout fall through to Noto Sans Devanagari.
+const CALLOUT_STACK = 'var(--font-bebas),var(--font-devanagari),sans-serif';
+const HINDI = 'var(--font-devanagari),var(--font-inter),sans-serif';
+const HOUSE_70 = 'rgba(250,248,240,0.7)';
+const HOUSE_45 = 'rgba(250,248,240,0.45)';
+const HAIRLINE = 'rgba(250,248,240,0.14)';
+
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+interface Props { room: GameRoom; bottomInset?: number }
+interface Joiner { name: string; avatarId: Player['avatarId'] }
+interface Callout { players: Joiner[]; key: number }
+
+/** "RAVI IS IN!", "RAVI & MEENA ARE IN!", "RAVI, MEENA AND 3 MORE ARE IN!" — a burst of joins is one callout. */
+function calloutLine(names: string[]): string {
+  if (names.length === 1) return `${names[0]} IS IN!`;
+  if (names.length === 2) return `${names[0]} & ${names[1]} ARE IN!`;
+  return `${names[0]}, ${names[1]} AND ${names.length - 2} MORE ARE IN!`;
+}
+
+/** The seat's inner budget, from its height: a square avatar, then the name on one or two lines.
+ *  Names past 18 characters step down a size so two lines hold them whole. */
+function seatMetrics(h: number, nameLength = 0) {
+  const padV = Math.round(h * 0.06);
+  const gap = Math.round(h * 0.05);
+  const base = Math.max(18, Math.round(h * 0.15));
+  let avatar = Math.round(h * 0.44);
+  let nameSize = nameLength > 18 ? Math.max(16, Math.round(base * 0.8)) : base;
+  let lines = h - padV * 2 - avatar - gap >= nameSize * 1.15 * 2 ? 2 : 1;
+  if (lines === 1) {
+    // A small seat: a slightly smaller face and a 16px name buy the second line the name needs.
+    const smallAvatar = Math.round(h * 0.38);
+    if (h - padV * 2 - smallAvatar - gap >= 16 * 1.15 * 2) { avatar = smallAvatar; nameSize = 16; lines = 2; }
+  }
+  return { padV, avatar, gap, nameSize, lines };
+}
 
 // ── Open seat placeholder ────────────────────────────────────────────────────
 function OpenSeat({ w, h }: { w: number; h: number }) {
-  const avatarRing = Math.round(w * 0.44);
+  const { avatar, gap } = seatMetrics(h);
   return (
     <div style={{
-      width: w, height: h,
-      borderRadius: 18,
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center', gap: 12,
-      border: '1.5px dashed rgba(250,248,240,0.18)',
+      width: w, height: h, borderRadius: 18,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap,
+      border: '1.5px dashed rgba(250,248,240,0.22)',
       background: 'rgba(250,248,240,0.015)',
-      flexShrink: 0,
+      flexShrink: 0, boxSizing: 'border-box',
     }}>
       <div style={{
-        width: avatarRing, height: avatarRing, borderRadius: '50%',
-        border: '1.5px dashed rgba(250,248,240,0.22)',
+        width: avatar, height: avatar, borderRadius: Math.round(avatar * 0.14),
+        border: '1.5px dashed rgba(250,248,240,0.26)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: 'rgba(250,248,240,0.3)',
-        fontSize: Math.round(w * 0.17), fontWeight: 300,
+        color: 'rgba(250,248,240,0.35)', fontSize: Math.round(avatar * 0.5), fontWeight: 300, lineHeight: 1,
       }}>+</div>
       <div style={{
-        fontFamily: 'var(--font-inter),sans-serif',
-        fontSize: Math.round(w * 0.07), fontWeight: 500,
-        letterSpacing: '0.16em', textTransform: 'uppercase' as const,
-        color: 'rgba(250,248,240,0.45)',
-      }}>open seat</div>
+        fontFamily: BEBAS, fontSize: Math.max(13, Math.round(h * 0.11)),
+        letterSpacing: '0.1em', color: HOUSE_45, lineHeight: 1,
+      }}>OPEN SEAT</div>
     </div>
   );
 }
 
 // ── Filled seat with player avatar ──────────────────────────────────────────
 function FilledSeat({ player, w, h }: { player: Player; w: number; h: number }) {
-  const avatarSize = Math.round(w * 0.44);
+  const { padV, avatar, gap, nameSize, lines } = seatMetrics(h, player.name.length);
   return (
     <div style={{
-      width: w, height: h,
-      borderRadius: 18,
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center', gap: 12,
+      width: w, height: h, borderRadius: 18,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap,
       background: 'linear-gradient(180deg,rgba(26,58,110,0.55) 0%,rgba(26,58,110,0.22) 100%)',
       border: '1px solid rgba(255,153,51,0.22)',
       boxShadow: '0 18px 36px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.05)',
       animation: 'vkSeatIn 0.55s cubic-bezier(.2,.8,.25,1) both',
-      flexShrink: 0,
+      flexShrink: 0, padding: `${padV}px ${Math.round(w * 0.06)}px`, boxSizing: 'border-box',
     }}>
       <div style={{
-        width: avatarSize, height: avatarSize, borderRadius: '50%',
-        overflow: 'hidden',
+        width: avatar, height: avatar, borderRadius: Math.round(avatar * 0.14), overflow: 'hidden',
         border: '2px solid rgba(255,153,51,0.4)',
         boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.4),0 6px 16px rgba(0,0,0,0.3)',
         flexShrink: 0,
       }}>
-        <Avatar id={player.avatarId} size={avatarSize} />
+        <Avatar id={player.avatarId} size={avatar} />
       </div>
       <div style={{
-        fontFamily: 'var(--font-inter),sans-serif',
-        fontSize: Math.round(w * 0.105), fontWeight: 600,
-        letterSpacing: '0.01em', color: '#fff',
-        maxWidth: w - 16, textAlign: 'center' as const,
-        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
-      }}>{player.name}</div>
-      <div style={{
-        fontFamily: 'var(--font-inter),sans-serif',
-        fontSize: Math.round(w * 0.062), fontWeight: 600,
-        letterSpacing: '0.16em', textTransform: 'uppercase' as const,
-        color: '#138808', background: 'rgba(19,136,8,0.12)',
-        border: '1px solid rgba(19,136,8,0.3)', borderRadius: 999,
-        padding: `${Math.round(w * 0.022)}px ${Math.round(w * 0.056)}px`,
-      }}>ready</div>
+        fontFamily: NAME_STACK, fontSize: nameSize, fontWeight: 600, lineHeight: 1.15,
+        letterSpacing: '0.005em', color: '#ffffff', maxWidth: '100%', textAlign: 'center',
+        overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: lines, WebkitBoxOrient: 'vertical',
+        wordBreak: 'break-word',
+      }} title={player.name}>{player.name}</div>
     </div>
   );
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
-export default function ProjectorLobby({ room }: Props) {
-  const [origin, setOrigin]     = useState('');
-  const [winW, setWinW]         = useState(1920);
-  const [factIdx, setFactIdx]   = useState(0);
-  const [banterItems, setBanterItems] = useState<BanterItem[]>([]);
+export default function ProjectorLobby({ room, bottomInset = 0 }: Props) {
+  const [origin, setOrigin] = useState('');
+  const [win, setWin] = useState({ w: 1920, h: 1080 });
+  const [factIdx, setFactIdx] = useState(0);
+  const [callout, setCallout] = useState<Callout | null>(null);
 
-  // Track which player IDs were already in the room when the component mounted,
-  // so only future joiners trigger banter chips
-  const prevIdsRef   = useRef<Set<string>>(new Set(Object.keys(room.players)));
-  const banterKeyRef = useRef(0);
+  // Players already seated when the component mounted don't get a callout; only real joins do.
+  const prevIdsRef = useRef<Set<string>>(new Set(Object.keys(room.players)));
+  const queueRef = useRef<Joiner[]>([]);
+  const calloutKeyRef = useRef(0);
 
   useEffect(() => {
     setOrigin(window.location.origin);
     getLobbyMusic().autoPlay();
-    const update = () => setWinW(window.innerWidth);
+    const update = () => setWin({ w: window.innerWidth, h: window.innerHeight });
     update();
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
   }, []);
 
-  // Rotate "Did you know" facts
+  // Rotate "Did you know" facts slowly enough to be read from the room.
   useEffect(() => {
-    const iv = setInterval(() => setFactIdx(i => (i + 1) % FACTS.length), 5200);
+    const iv = setInterval(() => setFactIdx(i => (i + 1) % FACTS.length), FACT_DWELL_MS);
     return () => clearInterval(iv);
   }, []);
 
-  // Detect new players joining and emit banter chips
+  // New players get a callout over the seat band. Joins that land while one is showing queue up
+  // and play as a single combined callout, so a rush never hides the roster for long.
   useEffect(() => {
-    const currentPlayers = Object.values(room.players);
-    const newPlayers = currentPlayers.filter(p => !prevIdsRef.current.has(p.id));
-    if (newPlayers.length > 0) {
-      newPlayers.forEach(p => {
-        const key = ++banterKeyRef.current;
-        setBanterItems(prev => [...prev, { name: p.name, key }].slice(-3));
-      });
-      prevIdsRef.current = new Set(currentPlayers.map(p => p.id));
-    }
-  }, [room.players]);
+    const current = Object.values(room.players);
+    const fresh = current.filter(p => !prevIdsRef.current.has(p.id));
+    if (fresh.length === 0) return;
+    prevIdsRef.current = new Set(current.map(p => p.id));
+    queueRef.current.push(...fresh.map(p => ({ name: p.name, avatarId: p.avatarId })));
+    if (!callout) setCallout({ players: queueRef.current.splice(0), key: ++calloutKeyRef.current });
+  }, [room.players]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const players   = Object.values(room.players);
-  const joinUrl   = origin ? `${origin}/join?code=${room.code}` : '';
-  const letters   = room.code.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4).split('');
+  useEffect(() => {
+    if (!callout) return;
+    getMusicManager().ping('join');
+    const t = setTimeout(() => {
+      const next = queueRef.current.splice(0);
+      setCallout(next.length ? { players: next, key: ++calloutKeyRef.current } : null);
+    }, CALLOUT_MS);
+    return () => clearTimeout(t);
+  }, [callout]);
+
+  const players = Object.values(room.players);
+  const n = players.length;
+  const joinUrl = origin ? `${origin}/join?code=${room.code}` : '';
+  const host = origin ? origin.replace(/^https?:\/\//, '') : 'vikas75.in';
+  const letters = room.code.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4).split('');
   while (letters.length < 4) letters.push('');
 
-  // How many seats to show
-  const MAX_VISIBLE = 6;
-  const visiblePlayers = players.slice(0, MAX_VISIBLE);
-  const extraCount     = Math.max(0, players.length - MAX_VISIBLE);
-  const openSeats      = players.length >= MAX_VISIBLE
-    ? 0
-    : Math.max(1, Math.min(3, 4 - players.length));
+  // Seats: one row up to eight, two rows to sixteen, then "+N more".
+  const visiblePlayers = players.slice(0, MAX_SEATS);
+  const extraCount = Math.max(0, n - MAX_SEATS);
+  const openSeats = n >= MAX_SEATS ? 0 : Math.max(1, Math.min(3, 4 - n));
+  const seatCount = visiblePlayers.length + openSeats + (extraCount > 0 ? 1 : 0);
+  const twoRows = seatCount > 8;
+  const rows = twoRows ? 2 : 1;
+  const perRow = twoRows ? Math.ceil(seatCount / 2) : seatCount;
+  const short = win.h < 800;
+  // The ticker is the first thing to go when a short screen also needs two rows of seats.
+  const showTicker = !(short && twoRows);
 
-  // Seat sizing: fit all seats within 78% of viewport width
-  const totalSeatCols = visiblePlayers.length + openSeats + (extraCount > 0 ? 1 : 0);
-  const seatGap = Math.round(winW * 0.01);
-  const availW  = winW * 0.78;
-  const seatW   = Math.max(90, Math.min(166, Math.floor((availW - seatGap * (totalSeatCols - 1)) / totalSeatCols)));
-  const seatH   = Math.round(seatW * 1.15);
+  // The QR is the hero: 30% of the height, less when the roster needs room or the screen is short.
+  const qrShare = twoRows ? (short ? 0.2 : 0.23) : (short ? 0.24 : 0.3);
+  const qrSize = Math.round(clamp(win.h * qrShare, 150, 420));
+  const qrPad = Math.round(qrSize * 0.06);
+  const badge = Math.round(qrSize * 0.15);
+  const tileH = Math.round(qrSize * (short ? 0.56 : 0.48));
+  const tileW = Math.round(tileH / 1.31);
+  const tileFsz = Math.round(tileW * 0.72);
 
-  // QR code size
-  const qrSize = Math.round(Math.min(winW * 0.094, 140));
+  // Vertical budget for the seat band, from the same clamps the CSS uses (vw/vh are viewport
+  // units, the host bar inset is not), so the roster is sized from the height that is actually
+  // left and shrinks before anything else clips. The ticker reserves two lines so it is fixed.
+  const W = win.w, VH = win.h, H = VH - bottomInset;
+  const topPad = clamp(VH * 0.02, 12, 28);
+  const headerH = clamp(W * 0.0075, 11, 13) * 1.4 + 8 + Math.max(clamp(W * 0.024, 24, 40), 28) + 6 + clamp(W * 0.011, 12, 18) * 1.35;
+  const tickerLineH = clamp(W * 0.0125, 15, 24) * 1.35;
+  const tickerH = showTicker ? clamp(VH * 0.012, 8, 16) * 2 + tickerLineH * 2 + 1 : 0;
+  const promiseH = clamp(W * 0.021, 22, 40) * 1.05 + 4 + clamp(W * 0.0115, 13, 21) * 1.4 + 4 + clamp(W * 0.0085, 11, 14) * 1.4 + 4;
+  const cardH = clamp(VH * 0.014, 12, 20) * 2 + clamp(W * 0.019, 20, 36) + 12 + qrSize + qrPad * 2 + 2;
+  const bodyGap = Math.round(clamp(VH * 0.014, 8, 18));
+  const bandGap = Math.round(clamp(VH * 0.012, 8, 14));
+  const statusH = Math.round(clamp(W * 0.02, 20, 36));
+  const seatGap = Math.round(W * 0.01);
+  const freeH = H - topPad - headerH - tickerH - promiseH - cardH - bodyGap * 2 - bandGap - statusH - 8;
+  const seatHMax = Math.round(win.h * (twoRows ? 0.14 : 0.18));
+  let seatH = clamp(Math.floor((freeH - seatGap * (rows - 1)) / rows), 64, seatHMax);
+  // Width: the row's free width, but never wider than 1.4× the height; if the row is the
+  // constraint, the height follows so the seats keep their shape.
+  const availW = win.w * 0.86;
+  const widthFit = Math.floor((availW - seatGap * (perRow - 1)) / perRow);
+  const seatW = Math.max(80, Math.min(widthFit, Math.round(seatH * 1.4)));
+  seatH = Math.min(seatH, Math.round(seatW / 0.92));
+  const bandH = rows * seatH + seatGap * (rows - 1) + bandGap + statusH;
+  const calloutAvatar = Math.round(clamp(bandH * 0.62, 64, 170));
+  const calloutFsz = Math.round(clamp(bandH * 0.4, 32, 104));
 
-  // Code tile sizing
-  const tileW    = Math.round(Math.min(winW * 0.052, 76));
-  const tileH    = Math.round(tileW * 1.31);
-  const tileFsz  = Math.round(tileW * 0.70);
+  // What the room is told while it waits, by head-count.
+  const idleLine = n === 1 ? 'ONE MORE AND WE CAN START' : 'READY WHEN THE HOST IS';
+  const fact = splitFact(FACTS[factIdx]);
 
   return (
-    // Fill the parent (ProjectorView reserves space for the host control bar via
-    // paddingBottom) instead of position:fixed, which would escape that reservation and
-    // let the host bar overlap the lobby's bottom strip.
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', isolation: 'isolate' }}>
 
       {/* ── Background ────────────────────────────────────────────── */}
       <div style={{ position: 'absolute', inset: 0, background: '#08070f', zIndex: 0 }} />
-
-      {/* Warm saffron glow from top-centre */}
       <div style={{
         position: 'absolute', left: '50%', top: '-25%',
         width: '83vw', height: '100vh',
@@ -197,8 +256,6 @@ export default function ProjectorLobby({ room }: Props) {
         background: 'radial-gradient(ellipse at center,rgba(255,153,51,.16) 0%,rgba(255,153,51,.06) 28%,rgba(255,153,51,0) 60%)',
         pointerEvents: 'none', zIndex: 1,
       }} />
-
-      {/* Film grain */}
       <div style={{
         position: 'absolute', inset: 0,
         backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")`,
@@ -210,351 +267,217 @@ export default function ProjectorLobby({ room }: Props) {
         position: 'relative', zIndex: 3,
         width: '100%', height: '100%',
         display: 'flex', flexDirection: 'column',
-        padding: 'clamp(20px,2.6vh,40px) clamp(40px,5vw,72px) 0',
+        padding: 'clamp(12px,2vh,28px) clamp(32px,4vw,64px) 0',
         boxSizing: 'border-box',
       }}>
 
         {/* ── HEADER ────────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-
-          {/* Saffron-border logo unit — attribution + wordmark + tagline */}
-          <div style={{
-            display: 'inline-flex', flexDirection: 'column',
-            position: 'relative', paddingLeft: 16, alignItems: 'stretch',
-          }}>
-            {/* Left saffron rule */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexShrink: 0 }}>
+          <div style={{ display: 'inline-flex', flexDirection: 'column', position: 'relative', paddingLeft: 16, alignItems: 'stretch' }}>
+            <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 2, background: '#FF9933' }} />
             <div style={{
-              position: 'absolute', left: 0, top: 4, bottom: 4,
-              width: 2, background: '#FF9933',
-            }} />
-            <div style={{
-              fontFamily: 'var(--font-inter),sans-serif', fontWeight: 500,
-              fontSize: 'clamp(8px,0.68vw,10px)',
-              letterSpacing: '0.08em', textTransform: 'uppercase',
-              color: 'rgba(250,248,240,0.7)', lineHeight: 1.4,
-              marginBottom: 10, whiteSpace: 'nowrap',
+              fontFamily: INTER, fontWeight: 500, fontSize: 'clamp(11px,0.75vw,13px)',
+              letterSpacing: '0.08em', textTransform: 'uppercase', color: HOUSE_70, lineHeight: 1.4,
+              marginBottom: 8, whiteSpace: 'nowrap',
             }}>
               An initiative of the Office of Shri Sujeet Kumar
             </div>
-            {/* Wordmark + Lobby pill on same baseline */}
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
+              <span style={{ fontFamily: 'var(--font-yatra),var(--font-inter),sans-serif', fontSize: 'clamp(24px,2.4vw,40px)', lineHeight: 1, color: '#ffffff' }}>Vikas 75</span>
               <span style={{
-                fontFamily: 'var(--font-yatra),var(--font-inter),sans-serif',
-                fontSize: 'clamp(22px,2.4vw,34px)', lineHeight: 1, color: '#fff',
-              }}>Vikas 75</span>
-              <span style={{
-                fontFamily: 'var(--font-inter),sans-serif',
-                fontSize: 'clamp(8px,0.7vw,10px)', fontWeight: 600,
-                letterSpacing: '0.22em', textTransform: 'uppercase',
-                color: '#FF9933',
-                border: '1px solid rgba(255,153,51,0.35)',
-                borderRadius: 999, padding: '5px 12px',
+                fontFamily: INTER, fontSize: 'clamp(11px,0.75vw,13px)', fontWeight: 600,
+                letterSpacing: '0.22em', textTransform: 'uppercase', color: '#FF9933',
+                border: '1px solid rgba(255,153,51,0.35)', borderRadius: 999, padding: '5px 12px',
               }}>Lobby</span>
             </div>
-            <div style={{
-              fontFamily: 'var(--font-inter),sans-serif', fontWeight: 400,
-              fontSize: 'clamp(11px,1.1vw,16px)',
-              lineHeight: 1.35, color: '#FF9933', letterSpacing: '-0.005em',
-              marginTop: 8, whiteSpace: 'nowrap',
-            }}>
-              The best answer isn&apos;t always right
+            <div style={{ fontFamily: INTER, fontWeight: 500, fontSize: 'clamp(12px,1.1vw,18px)', lineHeight: 1.35, color: '#FF9933', marginTop: 6, whiteSpace: 'nowrap' }}>
+              Play for Progress
             </div>
           </div>
 
-          {/* Live status indicator */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 4 }}>
-            <div style={{
-              width: 8, height: 8, borderRadius: '50%',
-              background: '#138808',
-              animation: 'vkPulseDot 2.4s ease-in-out infinite',
-            }} />
-            <span style={{
-              fontFamily: 'var(--font-inter),sans-serif',
-              fontSize: 'clamp(8px,0.76vw,11px)', fontWeight: 500,
-              letterSpacing: '0.16em', textTransform: 'uppercase',
-              color: 'rgba(250,248,240,0.7)',
-            }}>Room open · {players.length} joined</span>
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#138808', animation: 'vkPulseDot 2.4s ease-in-out infinite' }} />
+            <span style={{ fontFamily: INTER, fontSize: 'clamp(11px,0.85vw,14px)', fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase', color: HOUSE_70 }}>
+              Room open
+            </span>
           </div>
         </div>
 
-        {/* ── BODY — vertically centred ─────────────────────────────── */}
-        <div style={{
-          flex: 1,
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          gap: 'clamp(18px,2.6vh,34px)',
-          position: 'relative',
-        }}>
+        {/* ── BODY ──────────────────────────────────────────────────── */}
+        <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: bodyGap, position: 'relative' }}>
 
-          {/* JOIN CARD — QR + code tiles in a glass container */}
+          {/* The promise: what this is and why to scan, in English and Hindi */}
+          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            <div style={{ fontFamily: BEBAS, fontSize: 'clamp(22px,2.1vw,40px)', lineHeight: 1.05, letterSpacing: '0.06em', color: '#ffffff' }}>
+              Pick a sarkari scheme · defend it in 25 words · funniest answer wins
+            </div>
+            <div lang="hi" style={{ fontFamily: HINDI, fontSize: 'clamp(13px,1.15vw,21px)', lineHeight: 1.4, color: HOUSE_70 }}>
+              सरकारी योजना चुनो · 25 शब्दों में बचाव करो · सबसे मज़ेदार जवाब जीतेगा
+            </div>
+            <div style={{ fontFamily: INTER, fontSize: 'clamp(11px,0.85vw,14px)', fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#FF9933', marginTop: 4 }}>
+              No app · no sign-up · 30 seconds to join
+            </div>
+          </div>
+
+          {/* JOIN CARD — QR hero + code tiles in a glass container */}
           <div style={{
-            display: 'flex', alignItems: 'center',
-            gap: 'clamp(20px,2.4vw,36px)',
-            padding: 'clamp(14px,1.6vh,24px) clamp(20px,2.4vw,32px)',
+            display: 'flex', alignItems: 'center', flexShrink: 0,
+            gap: 'clamp(24px,3vw,56px)',
+            padding: `clamp(12px,1.4vh,20px) clamp(20px,2.4vw,40px)`,
             borderRadius: 18,
             background: 'rgba(250,248,240,0.025)',
-            border: '1px solid rgba(250,248,240,0.14)',
+            border: `1px solid ${HAIRLINE}`,
             boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
           }}>
-
-            {/* QR code */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+            {/* QR block */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+              <span style={{ fontFamily: BEBAS, fontSize: 'clamp(20px,1.9vw,36px)', letterSpacing: '0.12em', color: '#ffffff', lineHeight: 1 }}>Scan to join</span>
               {joinUrl ? (
                 <div style={{
-                  position: 'relative', borderRadius: 12, padding: 10, background: '#faf8f0',
-                  boxShadow: '0 12px 26px rgba(0,0,0,0.4),inset 0 0 0 1px rgba(0,0,0,0.06)',
+                  position: 'relative', borderRadius: Math.round(qrSize * 0.06), padding: qrPad, background: '#faf8f0',
+                  boxShadow: '0 16px 30px rgba(0,0,0,0.45),0 4px 8px rgba(0,0,0,0.35),inset 0 0 0 1px rgba(0,0,0,0.06)',
                 }}>
-                  <QRCodeSVG value={joinUrl} size={qrSize} level="M" bgColor="#faf8f0" />
-                  {/* V·75 badge over QR centre */}
-                  <div style={{
-                    position: 'absolute', left: '50%', top: '50%',
-                    transform: 'translate(-50%,-50%)',
-                    width: Math.round(qrSize * 0.26), height: Math.round(qrSize * 0.26),
-                    borderRadius: Math.round(qrSize * 0.065),
-                    background: '#FF9933',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontFamily: 'var(--font-yatra),var(--font-inter)', fontSize: Math.round(qrSize * 0.115), color: '#15110a',
-                    boxShadow: `0 0 0 3px #faf8f0, 0 4px 10px rgba(0,0,0,0.35)`,
+                  <QRCodeSVG value={joinUrl} size={qrSize} level="H" bgColor="#faf8f0" fgColor="#15110a" />
+                  <div aria-hidden="true" style={{
+                    position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)',
+                    width: badge, height: badge, borderRadius: Math.round(badge * 0.22),
+                    background: '#FF9933', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: 'var(--font-yatra),var(--font-inter)', fontSize: Math.round(badge * 0.42), color: '#15110a',
+                    boxShadow: `0 0 0 ${Math.max(3, Math.round(badge * 0.09))}px #faf8f0, 0 4px 10px rgba(0,0,0,0.35)`,
                   }}>V·75</div>
                 </div>
               ) : (
-                <div style={{
-                  width: qrSize + 20, height: qrSize + 20,
-                  background: 'rgba(250,248,240,0.04)', borderRadius: 12,
-                  display: 'grid', placeItems: 'center',
-                }}>
-                  <span style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 12, color: 'rgba(250,248,240,0.3)' }}>
-                    Loading…
-                  </span>
+                <div style={{ width: qrSize + qrPad * 2, height: qrSize + qrPad * 2, background: 'rgba(250,248,240,0.04)', borderRadius: 12, display: 'grid', placeItems: 'center' }}>
+                  <span style={{ fontFamily: INTER, fontSize: 14, color: HOUSE_45 }}>Loading…</span>
                 </div>
               )}
-              <span style={{
-                fontFamily: 'var(--font-inter),sans-serif',
-                fontSize: 'clamp(8px,0.76vw,11px)', fontWeight: 600,
-                letterSpacing: '0.18em', textTransform: 'uppercase',
-                color: 'rgba(250,248,240,0.7)',
-              }}>scan to join</span>
             </div>
 
-            {/* "or" vertical divider */}
-            <div style={{
-              position: 'relative', alignSelf: 'stretch',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              padding: '0 4px',
-            }}>
-              <div style={{
-                position: 'absolute', top: 6, bottom: 6, left: '50%', width: 1,
-                background: 'rgba(250,248,240,0.14)',
-              }} />
-              <span style={{
-                position: 'relative', zIndex: 1,
-                background: '#08070f', padding: '6px 0',
-                fontFamily: 'var(--font-inter),sans-serif',
-                fontSize: 'clamp(8px,0.76vw,11px)', fontWeight: 600,
-                letterSpacing: '0.14em', textTransform: 'uppercase',
-                color: 'rgba(250,248,240,0.45)',
-              }}>or</span>
+            {/* "or" divider */}
+            <div style={{ position: 'relative', alignSelf: 'stretch', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+              <div style={{ position: 'absolute', top: 6, bottom: 6, left: '50%', width: 1, background: HAIRLINE }} />
+              <span style={{ position: 'relative', zIndex: 1, background: '#0b0a14', padding: '8px 0', fontFamily: BEBAS, fontSize: 'clamp(18px,1.6vw,30px)', letterSpacing: '0.16em', color: HOUSE_45 }}>OR</span>
             </div>
 
             {/* Room code block */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 14 }}>
-              <div style={{
-                fontFamily: 'var(--font-inter),sans-serif',
-                fontSize: 'clamp(8px,0.76vw,11px)', fontWeight: 600,
-                letterSpacing: '0.24em', textTransform: 'uppercase',
-                color: 'rgba(250,248,240,0.7)',
-              }}>enter the room code</div>
-
-              {/* Cream playing-card tiles */}
-              <div style={{ display: 'flex', gap: 'clamp(8px,0.8vw,14px)' }}>
+              <span style={{ fontFamily: BEBAS, fontSize: 'clamp(20px,1.9vw,36px)', letterSpacing: '0.12em', color: '#ffffff', lineHeight: 1 }}>Type the code</span>
+              <div style={{ display: 'flex', gap: Math.round(tileW * 0.16) }} aria-label={`Room code ${room.code}`}>
                 {letters.map((ch, i) => (
                   <div key={i} style={{
                     width: tileW, height: tileH,
                     background: '#faf8f0', color: '#15110a',
-                    borderRadius: 'clamp(8px,0.7vw,14px)',
+                    borderRadius: Math.round(tileW * 0.16),
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontFamily: 'var(--font-yatra),var(--font-inter)',
-                    fontSize: tileFsz, lineHeight: 1,
+                    fontFamily: 'var(--font-yatra),var(--font-inter)', fontSize: tileFsz, lineHeight: 1,
                     boxShadow: '0 16px 30px rgba(0,0,0,0.45),0 4px 8px rgba(0,0,0,0.35),inset 0 2px 0 rgba(255,255,255,0.6)',
                     border: '1px solid rgba(0,0,0,0.12)',
-                    position: 'relative',
-                    transform: `rotate(${TILE_ROTATIONS[i]})`,
-                    userSelect: 'none',
-                    flexShrink: 0,
+                    position: 'relative', transform: `rotate(${TILE_ROTATIONS[i]})`, userSelect: 'none', flexShrink: 0,
                   }}>
                     {ch}
-                    {/* Corner pip — like a playing card */}
-                    <div style={{
-                      position: 'absolute', top: 8, left: 10,
-                      width: 6, height: 6, borderRadius: '50%',
-                      background: 'rgba(255,153,51,0.7)',
-                    }} />
+                    <div style={{ position: 'absolute', top: Math.round(tileW * 0.1), left: Math.round(tileW * 0.12), width: Math.max(5, Math.round(tileW * 0.08)), height: Math.max(5, Math.round(tileW * 0.08)), borderRadius: '50%', background: 'rgba(255,153,51,0.7)' }} />
                   </div>
                 ))}
               </div>
-
-              <div style={{
-                fontFamily: 'var(--font-inter),sans-serif',
-                fontSize: 'clamp(11px,0.9vw,14px)', letterSpacing: '0.04em',
-                color: 'rgba(250,248,240,0.7)',
-              }}>
-                at{' '}
-                <span style={{ color: '#fff', fontWeight: 600 }}>
-                  {origin ? origin.replace(/^https?:\/\//, '') : 'vikas75.in'}
-                </span>
-                {' '}on your phone
+              <div style={{ fontFamily: INTER, fontSize: 'clamp(13px,1.1vw,20px)', color: HOUSE_70, letterSpacing: '0.02em', lineHeight: 1.2, display: 'flex', alignItems: 'baseline', gap: '0.4em', flexWrap: 'wrap' }}>
+                <span>at</span>
+                <span style={{ fontFamily: BEBAS, fontSize: 'clamp(22px,2.1vw,40px)', letterSpacing: '0.04em', color: '#ffffff' }}>{host}</span>
+                <span>on your phone</span>
               </div>
             </div>
           </div>
 
-          {/* ── SEATS ─────────────────────────────────────────────── */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-            <div style={{ display: 'flex', gap: seatGap, flexWrap: 'nowrap', alignItems: 'flex-start' }}>
-              {visiblePlayers.map(p => (
-                <FilledSeat key={p.id} player={p} w={seatW} h={seatH} />
-              ))}
-              {Array.from({ length: openSeats }).map((_, i) => (
-                <OpenSeat key={`open-${i}`} w={seatW} h={seatH} />
-              ))}
+          {/* ── SEATS — sized from the height that is left ───────────── */}
+          <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: bandGap, flexShrink: 0 }}>
+            <div style={{ display: 'flex', gap: seatGap, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'flex-start', maxWidth: perRow * (seatW + seatGap) }}>
+              {visiblePlayers.map(p => <FilledSeat key={p.id} player={p} w={seatW} h={seatH} />)}
+              {Array.from({ length: openSeats }).map((_, i) => <OpenSeat key={`open-${i}`} w={seatW} h={seatH} />)}
               {extraCount > 0 && (
                 <div style={{
-                  width: seatW, height: seatH,
-                  borderRadius: 18, flexShrink: 0,
-                  border: '1px solid rgba(255,153,51,0.22)',
-                  background: 'rgba(26,58,110,0.3)',
-                  display: 'flex', flexDirection: 'column',
-                  alignItems: 'center', justifyContent: 'center', gap: 8,
+                  width: seatW, height: seatH, borderRadius: 18, flexShrink: 0,
+                  border: '1px solid rgba(255,153,51,0.22)', background: 'rgba(26,58,110,0.3)',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6,
                 }}>
-                  <span style={{
-                    fontFamily: 'var(--font-yatra),var(--font-inter)',
-                    fontSize: Math.round(seatW * 0.3), color: '#FF9933', lineHeight: 1,
-                  }}>+{extraCount}</span>
-                  <span style={{
-                    fontFamily: 'var(--font-inter),sans-serif',
-                    fontSize: Math.round(seatW * 0.068), fontWeight: 600,
-                    letterSpacing: '0.16em', textTransform: 'uppercase' as const,
-                    color: 'rgba(250,248,240,0.5)',
-                  }}>more</span>
+                  <span style={{ fontFamily: 'var(--font-yatra),var(--font-inter)', fontSize: Math.round(seatH * 0.3), color: '#FF9933', lineHeight: 1 }}>+{extraCount}</span>
+                  <span style={{ fontFamily: BEBAS, fontSize: Math.max(13, Math.round(seatH * 0.11)), letterSpacing: '0.1em', color: HOUSE_70 }}>MORE</span>
                 </div>
               )}
             </div>
 
-            <div style={{
-              fontFamily: 'var(--font-inter),sans-serif',
-              fontSize: 'clamp(9px,0.76vw,11px)', fontWeight: 600,
-              letterSpacing: '0.2em', textTransform: 'uppercase',
-              color: 'rgba(250,248,240,0.45)',
-            }}>
-              <span style={{ color: '#FF9933' }}>{players.length}</span>
-              {' '}{players.length === 1 ? 'player' : 'players'} joined · waiting for host to start
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6em', fontFamily: BEBAS, fontSize: statusH, letterSpacing: '0.1em', lineHeight: 1, height: statusH }}>
+              {n === 0 ? (
+                <span style={{ color: '#FF9933' }}>BE THE FIRST IN</span>
+              ) : (
+                <>
+                  <span style={{ color: '#FF9933' }}>{n} {n === 1 ? 'PLAYER' : 'PLAYERS'} IN</span>
+                  <span style={{ color: HOUSE_45 }}>·</span>
+                  <span style={{ color: HOUSE_70 }}>{idleLine}</span>
+                </>
+              )}
             </div>
-          </div>
 
-          {/* ── BANTER STRIP — new player join chips ──────────────── */}
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            gap: 12, minHeight: 38, flexWrap: 'wrap',
-          }}>
-            {banterItems.length === 0 ? (
-              <span style={{
-                fontFamily: 'var(--font-inter),sans-serif',
-                fontSize: 'clamp(11px,0.9vw,13px)', fontStyle: 'italic',
-                color: 'rgba(250,248,240,0.45)',
-              }}>quiet so far. someone always breaks it.</span>
-            ) : (
-              banterItems.map(b => (
-                <div key={b.key} style={{
-                  display: 'inline-flex', alignItems: 'baseline', gap: 8,
-                  padding: '8px 14px', borderRadius: 999,
-                  background: 'rgba(250,248,240,0.04)',
-                  border: '1px solid rgba(250,248,240,0.14)',
-                  animation: 'vkChipIn 0.4s cubic-bezier(.2,.8,.25,1) both',
+            {/* ── JOIN CALLOUT — over the seat band, never over the QR or the code ── */}
+            {callout && (
+              <div key={callout.key} aria-live="polite" style={{
+                position: 'absolute', inset: 0, zIndex: 5, pointerEvents: 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                animation: `vkCalloutIn 0.5s cubic-bezier(0.16,1,0.3,1) both, vkCalloutOut 0.35s ease-in ${CALLOUT_MS - 350}ms forwards`,
+              }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: Math.round(calloutAvatar * 0.2), maxWidth: '96%',
+                  padding: `${Math.round(calloutAvatar * 0.12)}px ${Math.round(calloutAvatar * 0.28)}px`, borderRadius: 24,
+                  background: 'rgba(8,7,15,0.92)', border: '1px solid rgba(255,153,51,0.4)',
+                  boxShadow: '0 40px 100px rgba(0,0,0,0.7), 0 0 0 2px rgba(255,153,51,0.25)',
+                  backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
                 }}>
-                  <span style={{
-                    fontFamily: 'var(--font-inter),sans-serif',
-                    fontSize: 'clamp(10px,0.9vw,12px)', fontWeight: 700,
-                    letterSpacing: '0.04em', color: '#FF9933',
-                  }}>{b.name}</span>
-                  <span style={{
-                    fontFamily: 'var(--font-inter),sans-serif',
-                    fontSize: 'clamp(11px,0.9vw,13px)',
-                    color: 'rgba(250,248,240,0.7)', letterSpacing: '0.005em',
-                  }}>just joined</span>
+                  <div style={{ display: 'flex', flexShrink: 0 }}>
+                    {callout.players.slice(0, 3).map((p, i) => (
+                      <div key={i} style={{
+                        width: calloutAvatar, height: calloutAvatar, borderRadius: Math.round(calloutAvatar * 0.14), overflow: 'hidden',
+                        border: '3px solid rgba(255,153,51,0.6)', background: '#08070f', flexShrink: 0,
+                        marginLeft: i ? -Math.round(calloutAvatar * 0.3) : 0, boxShadow: '0 8px 20px rgba(0,0,0,0.5)',
+                      }}>
+                        <Avatar id={p.avatarId} size={calloutAvatar} />
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{
+                    fontFamily: CALLOUT_STACK, fontSize: calloutFsz, lineHeight: 0.95, letterSpacing: '0.04em', color: '#FF9933',
+                    textShadow: '0 6px 30px rgba(0,0,0,0.7)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {calloutLine(callout.players.map(p => p.name))}
+                  </div>
                 </div>
-              ))
+              </div>
             )}
           </div>
         </div>
 
-        {/* ── FOOTER — "waiting for host" spinner ───────────────────── */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          minHeight: 'clamp(52px,7vh,76px)',
-        }}>
+        {/* ── TICKER — "Did you know" facts, sized for the room ─────── */}
+        {showTicker && (
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 12,
-            height: 52, padding: '0 28px',
-            border: '1px solid rgba(255,153,51,0.3)', borderRadius: 8,
-            background: 'rgba(255,153,51,0.05)',
+            display: 'flex', alignItems: 'center', gap: 20, flexShrink: 0,
+            padding: 'clamp(8px,1.2vh,16px) 0',
+            borderTop: `1px solid ${HAIRLINE}`,
           }}>
-            <div style={{
-              width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
-              border: '2px solid rgba(255,153,51,0.25)', borderTopColor: '#FF9933',
-              animation: 'vkSpin 0.9s linear infinite',
-            }} />
             <span style={{
-              fontFamily: 'var(--font-inter),sans-serif',
-              fontSize: 'clamp(12px,1vw,14px)', fontWeight: 500,
-              letterSpacing: '0.04em', color: '#FF9933',
-            }}>Waiting for the host to deal…</span>
+              flexShrink: 0, fontFamily: INTER, fontSize: 'clamp(11px,0.85vw,14px)', fontWeight: 700,
+              letterSpacing: '0.22em', textTransform: 'uppercase', color: '#FF9933',
+              paddingRight: 20, borderRight: `1px solid ${HAIRLINE}`,
+            }}>Did you know</span>
+            <div style={{ flex: 1, overflow: 'hidden', height: Math.round(tickerLineH * 2), display: 'flex', alignItems: 'center' }}>
+              <span key={factIdx} style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', animation: 'vkFactIn 0.6s ease both', lineHeight: 1.35 }}>
+                <span style={{ fontFamily: INTER, fontSize: 'clamp(15px,1.25vw,24px)', color: '#ffffff' }}>{fact.text}</span>
+                {fact.cite && <span style={{ fontFamily: INTER, fontSize: 'clamp(11px,0.85vw,14px)', color: HOUSE_45, marginLeft: '0.6em' }}>{fact.cite}</span>}
+              </span>
+            </div>
+            <span style={{
+              flexShrink: 0, fontFamily: INTER, fontSize: 'clamp(11px,0.85vw,14px)', fontWeight: 600,
+              letterSpacing: '0.16em', textTransform: 'uppercase', color: HOUSE_70,
+              paddingLeft: 20, borderLeft: `1px solid ${HAIRLINE}`,
+            }}>{room.totalRounds} rounds · {room.timerDuration}s per answer</span>
           </div>
-        </div>
-
-        {/* ── BOTTOM STRIP — attribution, centred ──────────────────── */}
-        <div style={{
-          display: 'flex', justifyContent: 'center', alignItems: 'center',
-          paddingBottom: 'clamp(8px,1vh,14px)',
-        }}>
-          <div style={{
-            fontFamily: 'var(--font-inter),sans-serif',
-            fontSize: 'clamp(9px,0.76vw,11px)',
-            letterSpacing: '0.12em', textTransform: 'uppercase',
-            color: 'rgba(250,248,240,0.4)', textAlign: 'center',
-          }}>An initiative of the Office of Shri Sujeet Kumar</div>
-        </div>
-
-        {/* ── TICKER — "Did you know" rotating facts ────────────────── */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 16,
-          padding: 'clamp(10px,1.3vh,16px) 0',
-          borderTop: '1px solid rgba(250,248,240,0.14)',
-        }}>
-          <span style={{
-            flexShrink: 0,
-            fontFamily: 'var(--font-inter),sans-serif',
-            fontSize: 'clamp(8px,0.76vw,10px)', fontWeight: 700,
-            letterSpacing: '0.22em', textTransform: 'uppercase',
-            color: '#FF9933',
-            paddingRight: 16, borderRight: '1px solid rgba(250,248,240,0.14)',
-          }}>Did you know</span>
-          <div style={{ flex: 1, overflow: 'hidden' }}>
-            <span key={factIdx} style={{
-              display: 'block',
-              fontFamily: 'var(--font-inter),sans-serif',
-              fontSize: 'clamp(11px,1vw,14px)',
-              color: 'rgba(250,248,240,0.7)', letterSpacing: '0.005em',
-              animation: 'vkFactIn 0.5s ease both',
-            }}>{FACTS[factIdx]}</span>
-          </div>
-          <span style={{
-            flexShrink: 0,
-            fontFamily: 'var(--font-inter),sans-serif',
-            fontSize: 'clamp(8px,0.76vw,10px)', fontWeight: 600,
-            letterSpacing: '0.16em', textTransform: 'uppercase',
-            color: 'rgba(250,248,240,0.45)',
-            paddingLeft: 16, borderLeft: '1px solid rgba(250,248,240,0.14)',
-          }}>{room.totalRounds} rounds · funniest wins</span>
-        </div>
+        )}
 
       </div>
 
@@ -564,19 +487,19 @@ export default function ProjectorLobby({ room }: Props) {
           50%       { box-shadow: 0 0 0 6px rgba(19,136,8,0.22); }
         }
         @keyframes vkSeatIn {
-          from { transform: translateY(16px) scale(0.95); }
-          to   { transform: translateY(0)    scale(1);    }
+          from { transform: translateY(16px) scale(0.95); opacity: 0; }
+          to   { transform: translateY(0)    scale(1);    opacity: 1; }
         }
-        @keyframes vkChipIn {
-          from { transform: translateY(8px) scale(0.96); opacity: 0; }
-          to   { transform: translateY(0)   scale(1);    opacity: 1; }
+        @keyframes vkCalloutIn {
+          from { opacity: 0; transform: scale(0.86) translateY(24px); }
+          to   { opacity: 1; transform: scale(1)    translateY(0); }
+        }
+        @keyframes vkCalloutOut {
+          to { opacity: 0; transform: scale(0.96) translateY(-12px); }
         }
         @keyframes vkFactIn {
-          from { opacity: 0; transform: translateX(14px); }
-          to   { opacity: 1; transform: translateX(0);    }
-        }
-        @keyframes vkSpin {
-          to { transform: rotate(360deg); }
+          from { opacity: 0; transform: translateY(4px); }
+          to   { opacity: 1; transform: translateY(0);   }
         }
       `}</style>
     </div>

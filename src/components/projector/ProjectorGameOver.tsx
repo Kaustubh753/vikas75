@@ -50,7 +50,7 @@ export default function ProjectorGameOver({ room }: Props) {
 
       <LogoLockup size="md" className="mt-4" />
 
-      <div className="text-center animate-bounce-in">
+      <div className="text-center animate-rise-in">
         <p className="font-[family-name:var(--font-bebas)] text-[#FF9933] text-3xl tracking-[0.4em] mb-1">
           GAME OVER
         </p>
@@ -69,7 +69,7 @@ export default function ProjectorGameOver({ room }: Props) {
           </p>
           <div className="flex flex-wrap items-start justify-center gap-x-10 gap-y-6">
             {champions.map((c, i) => (
-              <div key={c.id} className="flex flex-col items-center gap-3 animate-slam-in" style={{ animationDelay: `${i * 0.12}s` }}>
+              <div key={c.id} className="flex flex-col items-center gap-3 animate-land-in" style={{ animationDelay: `${i * 0.12}s` }}>
                 <span className="text-5xl">👑</span>
                 <div className="rounded-2xl overflow-hidden shadow-[0_0_60px_#FFD70060] ring-4 ring-[#FFD700]/60">
                   <Avatar id={c.avatarId} size={champions.length > 3 ? 76 : 96} />
@@ -116,7 +116,7 @@ export default function ProjectorGameOver({ room }: Props) {
 
             {/* 1st place */}
             {first && (
-              <div className="flex flex-col items-center gap-3 animate-slam-in">
+              <div className="flex flex-col items-center gap-3 animate-land-in">
                 <span className="text-5xl">👑</span>
                 <div className="rounded-2xl overflow-hidden shadow-[0_0_60px_#FFD70060] ring-4 ring-[#FFD700]/60">
                   <Avatar id={first.avatarId} size={100} />

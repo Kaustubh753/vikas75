@@ -73,6 +73,22 @@ class MusicManager {
     });
   }
 
+  /**
+   * A short one-shot sting layered over whatever is playing (a player joining, a card landing).
+   * Never touches `current`, so the phase track keeps going and repeats always re-fire.
+   */
+  ping(name: 'join') {
+    if (this._muted) return;
+    const ctx = this.getCtx();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    if (name === 'join') {
+      // Two quick rising notes: a seat being taken.
+      this.note(783.99, 'triangle', 0, 0.14, 0.07);   // G5
+      this.note(1174.66, 'triangle', 0.1, 0.36, 0.06); // D6
+    }
+  }
+
   stop() {
     if (this.currentAudio) {
       try { this.currentAudio.pause(); this.currentAudio.currentTime = 0; } catch {}

@@ -25,7 +25,7 @@ export default function ProjectorJudging() {
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="w-3 h-3 rounded-full bg-[#FF9933] animate-bounce"
+              className="w-3 h-3 rounded-full bg-[#FF9933] animate-dots"
               style={{ animationDelay: `${i * 0.2}s` }}
             />
           ))}

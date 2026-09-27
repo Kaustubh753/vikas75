@@ -38,7 +38,7 @@ export default function ProjectorBetweenRounds({ room }: Props) {
           className="flex flex-col items-center gap-4 text-center"
           initial={{ scale: 0.7, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 240, damping: 18 }}
+          transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
         >
           <div className="rounded-3xl overflow-hidden border-4 border-[#FFD700] shadow-2xl"
                style={{ width: 'clamp(80px, 9vw, 140px)', height: 'clamp(80px, 9vw, 140px)' }}>
@@ -57,10 +57,16 @@ export default function ProjectorBetweenRounds({ room }: Props) {
             </p>
           </div>
           <blockquote
-            className="text-white/85 italic font-[family-name:var(--font-inter)] leading-relaxed border-l-4 border-[#FF9933] pl-5 text-left"
-            style={{ fontSize: 'clamp(14px, 1.4vw, 22px)', maxWidth: 'clamp(400px, 50vw, 800px)' }}
+            className="text-white/85 italic font-[family-name:var(--font-inter)] leading-relaxed text-center relative"
+            style={{
+              fontSize: 'clamp(14px, 1.4vw, 22px)', maxWidth: 'clamp(400px, 50vw, 800px)', margin: 0,
+              padding: 'clamp(12px, 1.4vh, 18px) clamp(20px, 2vw, 32px)',
+              background: 'rgba(250,248,240,0.025)', border: '1px solid rgba(250,248,240,0.14)', borderRadius: 18,
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+            }}
           >
-            &ldquo;{room.lastVerdict.explanation}&rdquo;
+            <span aria-hidden="true" className="font-[family-name:var(--font-yatra)] not-italic text-[#FF9933] absolute" style={{ fontSize: 'clamp(28px, 2.6vw, 44px)', lineHeight: 1, left: 12, top: 6, opacity: 0.8 }}>&ldquo;</span>
+            {room.lastVerdict.explanation}
           </blockquote>
         </motion.div>
       ) : (
@@ -83,7 +89,7 @@ export default function ProjectorBetweenRounds({ room }: Props) {
             key={p.id}
             initial={{ x: -24, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: i * 0.04, type: 'spring', stiffness: 260, damping: 22 }}
+            transition={{ delay: i * 0.04, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
             className={`rounded-xl border flex items-center gap-3 ${
               leader ? 'border-[#FFD700]/40 bg-[#FFD700]/5' : 'border-white/[0.12] bg-white/[0.06]'
             }`}

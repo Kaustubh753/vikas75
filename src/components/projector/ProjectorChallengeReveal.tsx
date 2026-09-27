@@ -87,7 +87,7 @@ export default function ProjectorChallengeReveal({ room }: Props) {
       {/* Card centred, filling most of the screen height */}
       <motion.div
         style={cardStyle}
-        className="animate-slam-in"
+        className="animate-land-in"
       >
         <Image
           src={getChallengeCardImage(challenge.id)}
