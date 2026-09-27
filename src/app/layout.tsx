@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Bebas_Neue, Inter, Noto_Sans_Devanagari, Yatra_One } from 'next/font/google';
+import { Bebas_Neue, Inter, Noto_Sans_Devanagari, Press_Start_2P, Yatra_One } from 'next/font/google';
 import './globals.css';
 import ToasterProvider from '@/components/ui/ToasterProvider';
 
@@ -11,16 +11,18 @@ const devanagari = Noto_Sans_Devanagari({
   weight: ['400', '500'],
 });
 const yatra = Yatra_One({ weight: '400', subsets: ['latin'], variable: '--font-yatra' });
+// Pixel face for the brand intro's attribution line and PLAY NOW button only.
+const pixel = Press_Start_2P({ weight: '400', subsets: ['latin'], variable: '--font-pixel' });
 
 export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_APP_URL ?? 'https://vikas75.vercel.app'
   ),
   title: 'Vikas 75',
-  description: "The best answer isn't always right.",
+  description: "Play for Progress. A multiplayer party game about Indian government schemes.",
   openGraph: {
     title: 'Vikas 75',
-    description: "The best answer isn't always right.",
+    description: "Play for Progress. A multiplayer party game about Indian government schemes.",
     images: [{ url: '/og-image.png', width: 1200, height: 630 }],
   },
   twitter: {
@@ -43,7 +45,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${bebas.variable} ${inter.variable} ${devanagari.variable} ${yatra.variable}`}>
+      <body className={`${bebas.variable} ${inter.variable} ${devanagari.variable} ${yatra.variable} ${pixel.variable}`}>
         {/* Tricolour strip — fixed, top of every page only */}
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0,

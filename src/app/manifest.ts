@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Vikas 75',
     short_name: 'Vikas 75',
-    description: "The best answer isn't always right. A multiplayer party game about Indian government schemes.",
+    description: "Play for Progress. A multiplayer party game about Indian government schemes.",
     start_url: '/',
     display: 'standalone',
     orientation: 'portrait',

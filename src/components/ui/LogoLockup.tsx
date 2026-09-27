@@ -32,7 +32,8 @@ export default function LogoLockup({ size = 'md', className = '' }: Props) {
         color: 'rgba(250,248,240,.65)',
         lineHeight: 1.4,
         marginBottom: s.spacing,
-        whiteSpace: 'nowrap',
+        // The small lockup lives in a narrow phone header: let the line wrap rather than clip.
+        whiteSpace: size === 'sm' ? 'normal' : 'nowrap',
       }}>
         An initiative of the Office of Shri Sujeet Kumar
       </p>
@@ -62,7 +63,7 @@ export default function LogoLockup({ size = 'md', className = '' }: Props) {
         marginTop: s.spacing,
         whiteSpace: 'nowrap',
       }}>
-        The best answer isn&apos;t always right
+        Play for Progress
       </p>
     </div>
   );
