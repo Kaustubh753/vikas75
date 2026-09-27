@@ -1,0 +1,211 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-24T13:30:00.000Z",
+  "title": "Design System: Vikas 75",
+  "extensions": {
+    "colorMeta": {
+      "studio-black": { "role": "neutral", "displayName": "Studio Black", "canonical": "#08070f", "tonalRamp": ["#08070f", "#15131f", "#232030", "#34304a", "#4a4566", "#6b6588", "#9a94b0", "#d9d6e3"] },
+      "spotlight-saffron": { "role": "primary", "displayName": "Spotlight Saffron", "canonical": "#FF9933", "tonalRamp": ["#33200d", "#663f14", "#995e1c", "#cc7d24", "#ff9933", "#ffb366", "#ffcc99", "#ffe6cc"] },
+      "saffron-hot": { "role": "primary", "displayName": "Saffron Hot", "canonical": "#e8872a", "tonalRamp": ["#2e1b08", "#5c360f", "#8b5117", "#b96c1f", "#e8872a", "#ed9f55", "#f2b880", "#f7d0aa"] },
+      "saffron-lip": { "role": "primary", "displayName": "Saffron Lip", "canonical": "#cc7a00", "tonalRamp": ["#291800", "#523100", "#7a4900", "#a36200", "#cc7a00", "#d69533", "#e0b066", "#ebca99"] },
+      "cue-card-cream": { "role": "neutral", "displayName": "Cue-Card Cream", "canonical": "#faf8f0", "tonalRamp": ["#332f1f", "#665e3f", "#998d5e", "#ccbc7e", "#e6d9b8", "#f0e9d4", "#faf8f0", "#fdfcf8"] },
+      "trophy-gold": { "role": "secondary", "displayName": "Trophy Gold", "canonical": "#FFD700", "tonalRamp": ["#332b00", "#665600", "#998100", "#ccac00", "#ffd700", "#ffdf33", "#ffe766", "#ffef99"] },
+      "flag-green": { "role": "secondary", "displayName": "Flag Green", "canonical": "#138808", "tonalRamp": ["#061c02", "#0c3805", "#0f5406", "#117007", "#138808", "#4aa640", "#85c47d", "#c2e2bd"] },
+      "problem-card-navy": { "role": "tertiary", "displayName": "Problem-Card Navy", "canonical": "#1a3a6e", "tonalRamp": ["#0a1730", "#122b52", "#1a3a6e", "#2a538f", "#4270ad", "#6b91c4", "#9fb6da", "#d2dfef"] },
+      "buzzer-red": { "role": "tertiary", "displayName": "Buzzer Red", "canonical": "#ef4444", "tonalRamp": ["#3b0f0f", "#7a1c1c", "#b22c2c", "#d93a3a", "#ef4444", "#f36b6b", "#f79191", "#fbb8b8"] },
+      "runner-up-silver": { "role": "tertiary", "displayName": "Runner-up Silver", "canonical": "#C0C0C0", "tonalRamp": ["#262626", "#4d4d4d", "#737373", "#999999", "#c0c0c0", "#cccccc", "#d9d9d9", "#e6e6e6"] },
+      "third-place-bronze": { "role": "tertiary", "displayName": "Third-place Bronze", "canonical": "#CD7F32", "tonalRamp": ["#29190a", "#523314", "#7b4c1e", "#a46628", "#cd7f32", "#d7995b", "#e1b284", "#ebccad"] },
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#1a1208", "tonalRamp": ["#1a1208", "#2f2210", "#4a3519", "#6a4c24", "#8c6633", "#af8449", "#cca66e", "#e6cfa6"] },
+      "tile-ink": { "role": "neutral", "displayName": "Tile Ink", "canonical": "#15110a", "tonalRamp": ["#15110a", "#2b2314", "#45381f", "#66522e", "#886d3e", "#aa8b53", "#c9ac78", "#e5d3ac"] },
+      "house-light-70": { "role": "neutral", "displayName": "House Light 70", "canonical": "rgba(250,248,240,0.7)", "tonalRamp": ["rgba(250,248,240,0.14)", "rgba(250,248,240,0.3)", "rgba(250,248,240,0.4)", "rgba(250,248,240,0.45)", "rgba(250,248,240,0.55)", "rgba(250,248,240,0.7)", "rgba(250,248,240,0.85)", "rgba(250,248,240,1)"] },
+      "house-light-45": { "role": "neutral", "displayName": "House Light 45", "canonical": "rgba(250,248,240,0.45)", "tonalRamp": ["rgba(250,248,240,0.14)", "rgba(250,248,240,0.3)", "rgba(250,248,240,0.4)", "rgba(250,248,240,0.45)", "rgba(250,248,240,0.55)", "rgba(250,248,240,0.7)", "rgba(250,248,240,0.85)", "rgba(250,248,240,1)"] },
+      "hairline": { "role": "neutral", "displayName": "Hairline", "canonical": "rgba(250,248,240,0.14)", "tonalRamp": ["rgba(250,248,240,0.04)", "rgba(250,248,240,0.06)", "rgba(250,248,240,0.1)", "rgba(250,248,240,0.14)", "rgba(250,248,240,0.18)", "rgba(250,248,240,0.22)", "rgba(250,248,240,0.3)", "rgba(250,248,240,0.45)"] },
+      "glass-fill": { "role": "neutral", "displayName": "Glass Fill", "canonical": "rgba(250,248,240,0.04)", "tonalRamp": ["rgba(250,248,240,0.015)", "rgba(250,248,240,0.025)", "rgba(250,248,240,0.04)", "rgba(250,248,240,0.06)", "rgba(250,248,240,0.08)", "rgba(250,248,240,0.1)", "rgba(250,248,240,0.14)", "rgba(250,248,240,0.2)"] },
+      "tint-challenge": { "role": "neutral", "displayName": "Challenge Tint", "canonical": "#110b26", "tonalRamp": ["#110b26", "#1c1440", "#281d5a", "#352874", "#43358e", "#5f52a5", "#8478bd", "#b0a8d6"] },
+      "tint-reveal": { "role": "neutral", "displayName": "Reveal Tint", "canonical": "#0a1608", "tonalRamp": ["#0a1608", "#132a10", "#1d3e18", "#275221", "#31662a", "#4f8547", "#78a570", "#a9c7a3"] },
+      "tint-winner": { "role": "neutral", "displayName": "Winner Tint", "canonical": "#171002", "tonalRamp": ["#171002", "#2e2004", "#453006", "#5c4008", "#73500a", "#93702f", "#b39258", "#d3b98c"] },
+      "tint-game-over": { "role": "neutral", "displayName": "Game-over Tint", "canonical": "#110902", "tonalRamp": ["#110902", "#221204", "#331b06", "#442408", "#552d0a", "#7a4e2c", "#a07555", "#c8a287"] },
+      "stage-white": { "role": "neutral", "displayName": "Stage White", "canonical": "#ffffff", "tonalRamp": ["rgba(255,255,255,0.06)", "rgba(255,255,255,0.1)", "rgba(255,255,255,0.2)", "rgba(255,255,255,0.4)", "rgba(255,255,255,0.55)", "rgba(255,255,255,0.6)", "rgba(255,255,255,0.8)", "#ffffff"] },
+      "shadow-ink": { "role": "neutral", "displayName": "Shadow Ink", "canonical": "rgba(0,0,0,0.45)", "tonalRamp": ["rgba(0,0,0,0.06)", "rgba(0,0,0,0.12)", "rgba(0,0,0,0.3)", "rgba(0,0,0,0.35)", "rgba(0,0,0,0.4)", "rgba(0,0,0,0.45)", "rgba(0,0,0,0.55)", "rgba(0,0,0,0.7)"] },
+      "intro-paper": { "role": "neutral", "displayName": "Intro Paper", "canonical": "#f6efd8", "tonalRamp": ["#312e2b", "#625c56", "#938a81", "#c4b8ac", "#ddd3c2", "#ebe3cf", "#f6efd8", "#faf6e8"] },
+      "intro-paper-hi": { "role": "neutral", "displayName": "Intro Paper Hi", "canonical": "#fdf8e8", "tonalRamp": ["#33312e", "#66625c", "#99938a", "#ccc4b8", "#e6dfd0", "#f2ecdc", "#fdf8e8", "#fefcf4"] },
+      "intro-ink": { "role": "tertiary", "displayName": "Intro Ink", "canonical": "#173458", "tonalRamp": ["rgba(23,52,88,0.1)", "rgba(23,52,88,0.16)", "rgba(23,52,88,0.18)", "rgba(23,52,88,0.3)", "rgba(23,52,88,0.4)", "#173458", "#2d4f7e", "#5c7fab"] },
+      "intro-saffron": { "role": "primary", "displayName": "Intro Saffron", "canonical": "#ee7d23", "tonalRamp": ["#2f1907", "#5f320e", "#8e4b15", "#be641c", "#ee7d23", "#f1974f", "#f5b17b", "#f8cba7"] },
+      "intro-green": { "role": "secondary", "displayName": "Intro Green", "canonical": "#1fa24a", "tonalRamp": ["#06200f", "#0c411e", "#13612c", "#19823b", "#1fa24a", "#4cb56e", "#79c892", "#a5dbb7"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Winner names, KHEL KHATAM!, the interstitials and phase overlay words. Bebas Neue capitals at poster scale." },
+      "headline": { "displayName": "Headline", "purpose": "Projector section titles, the challenge text, counters; drops to 22 to 32px for phone headings and the primary button label." },
+      "title": { "displayName": "Wordmark", "purpose": "The Vikas 75 wordmark, the cream code tiles, the +N numeral. Yatra One only." },
+      "body": { "displayName": "Body", "purpose": "Explanations, verdicts, ticker facts, chat. Names at 500 to 600." },
+      "label": { "displayName": "Tape Label", "purpose": "Every eyebrow and status line: uppercase, tracked 0.08 to 0.22em, House Light 70 or 45." },
+      "hindi": { "displayName": "Hindi", "purpose": "The Hindi line of card copy. Never set in the Latin faces." }
+    },
+    "shadows": [
+      { "name": "dealt-card", "value": "0 22px 30px rgba(0,0,0,0.55), 0 7px 12px rgba(0,0,0,0.45)", "purpose": "The landing fan at rest." },
+      { "name": "code-tile", "value": "0 16px 30px rgba(0,0,0,0.45), 0 4px 8px rgba(0,0,0,0.35), inset 0 2px 0 rgba(255,255,255,0.6)", "purpose": "Cream room-code tiles with a paper edge highlight." },
+      { "name": "hero-card", "value": "0 40px 100px rgba(0,0,0,0.7), 0 0 0 2px rgba(255,153,51,0.4)", "purpose": "The 65vh challenge card on the projector." },
+      { "name": "hand-card", "value": "0 4px 20px rgba(0,0,0,0.35)", "purpose": "Cards in the phone tray at rest." },
+      { "name": "hand-card-selected", "value": "0 0 0 2px rgba(255,153,51,0.4), 0 8px 32px rgba(0,0,0,0.4)", "purpose": "The selected card in the phone tray." },
+      { "name": "seat", "value": "0 18px 36px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)", "purpose": "Filled lobby seats." },
+      { "name": "row", "value": "0 4px 24px rgba(0,0,0,0.3)", "purpose": "Leaderboard rows and the phone challenge banner; the lightest shadow." },
+      { "name": "trophy-halo", "value": "0 0 80px rgba(255,215,0,0.38)", "purpose": "The winning avatar. Gold light, winners only." },
+      { "name": "push-lip", "value": "0 4px 0 #cc7a00", "purpose": "The phone primary button; goes to 0 4px on press with a 4px translate." },
+      { "name": "entry-hover", "value": "0 6px 24px rgba(255,153,51,0.32)", "purpose": "Landing and join saffron buttons on hover." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Host bar and panel slides (0.28 to 0.32s), the How-to-play carousel (0.42s)." },
+      { "name": "ease-out-soft", "value": "cubic-bezier(0.2, 0.8, 0.25, 1)", "purpose": "Lobby seat and banter chip entrances (0.4 to 0.55s)." },
+      { "name": "ease-card", "value": "cubic-bezier(0.2, 0.75, 0.25, 1)", "purpose": "The landing card fan moving between states over 0.9s." },
+      { "name": "ease-flip", "value": "cubic-bezier(0.25, 0.46, 0.45, 0.94)", "purpose": "The 0.7s card flip on the projector reveal." },
+      { "name": "ease-expo", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Every entrance and phase overlay: rise-in, land-in, unmask-up, the interstitial words, leaderboard rows. Replaced the old overshoot curve; nothing bounces." },
+      { "name": "spring-card", "value": "spring(stiffness 300, damping 26)", "purpose": "Phone tray cards dealing in, staggered 50ms; near-critically damped so the deal settles without a wobble." },
+      { "name": "winner-sequence", "value": "rise-in 0.6s · halo-bloom 1.1s from 0.4s · unmask-up 0.6s from 0.35s · verdict rise-in from 0.65s · reasoning fade from 1s", "purpose": "The projector's one authored moment: the avatar rises as the gold halo blooms, the name is unmasked from the bottom, the verdict follows. CSS-driven." },
+      { "name": "dots-wave", "value": "1.2s ease-in-out infinite, 200ms stagger", "purpose": "Every thinking indicator: judging, suspense, waiting. Opacity and 3px lift, never a bounce." },
+      { "name": "join-callout", "value": "rise-in 0.5s ease-expo, out 0.35s at 1.35s, total 1.7s", "purpose": "The lobby's callout over the seat band when players join; a burst of joins plays as one callout." },
+      { "name": "spring-timer", "value": "spring(stiffness 100, damping 20)", "purpose": "Timer bar scaleX." },
+      { "name": "duration-hover", "value": "150ms", "purpose": "Colour, border and transform on hover." },
+      { "name": "duration-phase-bg", "value": "800ms ease-in-out", "purpose": "Cross-fading the stage tint between phases." },
+      { "name": "duration-interstitial", "value": "1500ms hold, 250ms fade", "purpose": "Full-screen phase announcements." },
+      { "name": "duration-overlay", "value": "1200ms hold (1100ms on phone), 450ms in", "purpose": "The ROUND N / ALL IN / TIME'S UP words." },
+      { "name": "reveal-pacing", "value": "600ms first, then 1800 / 1200 / 900ms per card for 4 / 8 / 9+ players", "purpose": "Sequential card flips on the reveal screen." },
+      { "name": "winner-choreography", "value": "4s suspense, 4s reveal, then rankings", "purpose": "The winner screen's three stages." }
+    ],
+    "breakpoints": [
+      { "name": "host-narrow", "value": "640px" },
+      { "name": "phone", "value": "768px" },
+      { "name": "projector", "value": "1920px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button (phone)",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one saffron action on a phone screen: full width, Bebas Neue, with the 4px Saffron Lip that compresses on press.",
+      "html": "<button class=\"ds-btn-primary\">Throw Your Card ↑</button>",
+      "css": ".ds-btn-primary { display: block; width: 100%; height: 56px; background: #FF9933; color: #1a1208; border: none; border-radius: 12px; font-family: var(--font-bebas, 'Bebas Neue'), Impact, 'Arial Narrow', sans-serif; font-size: 22px; letter-spacing: 0.1em; text-transform: uppercase; box-shadow: 0 4px 0 #cc7a00; cursor: pointer; transition: transform 120ms ease, box-shadow 120ms ease; } .ds-btn-primary:hover { background: #e8872a; } .ds-btn-primary:active { transform: translateY(4px); box-shadow: 0 0 0 #cc7a00; } .ds-btn-primary:focus-visible { outline: 2px solid #FF9933; outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }"
+    },
+    {
+      "name": "Entry Button (landing, join)",
+      "kind": "button",
+      "refersTo": "button-entry",
+      "description": "The sharp 6px ticket-style CTA on the landing and join pages, Inter caps on saffron with Ink text.",
+      "html": "<button class=\"ds-btn-entry\">Host a Game</button>",
+      "css": ".ds-btn-entry { display: inline-flex; align-items: center; justify-content: center; height: 52px; padding: 0 24px; background: #FF9933; color: #1a1208; border: 1.5px solid #FF9933; border-radius: 6px; font-family: var(--font-inter, 'Inter'), system-ui, sans-serif; font-weight: 600; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; transition: transform 150ms ease, background 150ms ease, box-shadow 150ms ease; } .ds-btn-entry:hover { background: #e8872a; border-color: #e8872a; transform: translateY(-1px); box-shadow: 0 6px 24px rgba(255,153,51,0.32); } .ds-btn-entry:focus-visible { outline: 2px solid #FF9933; outline-offset: 2px; } .ds-btn-entry:disabled { opacity: 0.45; cursor: not-allowed; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "The secondary action beside a saffron primary: saffron outline and text, transparent fill.",
+      "html": "<button class=\"ds-btn-ghost\">Join a Game</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; justify-content: center; height: 52px; padding: 0 24px; background: transparent; color: #FF9933; border: 1.5px solid #FF9933; border-radius: 6px; font-family: var(--font-inter, 'Inter'), system-ui, sans-serif; font-weight: 600; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; transition: transform 150ms ease, background 150ms ease; } .ds-btn-ghost:hover { background: rgba(255,153,51,0.08); transform: translateY(-1px); } .ds-btn-ghost:focus-visible { outline: 2px solid #FF9933; outline-offset: 2px; }"
+    },
+    {
+      "name": "Advance Pill (host)",
+      "kind": "button",
+      "refersTo": "button-advance",
+      "description": "The host's single big control in the bottom bar: a saffron pill with Studio Black Bebas text.",
+      "html": "<button class=\"ds-btn-advance\">Start Game</button>",
+      "css": ".ds-btn-advance { display: inline-flex; align-items: center; justify-content: center; height: 44px; min-width: 200px; padding: 0 28px; background: #FF9933; color: #08070f; border: none; border-radius: 22px; font-family: var(--font-bebas, 'Bebas Neue'), Impact, 'Arial Narrow', sans-serif; font-size: 22px; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; cursor: pointer; transition: background 150ms, opacity 150ms; } .ds-btn-advance:hover { background: #e8872a; } .ds-btn-advance:focus-visible { outline: 2px solid #FF9933; outline-offset: 2px; } .ds-btn-advance:disabled { opacity: 0.4; cursor: not-allowed; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Glass field with a hairline border that lights saffron on focus; 16px text so iOS never zooms.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Your name\" aria-label=\"Your name\" />",
+      "css": ".ds-input { width: 100%; height: 50px; padding: 0 16px; background: rgba(250,248,240,0.04); border: 1px solid rgba(250,248,240,0.14); border-radius: 6px; color: #fff; font-family: var(--font-inter, 'Inter'), system-ui, sans-serif; font-size: 16px; outline: none; transition: border-color 120ms ease; } .ds-input::placeholder { color: rgba(255,255,255,0.3); } .ds-input:focus { border-color: #FF9933; } .ds-input:focus-visible { outline: 2px solid #FF9933; outline-offset: 2px; }"
+    },
+    {
+      "name": "Code Slot",
+      "kind": "input",
+      "refersTo": "code-slot",
+      "description": "One character of the four-letter room code; a filled slot keeps its saffron border.",
+      "html": "<div class=\"ds-code-row\" role=\"group\" aria-label=\"Room code\"><input class=\"ds-code-slot ds-code-slot--filled\" value=\"W\" maxlength=\"1\" aria-label=\"Room code character 1\" /><input class=\"ds-code-slot ds-code-slot--filled\" value=\"U\" maxlength=\"1\" aria-label=\"Room code character 2\" /><input class=\"ds-code-slot\" maxlength=\"1\" aria-label=\"Room code character 3\" /><input class=\"ds-code-slot\" maxlength=\"1\" aria-label=\"Room code character 4\" /></div>",
+      "css": ".ds-code-row { display: flex; gap: 10px; } .ds-code-slot { width: 56px; height: 64px; background: rgba(250,248,240,0.04); border: 1.5px solid rgba(250,248,240,0.14); border-radius: 6px; color: #fff; font-family: var(--font-inter, 'Inter'), system-ui, sans-serif; font-weight: 600; font-size: 26px; text-align: center; text-transform: uppercase; outline: none; transition: border-color 120ms ease; } .ds-code-slot--filled, .ds-code-slot:focus { border-color: #FF9933; } .ds-code-slot:focus { background: rgba(255,153,51,0.08); box-shadow: inset 0 -3px 0 #FF9933; caret-color: #FF9933; } .ds-code-slot:focus-visible { outline: 2px solid #FF9933; outline-offset: 2px; }"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Tracked-caps pill for a state word; saffron outline by default, Flag Green tint for ready.",
+      "html": "<span class=\"ds-chip\">Lobby</span> <span class=\"ds-chip ds-chip--ready\">ready</span>",
+      "css": ".ds-chip { display: inline-block; padding: 5px 12px; border: 1px solid rgba(255,153,51,0.35); border-radius: 999px; color: #FF9933; background: transparent; font-family: var(--font-inter, 'Inter'), system-ui, sans-serif; font-weight: 600; font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; } .ds-chip--ready { color: #138808; background: rgba(19,136,8,0.12); border-color: rgba(19,136,8,0.3); letter-spacing: 0.16em; padding: 4px 9px; }"
+    },
+    {
+      "name": "Glass Panel",
+      "kind": "card",
+      "refersTo": "panel-glass",
+      "description": "The flat set-dressing container: faint cream fill, hairline border, one-pixel inset highlight, no drop shadow.",
+      "html": "<div class=\"ds-panel\"><p class=\"ds-panel__label\">enter the room code</p><p class=\"ds-panel__body\">at <strong>vikas75.in</strong> on your phone</p></div>",
+      "css": ".ds-panel { padding: 20px 28px; background: rgba(250,248,240,0.025); border: 1px solid rgba(250,248,240,0.14); border-radius: 18px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04); } .ds-panel__label { margin: 0 0 10px; font-family: var(--font-inter, 'Inter'), system-ui, sans-serif; font-weight: 600; font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase; color: rgba(250,248,240,0.7); } .ds-panel__body { margin: 0; font-family: var(--font-inter, 'Inter'), system-ui, sans-serif; font-size: 14px; letter-spacing: 0.04em; color: rgba(250,248,240,0.7); } .ds-panel__body strong { color: #fff; font-weight: 600; }"
+    },
+    {
+      "name": "Code Tile",
+      "kind": "custom",
+      "refersTo": "code-tile",
+      "description": "A cream playing-card tile for one letter of the room code, dealt at a slight tilt with a saffron index pip.",
+      "html": "<div class=\"ds-tiles\"><div class=\"ds-tile\" style=\"--tilt:-3deg\">W</div><div class=\"ds-tile\" style=\"--tilt:1.5deg\">U</div><div class=\"ds-tile\" style=\"--tilt:-1deg\">A</div><div class=\"ds-tile\" style=\"--tilt:2.5deg\">V</div></div>",
+      "css": ".ds-tiles { display: flex; gap: 12px; } .ds-tile { position: relative; width: 76px; height: 100px; display: flex; align-items: center; justify-content: center; background: #faf8f0; color: #15110a; border: 1px solid rgba(0,0,0,0.12); border-radius: 12px; font-family: var(--font-yatra, 'Yatra One'), var(--font-bebas, 'Bebas Neue'), Impact, sans-serif; font-size: 53px; line-height: 1; box-shadow: 0 16px 30px rgba(0,0,0,0.45), 0 4px 8px rgba(0,0,0,0.35), inset 0 2px 0 rgba(255,255,255,0.6); transform: rotate(var(--tilt, 0deg)); user-select: none; } .ds-tile::before { content: ''; position: absolute; top: 8px; left: 10px; width: 6px; height: 6px; border-radius: 50%; background: rgba(255,153,51,0.7); }"
+    },
+    {
+      "name": "Scheme Card Frame",
+      "kind": "card",
+      "refersTo": "card-scheme",
+      "description": "The frame around a printed card image in the phone tray; the selected state adds the saffron border, ring and check badge.",
+      "html": "<div class=\"ds-cards\"><div class=\"ds-card\" style=\"--tilt:-2deg\"><div class=\"ds-card__art\">card art</div></div><div class=\"ds-card ds-card--selected\"><div class=\"ds-card__art\">card art</div><span class=\"ds-card__check\">✓</span></div></div>",
+      "css": ".ds-cards { display: flex; gap: 12px; } .ds-card { position: relative; width: 160px; height: 214px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 20px rgba(0,0,0,0.35); transform: rotate(var(--tilt, 0deg)); cursor: pointer; transition: transform 200ms cubic-bezier(0.2, 0.8, 0.25, 1), box-shadow 200ms ease; } .ds-card:hover { transform: rotate(0deg) translateY(-4px) scale(1.03); } .ds-card__art { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #faf8f0; color: #1a3a6e; font-family: var(--font-bebas, 'Bebas Neue'), Impact, sans-serif; font-size: 18px; letter-spacing: 0.1em; text-transform: uppercase; } .ds-card--selected { border: 2px solid #FF9933; box-shadow: 0 0 0 2px rgba(255,153,51,0.4), 0 8px 32px rgba(0,0,0,0.4); transform: rotate(0deg); } .ds-card__check { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border-radius: 50%; background: #FF9933; color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }"
+    },
+    {
+      "name": "Host Bar",
+      "kind": "nav",
+      "refersTo": "host-bar",
+      "description": "The host's fixed bottom control bar: blurred chrome, HOST chip and phase on the left, the Advance pill centre, icon buttons right.",
+      "html": "<div class=\"ds-host-bar\"><div class=\"ds-host-bar__left\"><span class=\"ds-host-bar__chip\">HOST</span><span class=\"ds-host-bar__phase\">LOBBY</span></div><button class=\"ds-host-bar__advance\">Start Game</button><div class=\"ds-host-bar__right\"><button class=\"ds-host-bar__icon\" aria-label=\"Manage players\">👥</button><button class=\"ds-host-bar__icon\" aria-label=\"Settings\">⚙</button><button class=\"ds-host-bar__icon\" aria-label=\"Mute\">🔊</button></div></div>",
+      "css": ".ds-host-bar { display: flex; align-items: center; gap: 12px; height: 72px; padding: 0 20px; background: rgba(8,7,15,0.92); backdrop-filter: blur(24px); border-top: 1px solid rgba(255,153,51,0.22); } .ds-host-bar__left { display: flex; align-items: center; gap: 8px; min-width: 160px; } .ds-host-bar__chip { padding: 2px 8px; border: 1px solid rgba(255,153,51,0.35); border-radius: 20px; background: rgba(255,153,51,0.12); color: #FF9933; font-family: var(--font-inter, 'Inter'), system-ui, sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 0.12em; } .ds-host-bar__phase { color: rgba(255,255,255,0.45); font-family: var(--font-inter, 'Inter'), system-ui, sans-serif; font-weight: 600; font-size: 10px; letter-spacing: 0.08em; } .ds-host-bar__advance { flex: 1; max-width: 240px; margin: 0 auto; height: 44px; padding: 0 28px; background: #FF9933; color: #08070f; border: none; border-radius: 22px; font-family: var(--font-bebas, 'Bebas Neue'), Impact, sans-serif; font-size: 22px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; transition: background 150ms; } .ds-host-bar__advance:hover { background: #e8872a; } .ds-host-bar__right { display: flex; gap: 6px; } .ds-host-bar__icon { width: 38px; height: 38px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 150ms, border-color 150ms, color 150ms; } .ds-host-bar__icon:hover { background: rgba(255,153,51,0.18); border-color: rgba(255,153,51,0.5); color: #FF9933; } .ds-host-bar__icon:focus-visible, .ds-host-bar__advance:focus-visible { outline: 2px solid #FF9933; outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Sarkari Game Show",
+    "overview": "Vikas 75 is staged, not laid out. Every screen is a broadcast set: a warm near-black studio floor, one saffron spotlight falling from the top of the frame, a fine film grain over everything, and physical objects placed on it. The physical objects are the printed deck (cream scheme cards, navy problem cards), the cream room-code tiles dealt at a slight tilt, the QR mat, and the player avatars. They are the only things that catch the light. Everything else, the panels, chips, bars and labels, is set dressing: flat, glassy, hairline-bordered, meant to recede so the room looks at the cards and the people.\n\nThe voice is warm, theatrical, witty, playful and punchy. Type does the shouting: Bebas Neue capitals at poster scale for anything the back row must read, Yatra One for the wordmark and the dealt tiles, Inter in small tracked capitals for the labels a stage manager would print on tape. The energy reference is the Family Feud and Jeopardy mobile apps and UNO: bold artwork, confident animation, a scoreboard rhythm. Where that calls for artwork code cannot draw (mascots, illustrated backdrops, card art), the product owner produces it for handoff rather than the system faking it in CSS.\n\nThe tricolour is set dressing, never a fill: a five-pixel strip at the very top of every page, one-pixel bars on the card back, the podium colours. Confirmed anti-references: a government portal, a generic dark-mode SaaS app, a kids' quiz app, a political campaign page.",
+    "keyCharacteristics": [
+      "Warm near-black stage with a saffron spotlight and film grain on every surface",
+      "Real objects (cards, tiles, QR, avatars) cast heavy shadows; UI panels are flat glass",
+      "Bebas Neue capitals at poster scale on the projector; Inter tracked labels for chrome",
+      "Saffron is the single action colour; gold is reserved for winners; green for \"ready\"",
+      "Tilted tiles and dealt cards make the interface feel handled, not rendered",
+      "Chunky, pressable phone controls with a visible push"
+    ],
+    "rules": [
+      { "name": "The Spotlight Rule", "body": "Saffron is the only warm accent and there is one saffron-filled control per view. If two things are saffron-filled, one of them is wrong.", "section": "colors" },
+      { "name": "The Cue-Card Rule", "body": "Cream appears only on things that are physically paper: card faces, code tiles, the QR mat. It is never a panel background and never a page background.", "section": "colors" },
+      { "name": "The Trophy Rule", "body": "Gold means someone won. It never decorates, highlights or brands.", "section": "colors" },
+      { "name": "The Back-Row Rule", "body": "Anything a player must read from across the room is Bebas Neue capitals at 36px or larger on the projector. Inter is for what the host reads up close.", "section": "typography" },
+      { "name": "The Tape-Label Rule", "body": "Chrome labels are Inter 600, uppercase, 9 to 11px, tracked at least 0.08em, and never pure white: House Light 70 or 45.", "section": "typography" },
+      { "name": "The Real-Object Rule", "body": "Only things that exist in the physical game (cards, tiles, the QR mat, avatars in a seat) cast shadows. Panels, chips, bars and inputs are flat glass with a Hairline border and, at most, a one-pixel inset highlight.", "section": "elevation" },
+      { "name": "The One-Lamp Rule", "body": "There is one light source, the saffron spotlight at top centre. Coloured glows are limited to gold on winners, saffron on the selected card, red on an expiring timer.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do set Bebas Neue capitals at 36px or more for anything the back row must read, and keep verdict prose under 40ch on the projector.",
+      "Do keep one saffron-filled control per view; the second action is a ghost.",
+      "Do put a real object (a card, a tile, an avatar) at the centre of every phase screen and let it cast the shadow.",
+      "Do use Cue-Card Cream only for paper: card faces, code tiles, the QR mat.",
+      "Do make phone controls chunky: 48px minimum, 56px for the primary, with the 4px Saffron Lip that compresses on press.",
+      "Do tilt dealt things by one to three degrees so they read as placed by hand.",
+      "Do ask the product owner for bespoke artwork (mascots, illustrated backdrops, card art) and hand it in as assets rather than approximating it in CSS.",
+      "Do carry the tricolour as thin stripes: the 5px page strip, the card-back bars, the podium."
+    ],
+    "donts": [
+      "Don't look like a government portal: no official blue headers, emblems, seals or form grids.",
+      "Don't look like a generic dark-mode SaaS app: no gray-on-gray cards, purple gradients or dashboard chrome.",
+      "Don't look like a kids' quiz app: no rainbow palettes, cartoon mascots or bubble-rounded everything.",
+      "Don't look like a political campaign page: no party colours, slogans or candidate photography as the lead.",
+      "Don't use gold for anything but winners, or a second green or saffron; the online dot's #22c55e is legacy drift, not a token.",
+      "Don't put shadows on panels, chips, bars or inputs; depth belongs to objects.",
+      "Don't use bounce, elastic or overshoot easing anywhere; every entrance decelerates on cubic-bezier(0.16, 1, 0.3, 1) and thinking indicators wave, they never bounce.",
+      "Don't replace the printed card artwork with a CSS rendering of a card."
+    ]
+  }
+}

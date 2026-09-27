@@ -20,6 +20,7 @@ npm run build        # next build — production build (run this to catch type e
 npm run start        # next start — serve the production build
 npm run lint         # eslint .
 npx tsc --noEmit     # type-check only (no test runner exists in this repo)
+node scripts/check-cards-fit.mjs   # validate context/cards_fit.json against the deck
 ```
 
 There is **no test framework** — no `test` script, no `*.test.*` files. Verification is done by `npm run build` (which type-checks), `npm run lint`, and manual play-testing across the three windows described in *Running Locally*. Don't reference a test suite that doesn't exist.
@@ -109,7 +110,7 @@ User text is cleaned before storage: `sanitizeName()` (length/trim) and `filterT
 - `src/lib/ai-judge.ts` — Dual-mode judge.
   - Live model id is `JUDGE_MODEL = 'claude-sonnet-4-6'` (used when `ANTHROPIC_API_KEY` present). This is the current Sonnet 4.6 id — do not "correct" it to an older dated id.
   - The judge **ranks all submissions** and returns per-player `gamePoints` (1st=3, 2nd=2, 3rd=1); `applyVerdict` consumes that.
-  - Falls back to `fallbackJudge()` (random winner + Hindi-flavoured verdicts) when the key is absent, and **silently** if the live call throws/times out (8s `AbortController`) or returns unparseable JSON.
+  - Falls back to `fallbackJudge(challenge, submissions)` when the key is absent, and **silently** if the live call throws/times out (8s `AbortController`) or returns unparseable JSON (an exhausted API credit balance lands here too). The fallback is **not random**: it ranks each played scheme by its fit to the challenge from `context/cards_fit.json` (`schemeFit()` → tier 1–4, or 5 for an unlisted scheme, with a total rank order), then by whether the player wrote anything (≤25 words beats longer beats empty), then a coin toss. Scores sit in tier bands (10/8/6/4/2 down to 1) and never rise down the list; per-player comments come from tier-specific pools; the round narrative stays a random Hinglish line by design.
   - Strips accidental markdown fences before `JSON.parse`; `buildVerdict` rejects a verdict that names an unknown `playerId`.
   - Bonus rule on the **fallback** path: `explanation.trim().split(/[.!?]/).filter(Boolean).length <= 1`. On the **live** path the model supplies `bonusPoint` directly (same one-sentence intent, not server-recomputed).
 
@@ -132,20 +133,23 @@ User text is cleaned before storage: `sanitizeName()` (length/trim) and `filterT
 - `src/app/admin/dashboard/page.tsx` — Admin dashboard.
 
 ### Host Components
-- `src/components/projector/HostOverlay.tsx` — Fixed bottom control bar rendered on the projector when `?h=[hostId]` is present. Accepts `hostId` as prop (from URL, not localStorage). Phase-appropriate advance button, error display, lobby settings panel (rounds/timer sliders), music toggle, end-game confirm, and a **players panel with per-player Kick** (`kick-player` action, host-gated). Sends `hostId` on every host action.
+- `src/components/projector/HostOverlay.tsx` — Fixed bottom control bar rendered on the projector when `?h=[hostId]` is present. Accepts `hostId` as prop (from URL, not localStorage). Phase-appropriate advance pill (disabled with the reason as its label below 2 players in the lobby, saffron at 82%), errors as toasts bottom-right above the bar with a next step, lobby settings drawer (rounds 3–15 / timer sliders stacked, "Saved ✓" feedback), labelled 44px controls with inline stroke icons (Invite, Players, Settings, Sound toggle with `aria-pressed`, Hide, End), an **invite drawer** with the `/join?code=` link (Copy link, WhatsApp via `wa.me`, Share… when `navigator.share` exists; the origin is read with `useSyncExternalStore`, no effect), and a **players drawer with a two-step Remove** (`kick-player` action, host-gated; Keep first and focused, "Yes, remove" outlined). Panels are right-hand drawers of `min(380px, 23vw)` that never cover the lobby's join card; Escape closes the End dialog, then any drawer; the collapsed "HOST ▲" pill is out of the tab order while the bar is open. The bar's sound button is the only sound control on a host's screen (`ProjectorView` hides `MuteButton` for hosts) and applies locally before broadcasting `music-toggle`. Sends `hostId` on every host action.
+- `src/components/projector/ProjectorLobby.tsx` — Composed for the back row: poster line + Hindi line + "no app" eyebrow, the QR as the hero (30% of the height; 24% under 800px tall; 23% with two seat rows; level H), Bebas instructions, seats in one row to 8 and two rows to 16 with a "+N more" tile beyond, sized from the height left over (a budget computed from the same CSS clamps plus the `bottomInset` prop ProjectorView passes for the host bar) so the roster shrinks before anything clips, names on up to two lines, a head-count-aware status line, a join callout anchored over the seat band (1.7 s, bursts coalesce into one callout, with `getMusicManager().ping('join')`), and a ten-second fact ticker that reserves two lines and hides when a short screen needs two seat rows. Under the Pusher fallback `ProjectorView` polls the lobby every 5–7 s (3 s in active phases, 30 s otherwise).
 
 ### Player Components
-- `src/app/page.tsx` — Home page (join/create screen). Uses `<CodeInput>`. Stores `vikas75_playerId`, `vikas75_playerName`, `vikas75_avatarId` in localStorage on join. Host redirected to `/host/[code]?h=[hostId]`.
-- `src/components/player/PlayerView.tsx` — Player state machine. Reads identity from localStorage in `useEffect` only (avoids hydration mismatch). Redirects to `/?code=${code}` if no identity found. Polls `/api/game` every 30 s as Pusher fallback.
-- `src/components/player/PlayerSubmit.tsx` — Card selection + explanation. Horizontal scroll tray; 160×214 card images; word counter (25-word cap); bonus point hint (≤1 sentence).
-- `src/components/player/PlayerLobby.tsx` — Waiting in lobby, shows player list.
+- `src/app/page.tsx` — Landing. Desktop: lockup + CTAs with the premise and its Hindi line, the interactive card fan (deals only after the intro leaves; one roving tab stop with arrow keys; a fixed-height cue-card caption under it reads the picked card's name, Hindi name and printed line from `CARDS`), a static five-step How-to-play list on engine truth (7 cards, 25 words, 90 s default, most rounds won) with a link to `/how-to-play`. Phone: lockup, three rule lines, Join filled and Host ghost in the lower half. "Host a Game" creates a room and goes to `/projector/[code]?h=[hostId]`.
+- `src/components/intro/IntroAnimation.tsx` — Brand intro. Aspect-ratio neutral (`makeLayout()` derives every rect from the viewport; no letterbox). Variants: `'full'` (10.4 s) and `'sting'` (logo resolve only, ~1.2 s). Seen-memory in localStorage `vikas75_intro_seen` via `hasSeenIntro()`/`markIntroSeen()`: the landing plays full once per device then the sting; `/join?code=` plays full once then never. Attribution band is live pixel text (Press Start 2P, `--font-pixel`).
+- `src/app/join/JoinClient.tsx` — Join page. Reads the room as soon as four valid characters are in (GET `?code=`) and shows a status line (found / missing / ended / round in progress); taken avatars come from that read. Fixed bottom Join bar, always saffron, disabled reason on the label. Stores `vikas75_playerId`, `vikas75_token`, `vikas75_playerName`, `vikas75_avatarId`, `vikas75_roomCode` in localStorage on join.
+- `src/components/player/PlayerView.tsx` — Player state machine. Reads identity from localStorage in `useEffect` only (avoids hydration mismatch). Redirects to `/?code=${code}` if no identity found. Polls `/api/game` every 30 s as Pusher fallback. Outside the lobby an identity strip under the header shows the player's own avatar and name (from `room.players`, falling back to localStorage). A **late joiner** (`joinedRound >= room.round` during `challenge-reveal` or `submission`, or a seat the poll has not caught up with) gets a "You're in, {name}" screen with their avatar and "Round N is under way… You play from round N+1" instead of the challenge prompt or the card tray.
+- `src/components/player/PlayerSubmit.tsx` — Card selection + explanation. Horizontal scroll tray; 160×214 card images (128×171 preview on the justify step so the primary sits above the floating chat/emote buttons); word counter (25-word cap); bonus point hint (≤1 sentence). Primaries are 56px Bebas in Ink on saffron and never fade when disabled: the label carries the reason ("Tap a card to play it", "Write your justification first").
+- `src/components/player/PlayerLobby.tsx` — Waiting in lobby: "You're in, {name}" over the player's avatar, "Watch the big screen. The host starts the game there.", the player list, and an invite card with the `/join?code=` link, "Share the link" (share sheet, else clipboard + toast) and a WhatsApp `wa.me` link.
 - `src/components/player/PlayerWaiting.tsx` — Generic waiting screen with pulsing dots.
 
 ### Projector Components
 - `src/components/projector/ProjectorView.tsx` — Projector state machine. Subscribes to Pusher. Routes to phase-specific screens.
 - `src/components/projector/ProjectorLobby.tsx` — `'use client'`. Shows room code, QR code (via `qrcode.react`), player list. `window.location.origin` read in `useEffect` only.
 - `src/components/projector/ProjectorChallengeReveal.tsx` — Dramatic challenge card reveal.
-- `src/components/projector/ProjectorSubmission.tsx` — Submission countdown, shows who has submitted.
+- `src/components/projector/ProjectorSubmission.tsx` — Submission countdown, shows who has submitted. The counter is `submitted / eligible` (players with `joinedRound < room.round`, the same set `allPlayersSubmitted` waits for); late joiners get a saffron "Next round" tile instead of "Thinking…".
 - `src/components/projector/ProjectorReveal.tsx` — Shows all submitted scheme cards.
 - `src/components/projector/ProjectorJudging.tsx` — AI deliberating animation.
 - `src/components/projector/ProjectorWinner.tsx` — Winner announcement with verdict.
@@ -154,12 +158,14 @@ User text is cleaned before storage: `sanitizeName()` (length/trim) and `filterT
 
 ### UI Components
 Buttons are styled inline per-component — there is **no shared `Button` primitive**. App-wide visual concerns live in `globals.css` (focus-visible rings, `prefers-reduced-motion` collapse, iOS input-zoom guard, safe-area padding, keyframes/animation utilities). The `ui/` directory holds:
-- `CodeInput.tsx` — OTP-style 4-box room code input. `onChange` for mobile compatibility (IME-safe); `onKeyDown` for backspace navigation; `onPaste` fills all boxes; `onFocus` selects content; `caret-transparent` hides cursor.
+- `CodeInput.tsx` — OTP-style 4-box room code input used by the join page. Emits a fixed four-slot string (clearing a middle letter never shifts the rest); `onFocus` selects content so typing overwrites and a burst of letters spills into the following slots; the focused slot gets a saffron border, fill and bottom bar; `extractRoomCode()` pulls the code out of a pasted share link, a "code: XSZQ" message or a partial "code is NEC"; `error` paints the slots red (the join page passes it only for a code that matches no room); `labelledBy` wires the visible label.
+- `AvatarPicker.tsx` — 3×4 grid as a `radiogroup` with a roving tab stop and arrow-key navigation; `taken` (avatarId → owner name) dims and captions tiles already in the room and `onBlocked` reports a tap on one; the dice tile picks a random untaken avatar.
 - `AvatarPicker.tsx`, `CardBack.tsx`, `Confetti.tsx`, `ConnectionBanner.tsx`, `CountUp.tsx`, `LogoLockup.tsx`, `MuteButton.tsx`, `SkeletonCard.tsx`, `SocialLinks.tsx`, `ToasterProvider.tsx`.
 
 ### Cards and Cards Components
 - `context/cards_challenges.json` — 30 challenge cards (c001–c030). Fields: `id`, `en`, `hi`, `icon`.
 - `context/cards_schemes.json` — 75 scheme cards (s001–s075). Fields: `id`, `name`, `hi`, `desc`, `bullets[]`.
+- `context/cards_fit.json` — the offline judge's fit hierarchy: for each challenge, four ranked tiers of scheme ids (1 = made for this brief, 2 = strong, 3 = related, 4 = loosely related; unlisted = no fit, in id order). Built from the deck descriptions, the Office's CARDS MAPPING sheet (checked; 14 of its 160 entries demoted, 6 tier-1 additions) and a research pass on each scheme. `node scripts/check-cards-fit.mjs` validates it (every scheme is a tier-1/2 fit for at least one challenge).
 - `src/components/cards/ChallengeCard.tsx` — Visual card component.
 - `src/components/cards/SchemeCard.tsx` — Visual card component.
 
@@ -231,6 +237,8 @@ Without Redis env vars, state lives in a module-level `Map` — rooms are lost o
 
 21. **Pusher crashed the API when unconfigured** — `pusherServer` was built at import with non-null-asserted env vars; missing vars threw and 500'd all of `/api/game`. Fixed: construct only when configured, otherwise `null` + no-op broadcasts (degrade to polling).
 
+22. **Mid-game joiner saw no avatar and a misleading prompt** — The chosen avatar was stored correctly, but the phone only ever rendered the player's own avatar in the lobby; someone joining during `challenge-reveal` saw "Choose your best scheme card" although `allPlayersSubmitted` excludes them for that round, and the projector counted them as "not submitted" (the counter could never reach N/N). Fixed: an identity strip in every non-lobby phase, a late-joiner screen with the avatar for `challenge-reveal` and `submission`, and the projector counter over eligible players with "Next round" tiles.
+
 ---
 
 ## Known Issues / What Still Needs Fixing
@@ -259,4 +267,4 @@ Open three windows:
 3. `http://localhost:3000/host/[CODE]?h=[HOST_ID]` — host controls (link shown on join)
 
 Without Upstash Redis, rooms live in memory — works fine for single-instance local dev.
-Without `ANTHROPIC_API_KEY`, the fallback judge picks a random winner with a fun Hinglish verdict.
+Without `ANTHROPIC_API_KEY`, the fallback judge ranks by scheme-to-challenge fit (`context/cards_fit.json`) and adds a fun Hinglish verdict.

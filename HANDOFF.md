@@ -33,6 +33,37 @@ everyone has submitted, and (b) `judging` is fully automated — entering it fir
 
 ## 1. Chronology of recent work (newest first)
 
+### Design pass with the Impeccable skill (2026-09-24)
+
+Ran `/impeccable` end to end: `init` (wrote `PRODUCT.md`), `document` (wrote `DESIGN.md`
++ `.impeccable/design.json`, North Star "The Sarkari Game Show"), `critique` of the join page
+(22/40), projector lobby (19/40) and landing (18/36) with snapshots under
+`.impeccable/critique/`, then `polish`, `animate` and `audit`. Product decisions taken with
+the owner: the tagline is now **"Play for Progress"** everywhere (metadata, manifest, OG
+image regenerated), the attribution line stays, the caricature avatars stay, the intro plays
+in full **once per device** on both the landing and the QR path and is now aspect-ratio
+neutral (`makeLayout()` in `IntroAnimation.tsx`), with a short sting on landing returns.
+Highlights of what changed: truthful rules on the landing (static list, no carousel), a 52px
+CTA, an accessible fan; join page with a live room lookup, a fixed always-saffron Join, smart
+code paste, taken-avatar states; projector lobby recomposed for the back row (QR hero at 30%
+of the height, Bebas instructions, seats to 16 sized from the height left over with two-line
+names, a join callout over the seat band that coalesces bursts, state-aware idle copy, a 5 s
+lobby poll under the Pusher fallback); host bar with icon controls, right-hand drawers, Escape,
+a Start guard, two-step Remove with Keep first, toasts above the bar, one sound control;
+every overshoot easing replaced by `cubic-bezier(0.16,1,0.3,1)`, thinking dots wave, and the
+winner screen has one authored CSS sequence (halo bloom + name unmask); a delight pass made the
+landing fan teach (a cue-card caption reads the picked card's words from the deck, one roving tab
+stop) and gave the phone lobby a "You're in" beat; hosts and players both get the room's join
+link (an Invite drawer in the host bar, an invite card in the phone lobby) with copy, the share
+sheet and WhatsApp. A mid-game joiner now sees their own avatar (identity strip in every phase,
+a "You're in" screen while they sit the live round out) and the projector's submission counter
+is over eligible players only, with "Next round" tiles for late joiners. The offline judge now
+ranks by scheme-to-challenge fit (`context/cards_fit.json`, 30 × 75 in four tiers, checked
+against the Office's mapping sheet and researched), so a room without API credits still crowns
+the closest scheme; only the verdict copy stays random. The design hook is
+active: white, the intro's own palette and shadow black are documented tokens so the
+detector stays quiet; `.impeccable/live/config.json` targets `src/app/layout.tsx`.
+
 ### Completion pass — Milestone 1: playable-v1 hardening (this session)
 
 Goal of the session: take the game from "works" to complete/polished/shippable, in
