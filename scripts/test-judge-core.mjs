@@ -6,6 +6,7 @@ import {
   buildUserMessage, parseCallResult, aggregateCalls, assembleVerdict, scrubLabels, capText, rankFallback,
   callTopVote, topVotePosition, isStructuredOutputRejection, clean,
   deadlineMsFor, maxTokensFor, JUDGING_LOCK_TTL_MS, BRIEF_THRESHOLD, LABEL_POOL_SIZE, CALL_SCHEMA,
+  compileFitTiers, fitTierFor, isOnBrief, onBriefNote, fallbackTier, fallbackScore, NO_FIT_TIER,
 } from '../src/lib/judge-core.ts';
 
 let passed = 0;
@@ -572,19 +573,63 @@ test('capText respects the Devanagari danda and never splits a surrogate pair', 
   assert.ok(capped.isWellFormed(), 'no lone surrogate');
   assert.equal(capped, 'x'.repeat(19) + '…');
 });
-test('cards_mapping.json only references real challenge and scheme ids', async () => {
+test('cards_fit.json: every challenge has four tiers of real, unrepeated scheme ids, and every scheme is a strong fit somewhere', async () => {
   const fs = await import('node:fs');
   const read = (f) => JSON.parse(fs.readFileSync(new URL(`../context/${f}`, import.meta.url), 'utf8'));
-  const challenges = new Set(read('cards_challenges.json').map((c) => c.id));
+  const challenges = read('cards_challenges.json').map((c) => c.id);
   const schemes = new Set(read('cards_schemes.json').map((s) => s.id));
-  const mapping = read('cards_mapping.json');
-  assert.equal(challenges.size, 30);
+  const fit = read('cards_fit.json');
+  assert.equal(challenges.length, 30);
   assert.equal(schemes.size, 75);
-  for (const [challengeId, ids] of Object.entries(mapping)) {
-    assert.ok(challenges.has(challengeId), `unknown challenge ${challengeId}`);
-    assert.ok(Array.isArray(ids) && ids.length > 0, `empty mapping for ${challengeId}`);
-    for (const id of ids) assert.ok(schemes.has(id), `unknown scheme ${id} under ${challengeId}`);
+  const strong = new Set();
+  for (const id of challenges) {
+    const entry = fit.challenges[id];
+    assert.ok(entry, `no fit entry for ${id}`);
+    assert.equal(entry.tiers.length, 4, `${id}: four tiers`);
+    assert.ok(entry.tiers[0].length > 0, `${id}: tier 1 is empty`);
+    const flat = entry.tiers.flat();
+    assert.equal(new Set(flat).size, flat.length, `${id}: a scheme is listed twice`);
+    for (const s of flat) assert.ok(schemes.has(s), `${id}: unknown scheme ${s}`);
+    for (const s of [...entry.tiers[0], ...entry.tiers[1]]) strong.add(s);
   }
+  for (const id of Object.keys(fit.challenges)) assert.ok(challenges.includes(id), `${id} is not a challenge card`);
+  for (const s of schemes) assert.ok(strong.has(s), `${s} is never a tier-1 or tier-2 fit for any challenge`);
+  // The compiled lookup agrees with the file.
+  const tiers = compileFitTiers(fit);
+  assert.equal(fitTierFor(tiers.get('c001'), 's001'), 1, 'Jan Dhan is made for the bank-account brief');
+  assert.equal(fitTierFor(tiers.get('c001'), 's073'), NO_FIT_TIER, 'the quantum mission is not');
+  assert.equal(fitTierFor(tiers.get('c999'), 's001'), NO_FIT_TIER, 'an unknown challenge fits nothing');
+});
+test('fallbackTier: anyone who wrote a case beats every blank; among them the closest scheme wins', () => {
+  for (let t = 1; t <= NO_FIT_TIER; t++) {
+    assert.ok(fallbackTier(t, true) > fallbackTier(1, false), `an argued tier-${t} card beats a blank tier-1 card`);
+    if (t < NO_FIT_TIER) {
+      assert.ok(fallbackTier(t, true) > fallbackTier(t + 1, true), `argued: tier ${t} beats tier ${t + 1}`);
+      assert.ok(fallbackTier(t, false) > fallbackTier(t + 1, false), `blank: tier ${t} beats tier ${t + 1}`);
+    }
+  }
+});
+test('fallbackScore sits in the live rubric bands and never lets a blank explanation above 2', () => {
+  assert.deepEqual([1, 2, 3, 4, 5].map((t) => fallbackScore(t, true)), [8, 7, 5, 4, 3]);
+  assert.deepEqual([1, 2, 3, 4, 5].map((t) => fallbackScore(t, false)), [2, 2, 1, 1, 1]);
+  // Scores follow the fallbackTier order, so a ranking sorted by tier is monotone without any clamping.
+  const keys = [];
+  for (const wrote of [true, false]) for (let t = 1; t <= NO_FIT_TIER; t++) keys.push({ k: fallbackTier(t, wrote), s: fallbackScore(t, wrote) });
+  keys.sort((a, b) => b.k - a.k);
+  for (let i = 1; i < keys.length; i++) assert.ok(keys[i].s <= keys[i - 1].s, 'scores never rise down the ranking');
+});
+test('buildUserMessage with fit tiers says how close the deck places each scheme, and keeps the yes/no', () => {
+  const s = [sub('p1', 'A', 'made for it', 's001'), sub('p2', 'B', 'not listed', 's099')];
+  const labelled = assignLabels(s, 3);
+  const byLabel = new Map(labelled.map((l) => [l.label, l.submission]));
+  const msg = buildUserMessage(challenge, byLabel, labelled.map((l) => l.label), new Map([['s001', 1], ['s050', 3]]));
+  assert.ok(msg.includes('On-brief for this challenge: yes (made for it)'));
+  assert.ok(msg.includes('On-brief for this challenge: no\n'), 'an unlisted scheme is a plain no');
+  assert.equal(onBriefNote(new Map([['s050', 3]]), 's050'), 'no (related)');
+  assert.equal(onBriefNote(new Map([['s050', 2]]), 's050'), 'yes (strong fit)');
+  assert.equal(onBriefNote(new Map([['s050', 4]]), 's050'), 'no (loosely related)');
+  assert.equal(onBriefNote(new Set(['s050']), 's050'), 'yes', 'a plain set still gives the old yes/no');
+  assert.ok(isOnBrief(2) && !isOnBrief(3));
 });
 
 for (const { name, fn } of tests) {

@@ -129,6 +129,78 @@ export function rankFallback<T>(entries: readonly T[], rand: () => number, tierO
   return seededShuffle(entries, rand).sort((a, b) => tierOf(b) - tierOf(a));
 }
 
+// ── Fit tiers ─────────────────────────────────────────────────────────────────
+
+/**
+ * `context/cards_fit.json`: for every challenge, the deck's 75 schemes in four ranked tiers —
+ * 1 made for this brief, 2 strong fit, 3 related, 4 loosely related; anything unlisted is 5,
+ * no real fit. Built from the deck descriptions, the office's CARDS_MAPPING sheet (checked
+ * entry by entry: 146 of its 160 pairs sit in tiers 1–2, 14 were demoted with reasons, 6 tier-1
+ * fits were added) and a research pass on each scheme. Unlike the old on-brief SET, the order
+ * carries meaning: the fallback can rank by it, and the live judge can be told how close a
+ * scheme sits rather than only whether it is on a list.
+ */
+export interface FitTable { challenges: Record<string, { tiers: string[][] }> }
+export const NO_FIT_TIER = 5;
+export const FIT_TIER_NOTE: Readonly<Record<number, string>> = { 1: 'made for it', 2: 'strong fit', 3: 'related', 4: 'loosely related' };
+
+/** Compile the table once into challengeId → (schemeId → tier), so a lookup is two map reads. */
+export function compileFitTiers(table: FitTable): ReadonlyMap<string, ReadonlyMap<string, number>> {
+  const out = new Map<string, ReadonlyMap<string, number>>();
+  for (const [challengeId, entry] of Object.entries(table.challenges ?? {})) {
+    const tiers = new Map<string, number>();
+    entry.tiers.forEach((ids, i) => {
+      for (const id of ids) if (!tiers.has(id)) tiers.set(id, i + 1);
+    });
+    out.set(challengeId, tiers);
+  }
+  return out;
+}
+
+/** A scheme's tier for one challenge; 5 when the challenge is unknown or the scheme is unlisted. */
+export function fitTierFor(tiers: ReadonlyMap<string, number> | null | undefined, schemeId: string): number {
+  return tiers?.get(schemeId) ?? NO_FIT_TIER;
+}
+
+/** On-brief means the deck's own notes place the scheme in the top two tiers. */
+export function isOnBrief(tier: number): boolean {
+  return tier <= 2;
+}
+
+/**
+ * The per-answer on-brief line. A plain set gives the old yes/no; the fit-tier map adds how
+ * close the deck's notes place the scheme, so the model can tell a near-miss from a wild one.
+ */
+export function onBriefNote(onBrief: ReadonlySet<string> | ReadonlyMap<string, number>, schemeId: string): string {
+  if (onBrief instanceof Map) {
+    const tier = fitTierFor(onBrief, schemeId);
+    const note = FIT_TIER_NOTE[tier];
+    return `${isOnBrief(tier) ? 'yes' : 'no'}${note ? ` (${note})` : ''}`;
+  }
+  return (onBrief as ReadonlySet<string>).has(schemeId) ? 'yes' : 'no';
+}
+
+/**
+ * The offline judge's ordering key, higher is better. Whether the player wrote anything comes
+ * first — a timer-expiry auto-submit plays a random card with a blank explanation, and the
+ * rubric's own override says nothing written is never a right answer — then the fit tier, so
+ * among the players who made a case the deck's closest scheme wins. The coin toss inside a key
+ * comes from rankFallback's shuffle, never from submission order or player id.
+ */
+export function fallbackTier(fitTier: number, wrote: boolean): number {
+  return (wrote ? 10 : 0) + (NO_FIT_TIER - fitTier);
+}
+
+/**
+ * Stars for the offline judge, in the live rubric's bands: an argued card scores by how close
+ * the deck places it (made for it 8, strong 7, related 5, loose 4, none 3 — "plainly put", never
+ * the 9–10 that only wit earns), and a blank explanation is 1–2 whatever the card.
+ */
+export function fallbackScore(fitTier: number, wrote: boolean): number {
+  if (!wrote) return isOnBrief(fitTier) ? 2 : 1;
+  return ({ 1: 8, 2: 7, 3: 5, 4: 4 } as Record<number, number>)[fitTier] ?? 3;
+}
+
 // ── Labels & presentation orders ──────────────────────────────────────────────
 
 /**
@@ -219,7 +291,7 @@ export function buildUserMessage(
   challenge: ChallengeCard,
   byLabel: ReadonlyMap<string, Submission>,
   order: readonly string[],
-  onBriefIds: ReadonlySet<string> | null,
+  onBrief: ReadonlySet<string> | ReadonlyMap<string, number> | null,
 ): string {
   const n = order.length;
   const blocks = order.map((label) => {
@@ -228,7 +300,7 @@ export function buildUserMessage(
     const card = s.schemeCard;
     const lines = [`=== ${label} ===`, `Scheme: ${clean(card.name)} (${clean(card.hi)})${card.desc ? ` — ${clean(card.desc)}` : ''}`];
     if (card.bullets?.length) lines.push(`Benefits: ${card.bullets.map(clean).join('; ')}`);
-    if (onBriefIds) lines.push(`On-brief for this challenge: ${onBriefIds.has(card.id) ? 'yes' : 'no'}`);
+    if (onBrief) lines.push(`On-brief for this challenge: ${onBriefNote(onBrief, card.id)}`);
     lines.push(`Explanation: <<<${clean(s.explanation) || '(blank — nothing written)'}>>>`);
     return lines.join('\n');
   });
