@@ -1,4 +1,5 @@
 import type { ChallengeCard, Submission, JudgeVerdict, PlayerRanking } from '@/types/game';
+import fitData from '@/../context/cards_fit.json';
 
 // The single hardcoded model string for the judge call.
 const JUDGE_MODEL = 'claude-sonnet-4-6';
@@ -51,16 +52,42 @@ const FALLBACK_VERDICTS = [
   "Other answers were good. This one was great. The difference? Pure Bharat ki creativity!",
 ];
 
-const FALLBACK_COMMENTS = [
-  "Ekdum mast connection!",
-  "Solid but could've gone wilder.",
-  "Safe choice, well argued.",
-  "The crowd appreciated this one.",
-  "Textbook answer — needs more masala.",
-  "Decent attempt, but judges wanted more jugaad.",
-  "Hmm. The logic is there if you squint.",
-  "Points for confidence alone.",
-];
+// Offline judge comments, by how well the scheme fits the brief (tier 1 = made for it … 5 = no real fit).
+const FIT_COMMENTS: Record<number, string[]> = {
+  1: ["Sahi pakde hain — that is exactly the scheme for this brief!", "Bull's-eye. The card and the challenge were made for each other.", "Textbook fit, and the panel loves a textbook this on-point."],
+  2: ["Close cousin of the perfect card — a strong connection.", "Right neighbourhood, right idea. Solid.", "Not the headline scheme, but it genuinely helps here."],
+  3: ["There is a thread here, if you squint a little.", "A creative stretch — the panel admired the jugaad.", "The link is loose; the confidence was not."],
+  4: ["Bold detour. Wrong district, great energy.", "Distant relative of the right answer. Points for nerve.", "Filed under 'imaginative'. Very imaginative."],
+  5: ["This card belongs to another brief entirely — points for nerve.", "The judges checked twice. Still no connection. Still smiling.", "A scheme in search of a problem. Not this one."],
+};
+
+// ── Offline fit table: for each challenge, the 75 schemes in ranked tiers (context/cards_fit.json).
+type FitTable = { challenges: Record<string, { tiers: string[][] }> };
+const FIT: FitTable = fitData as FitTable;
+const NO_FIT_TIER = 5;
+
+/** Where a scheme sits for a challenge: tier 1–4 from the table, 5 when it is not listed. Lower rank is better. */
+export function schemeFit(challengeId: string, schemeId: string): { tier: number; rank: number } {
+  const tiers = FIT.challenges[challengeId]?.tiers ?? [];
+  let rank = 0;
+  for (let t = 0; t < tiers.length; t++) {
+    const i = tiers[t].indexOf(schemeId);
+    if (i >= 0) return { tier: t + 1, rank: rank + i };
+    rank += tiers[t].length;
+  }
+  // Unlisted schemes share one rank past the table: among them the justification and the coin
+  // toss decide, so a no-fit round is fair rather than settled by card number.
+  return { tier: NO_FIT_TIER, rank };
+}
+
+/** A scheme played with any justification beats the same scheme played in silence. */
+function explanationWeight(explanation: string): number {
+  const words = explanation.trim().split(/\s+/).filter(Boolean).length;
+  if (words === 0) return 0;
+  return words <= 25 ? 2 : 1;
+}
+
+function pick<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
 
 async function claudeJudge(challenge: ChallengeCard, submissions: Submission[]): Promise<JudgeVerdict> {
   const { default: Anthropic } = await import('@anthropic-ai/sdk');
@@ -164,14 +191,33 @@ function buildVerdict(
   };
 }
 
-function fallbackJudge(submissions: Submission[]): JudgeVerdict {
-  // Shuffle for random ranking
-  const shuffled = [...submissions].sort(() => Math.random() - 0.5);
-  const reasoning = FALLBACK_VERDICTS[Math.floor(Math.random() * FALLBACK_VERDICTS.length)];
+/**
+ * The offline judge, used without an API key or when the live call fails. It ranks by how well
+ * each played scheme fits the challenge (the tier table in context/cards_fit.json), then by
+ * whether the player wrote anything, then by a coin toss — so the closest scheme wins and the
+ * round still has game-show energy. The verdict copy stays random on purpose.
+ */
+export function fallbackJudge(challenge: ChallengeCard, submissions: Submission[]): JudgeVerdict {
+  const toss = new Map(submissions.map((s) => [s.playerId, Math.random()]));
+  const fitOf = (s: Submission) => schemeFit(challenge.id, s.schemeCard.id);
+  const sorted = [...submissions].sort((a, b) =>
+    fitOf(a).rank - fitOf(b).rank
+    || explanationWeight(b.explanation) - explanationWeight(a.explanation)
+    || (toss.get(a.playerId)! - toss.get(b.playerId)!));
+  const reasoning = pick(FALLBACK_VERDICTS);
 
-  const rankings: PlayerRanking[] = shuffled.map((sub, i) => {
-    // Distribute scores evenly across [1, 10] regardless of player count
-    const judgeScore = shuffled.length === 1 ? 10 : Math.round(10 - (9 * i) / (shuffled.length - 1));
+  // Scores sit in a band per tier (1: 9–10, 2: 7–8, 3: 5–6, 4: 3–4, no fit: 1–2) and never rise
+  // down the list, so the order on screen matches the numbers.
+  const TIER_TOP: Record<number, number> = { 1: 10, 2: 8, 3: 6, 4: 4, 5: 2 };
+  let prevScore = 10;
+  let prevTier = 0;
+  const rankings: PlayerRanking[] = sorted.map((sub, i) => {
+    const { tier } = fitOf(sub);
+    const top = TIER_TOP[tier] ?? 2;
+    // The first player in a tier takes the top of its band; the rest of that tier sit one below.
+    const judgeScore = Math.max(1, Math.min(prevScore, tier === prevTier ? top - 1 : top));
+    prevScore = judgeScore;
+    prevTier = tier;
     const gamePoints = i === 0 ? 3 : i === 1 ? 2 : i === 2 ? 1 : 0;
     // Match Claude's bonus point rule: a single sentence or less — but an empty explanation
     // (e.g. a timer auto-submit for a silent player) earns no bonus.
@@ -184,7 +230,7 @@ function fallbackJudge(submissions: Submission[]): JudgeVerdict {
       schemeCard: sub.schemeCard,
       explanation: sub.explanation,
       judgeScore,
-      judgeComment: FALLBACK_COMMENTS[i % FALLBACK_COMMENTS.length],
+      judgeComment: pick(FIT_COMMENTS[tier] ?? FIT_COMMENTS[NO_FIT_TIER]),
       gamePoints,
       bonusPoint,
     };
@@ -235,9 +281,9 @@ export async function judgeRound(
       // The live API call failed or exceeded the 8s timeout — fall back to local judging
       // so the round still resolves with a winner rather than stalling the game.
       console.error('[ai-judge] Claude call failed/timed out; using local fallback judge:', err instanceof Error ? err.message : err);
-      return fallbackJudge(submissions);
+      return fallbackJudge(challenge, submissions);
     }
   }
   // No API key configured — use the local judge.
-  return fallbackJudge(submissions);
+  return fallbackJudge(challenge, submissions);
 }
