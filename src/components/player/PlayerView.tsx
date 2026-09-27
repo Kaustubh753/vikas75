@@ -536,27 +536,40 @@ export default function PlayerView({ code }: Props) {
   const ownAnswer = serverSubmission?.schemeCard?.id ? serverSubmission
     : mySubmission?.round === room.round ? mySubmission : undefined;
   const phase = room.phase;
-  // Show "join next round" screen when:
-  // (a) player isn't in room.players yet (navigated directly), or
-  // (b) player joined during or after the current round started (joinedRound >= round),
-  //     meaning allPlayersSubmitted() won't count them anyway.
-  const isMidGameNewPlayer = phase === 'submission' && (
-    !room.players[playerId] || room.players[playerId].joinedRound >= room.round
-  );
+  const me = room.players[playerId];
+  // A player who joined once the round was already under way sits it out: allPlayersSubmitted()
+  // never counts them, so the phone must say so, with their own face, instead of dealing them
+  // in — during the challenge reveal as much as during submissions (the old check covered only
+  // submissions, so a late joiner was told to "choose your best scheme card" for a round they
+  // could not play). Also covers a seat the poll has not caught up with yet: `me` is briefly
+  // undefined right after joining.
+  const isLateJoiner = (phase === 'challenge-reveal' || phase === 'submission') && (!me || me.joinedRound >= room.round);
+  const myAvatar = me?.avatarId ?? avatarId;
+  const myName = me?.name ?? playerName;
 
   function renderContent() {
     if (!room) return null;
 
-    if (isMidGameNewPlayer) {
+    if (isLateJoiner) {
+      const lastRound = room.round >= room.totalRounds;
       return (
-        <div className="flex flex-col items-center justify-center gap-4 min-h-[60vh] px-4">
-          <p className="text-4xl">🕐</p>
-          <p className="text-white font-[family-name:var(--font-bebas)] text-2xl tracking-wide text-center">
-            You&apos;ll Play from Next Round
+        <div className="flex flex-col items-center justify-center gap-4 min-h-[60vh] px-6 text-center">
+          <div className="rounded-2xl overflow-hidden shadow-lg shadow-black/40">
+            <Avatar id={myAvatar} size={96} />
+          </div>
+          <p className="text-white text-2xl tracking-wide" style={{ fontFamily: 'var(--font-bebas),var(--font-devanagari),sans-serif' }}>
+            You&apos;re in, {myName}
           </p>
-          <p className="text-white/50 text-sm text-center font-[family-name:var(--font-inter)]">
-            A round is in progress. You&apos;ll get cards and join next round!
+          <p className="text-white/70 text-sm font-[family-name:var(--font-inter)] max-w-xs">
+            {lastRound
+              ? 'This is the last round. Stay for the finale on the big screen.'
+              : `Round ${room.round} is under way on the big screen. You play from round ${room.round + 1}.`}
           </p>
+          <div className="flex gap-2 mt-1">
+            {[0, 1, 2].map((i) => (
+              <span key={i} className="w-2 h-2 bg-[#FF9933]/50 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+            ))}
+          </div>
         </div>
       );
     }
@@ -707,6 +720,19 @@ export default function PlayerView({ code }: Props) {
           )}
         </div>
       </div>
+
+      {/* Who you are, in every phase but the lobby (which shows the seat itself): the seat's
+          avatar and name, so a player can always confirm the face they picked made it in. */}
+      {phase !== 'lobby' && (
+        <div className="flex items-center gap-2 px-4 pb-2" aria-label="You">
+          <div className="rounded-md overflow-hidden shrink-0"><Avatar id={myAvatar} size={28} /></div>
+          <span className="text-white text-[13px] font-semibold font-[family-name:var(--font-inter)] truncate">{myName}</span>
+          <span className="text-[#FF9933]/70 text-[11px] uppercase tracking-widest font-[family-name:var(--font-inter)] shrink-0">you</span>
+          {isLateJoiner && (
+            <span className="text-white/45 text-[11px] uppercase tracking-widest font-[family-name:var(--font-inter)] shrink-0">· next round</span>
+          )}
+        </div>
+      )}
 
       {/* The chat and emote buttons are fixed at bottom-20 and float over this scroller. Most
           phases are short enough that nothing ever reaches them, but a long leaderboard runs
