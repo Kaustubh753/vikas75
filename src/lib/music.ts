@@ -86,6 +86,21 @@ class MusicManager {
   }
 
   /**
+   * A short cue on top of whatever is playing — the lobby's join sting. Unlike play() it never
+   * takes over `current`, so it cannot cut the ticking clock or a fanfare short.
+   */
+  ping(name: 'join') {
+    if (this._muted) return;
+    const ctx = this.getCtx();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    if (name === 'join') {
+      this.note(783.99, 'triangle', 0, 0.16, 0.07);   // G5
+      this.note(1174.66, 'triangle', 0.11, 0.42, 0.06); // D6
+    }
+  }
+
+  /**
    * Set the muted state explicitly and persist the shared "sound on" preference.
    * Used so the lobby-music toggle and the SFX mute stay in lockstep off one key.
    */

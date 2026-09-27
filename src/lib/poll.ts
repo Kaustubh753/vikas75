@@ -15,8 +15,12 @@ import type { GamePhase } from '@/types/game';
  * constant. Both PlayerView and ProjectorView had their own byte-identical copy of this —
  * the kind of pair that agrees until the day one of them is tuned.
  */
-export function pollIntervalMs(phase: GamePhase | undefined): number {
+export function pollIntervalMs(phase: GamePhase | undefined, role: 'player' | 'projector' = 'player'): number {
   const active = phase === 'submission' || phase === 'reveal' || phase === 'judging' || phase === 'winner';
-  const base = active ? 3_000 : 30_000;
-  return base + Math.random() * (active ? 1_500 : 8_000);
+  if (active) return 3_000 + Math.random() * 1_500;
+  // The big screen is one client per room, and in the lobby it is the join feedback: a scan
+  // that surfaces half a minute later reads as a broken code, so the projector keeps a 5 to 7 s
+  // beat there. Phones stay on the slow idle poll — twenty of them on 5 s would be the stampede.
+  if (role === 'projector' && phase === 'lobby') return 5_000 + Math.random() * 2_000;
+  return 30_000 + Math.random() * 8_000;
 }
