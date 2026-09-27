@@ -35,7 +35,7 @@ export default function PlayerWaiting({ phase, hint }: Props) {
         {[0, 1, 2].map((i) => (
           <span
             key={i}
-            className="w-2 h-2 bg-[#FF9933]/50 rounded-full animate-bounce"
+            className="w-2 h-2 bg-[#FF9933]/50 rounded-full animate-dots"
             style={{ animationDelay: `${i * 0.15}s` }}
           />
         ))}

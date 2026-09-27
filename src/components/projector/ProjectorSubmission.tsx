@@ -44,9 +44,13 @@ export default function ProjectorSubmission({ room }: Props) {
   );
   const challenge = room.currentChallenge;
   const players = Object.values(room.players);
+  // Players who joined once this round was under way sit it out (allPlayersSubmitted never counts
+  // them), so the counter is out of the eligible players and their tiles read "next round".
+  const eligible = players.filter((p) => p.joinedRound < room.round);
   const submittedIds = new Set(Object.keys(room.submissions));
-  const submittedCount = submittedIds.size;
-  const n = players.length;
+  const submittedCount = eligible.filter((p) => submittedIds.has(p.id)).length;
+  const n = eligible.length;
+  const tiles = players.length;
 
   useEffect(() => {
     getMusicManager().play('ticking');
@@ -61,9 +65,9 @@ export default function ProjectorSubmission({ room }: Props) {
   }, [room.timerEndsAt]);
 
   // Adaptive tile size — fewer players get larger tiles so the screen fills nicely
-  const minTile = n <= 4 ? 220 : n <= 8 ? 180 : n <= 12 ? 150 : 120;
+  const minTile = tiles <= 4 ? 220 : tiles <= 8 ? 180 : tiles <= 12 ? 150 : 120;
   const maxTile = Math.round(minTile * 1.5);
-  const avatarSize = n <= 4 ? 80 : n <= 8 ? 64 : n <= 12 ? 52 : 40;
+  const avatarSize = tiles <= 4 ? 80 : tiles <= 8 ? 64 : tiles <= 12 ? 52 : 40;
 
   return (
     <div className="w-full h-full bg-[#08070f] flex flex-col overflow-hidden">
@@ -72,7 +76,7 @@ export default function ProjectorSubmission({ room }: Props) {
         {challenge && (
           <div className="bg-[#1a3a6e] rounded-2xl flex-1 min-w-0" style={{ padding: 'clamp(12px, 1.2vw, 20px) clamp(16px, 1.5vw, 28px)' }}>
             <p className="text-white/50 uppercase tracking-widest font-[family-name:var(--font-inter)]"
-               style={{ fontSize: 'clamp(9px, 0.65vw, 11px)', marginBottom: 4 }}>
+               style={{ fontSize: 'clamp(11px, 0.7vw, 12px)', marginBottom: 4 }}>
               Problem Statement
             </p>
             <p className="font-[family-name:var(--font-bebas)] text-white tracking-wide leading-snug"
@@ -87,7 +91,7 @@ export default function ProjectorSubmission({ room }: Props) {
               <CountUp value={submittedCount} />/{n}
             </p>
             <p className="text-white/40 uppercase tracking-widest font-[family-name:var(--font-inter)]"
-               style={{ fontSize: 'clamp(9px, 0.65vw, 11px)' }}>
+               style={{ fontSize: 'clamp(11px, 0.7vw, 12px)' }}>
               Submitted
             </p>
           </div>
@@ -102,13 +106,16 @@ export default function ProjectorSubmission({ room }: Props) {
           style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${minTile}px, ${maxTile}px))` }}
         >
           {players.map((p) => {
-            const submitted = submittedIds.has(p.id);
+            const isLate = p.joinedRound >= room.round;
+            const submitted = !isLate && submittedIds.has(p.id);
             const online = p.lastSeen ? Date.now() - p.lastSeen < 45_000 : true;
             return (
               <div
                 key={p.id}
                 className={`rounded-2xl border-2 flex flex-col items-center gap-3 transition-all duration-500 ${
-                  submitted
+                  isLate
+                    ? 'border-[#FF9933]/30 bg-[#FF9933]/5'
+                    : submitted
                     ? 'border-[#138808] bg-[#138808]/10'
                     : online
                     ? 'border-white/10 bg-white/5'
@@ -123,7 +130,7 @@ export default function ProjectorSubmission({ room }: Props) {
                     style={{
                       width: Math.max(10, avatarSize * 0.18),
                       height: Math.max(10, avatarSize * 0.18),
-                      background: online ? '#22c55e' : 'rgba(255,255,255,0.2)',
+                      background: online ? '#85c47d' : 'rgba(255,255,255,0.2)',
                     }}
                   />
                 </div>
@@ -131,14 +138,17 @@ export default function ProjectorSubmission({ room }: Props) {
                    style={{ fontSize: 'clamp(11px, 1vw, 16px)', fontWeight: 500 }}>
                   {p.name}
                 </p>
-                {submitted ? (
+                {isLate ? (
+                  <span className="text-[#FF9933]/85 uppercase tracking-wider font-[family-name:var(--font-inter)]"
+                        style={{ fontSize: 'clamp(11px, 0.75vw, 12px)' }}>Next round</span>
+                ) : submitted ? (
                   <span className="text-[#138808]" style={{ fontSize: 'clamp(18px, 2vw, 28px)' }}>✓</span>
                 ) : online ? (
                   <span className="text-white/25 uppercase tracking-wider font-[family-name:var(--font-inter)]"
-                        style={{ fontSize: 'clamp(9px, 0.7vw, 11px)' }}>Thinking…</span>
+                        style={{ fontSize: 'clamp(11px, 0.75vw, 12px)' }}>Thinking…</span>
                 ) : (
                   <span className="text-white/20 uppercase tracking-wider font-[family-name:var(--font-inter)]"
-                        style={{ fontSize: 'clamp(9px, 0.7vw, 11px)' }}>Away</span>
+                        style={{ fontSize: 'clamp(11px, 0.75vw, 12px)' }}>Away</span>
                 )}
               </div>
             );

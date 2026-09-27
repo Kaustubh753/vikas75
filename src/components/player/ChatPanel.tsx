@@ -33,14 +33,16 @@ export default function ChatPanel({ messages, onSend, playerId }: Props) {
     <div className="fixed bottom-20 left-4 z-40" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       {open && (
         <div
-          className="absolute bottom-14 left-0 bg-[#08070f]/95 border border-white/20 rounded-2xl shadow-xl flex flex-col animate-bounce-in overflow-hidden"
+          className="absolute bottom-14 left-0 bg-[#08070f]/95 border border-[rgba(250,248,240,0.2)] rounded-2xl shadow-xl flex flex-col animate-rise-in overflow-hidden"
           style={{ width: 'clamp(200px, calc(100vw - 80px), 260px)' }}
         >
-          <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
-            <span className="text-white/70 text-sm font-[family-name:var(--font-inter)]">Chat</span>
+          <div className="px-4 py-3 border-b border-[rgba(250,248,240,0.14)] flex items-center justify-between">
+            <span className="text-[rgba(250,248,240,0.7)] text-sm font-[family-name:var(--font-inter)]">Chat</span>
             <button
               onClick={() => setOpen(false)}
-              className="text-white/40 hover:text-white/70 text-lg"
+              aria-label="Close chat"
+              className="text-[rgba(250,248,240,0.45)] hover:text-[rgba(250,248,240,0.7)] text-lg -mr-2 flex items-center justify-center"
+              style={{ width: 44, height: 44 }}
             >
               ✕
             </button>
@@ -48,7 +50,7 @@ export default function ChatPanel({ messages, onSend, playerId }: Props) {
 
           <div className="flex-1 overflow-y-auto max-h-64 px-3 py-2 space-y-2">
             {messages.length === 0 && (
-              <p className="text-white/30 text-xs text-center py-4 font-[family-name:var(--font-inter)] animate-pulse">
+              <p className="text-[rgba(250,248,240,0.35)] text-xs text-center py-4 font-[family-name:var(--font-inter)] animate-pulse">
                 Be the first to say something
               </p>
             )}
@@ -61,14 +63,14 @@ export default function ChatPanel({ messages, onSend, playerId }: Props) {
                   <Avatar id={msg.avatarId} size={28} />
                 </div>
                 <div className={`max-w-[180px] ${msg.playerId === playerId ? 'items-end' : 'items-start'} flex flex-col`}>
-                  <span className={`text-[10px] text-white/40 mb-0.5 font-[family-name:var(--font-inter)] ${msg.playerId === playerId ? 'text-right' : ''}`}>
+                  <span className={`text-[10px] text-[rgba(250,248,240,0.45)] mb-0.5 font-[family-name:var(--font-inter)] ${msg.playerId === playerId ? 'text-right' : ''}`}>
                     {msg.playerName}
                   </span>
                   <div
                     className={`text-xs rounded-xl px-3 py-2 font-[family-name:var(--font-inter)] ${
                       msg.playerId === playerId
                         ? 'bg-[#FF9933]/20 text-white'
-                        : 'bg-white/10 text-white/80'
+                        : 'bg-[rgba(250,248,240,0.08)] text-[rgba(250,248,240,0.85)]'
                     }`}
                   >
                     {msg.text}
@@ -79,14 +81,14 @@ export default function ChatPanel({ messages, onSend, playerId }: Props) {
             <div ref={bottomRef} />
           </div>
 
-          <form onSubmit={handleSend} className="border-t border-white/10 px-3 py-2 flex gap-2">
+          <form onSubmit={handleSend} className="border-t border-[rgba(250,248,240,0.14)] px-3 py-2 flex gap-2">
             <input
               type="text"
               value={text}
               onChange={(e) => setText(e.target.value.slice(0, MAX_CHARS))}
               placeholder="Say something…"
               aria-label="Chat message"
-              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-[#FF9933] placeholder-white/30 font-[family-name:var(--font-inter)]"
+              className="flex-1 bg-[rgba(250,248,240,0.04)] border border-[rgba(250,248,240,0.14)] rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-[#FF9933] placeholder-[rgba(250,248,240,0.35)] font-[family-name:var(--font-inter)]"
             />
             <button
               type="submit"
@@ -101,7 +103,7 @@ export default function ChatPanel({ messages, onSend, playerId }: Props) {
 
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-xl shadow-lg transition-all active:scale-95"
+        className="w-12 h-12 rounded-full bg-[rgba(250,248,240,0.08)] hover:bg-[rgba(250,248,240,0.16)] border border-[rgba(250,248,240,0.2)] flex items-center justify-center text-xl shadow-lg transition-all active:scale-95"
         aria-label="Chat"
       >
         {open ? '✕' : '💬'}
