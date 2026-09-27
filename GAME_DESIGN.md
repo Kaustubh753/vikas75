@@ -94,9 +94,10 @@ This is critical to the game feel. The judge must:
   an answer over one that fits better
 - Scoring priority: right scheme argued with insight > right scheme, sound and plain > a stretch
   made to work > entertaining but off-target > wrong scheme with no reasoning
-- Rounds carry an "on-brief" scheme list (`context/cards_mapping.json`, derived from the office's
-  CARDS_MAPPING sheet) as the strongest signal of fit — strong, but not exhaustive, and never a
-  substitute for reasoning
+- Rounds carry the deck's fit tiers (`context/cards_fit.json`: every scheme ranked for every
+  challenge in four tiers, derived from the office's CARDS_MAPPING sheet, checked and researched)
+  as the strongest signal of fit — each answer is marked on-brief yes/no with how close the deck
+  places it — strong, but not exhaustive, and never a substitute for reasoning
 - Have a witty personality in its verdict text, not dry or formal
 - Explain the reasoning in 2 to 3 sentences maximum
 - Occasionally call out a particularly clever answer with extra flavour text

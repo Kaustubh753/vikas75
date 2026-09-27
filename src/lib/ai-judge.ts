@@ -1,5 +1,5 @@
 import type { ChallengeCard, Submission, JudgeVerdict, PlayerRanking } from '@/types/game';
-import mappingData from '@/../context/cards_mapping.json';
+import fitData from '@/../context/cards_fit.json';
 import { filterText } from '@/lib/word-filter';
 import {
   BRIEF_THRESHOLD,
@@ -11,35 +11,34 @@ import {
   buildUserMessage,
   callTopVote,
   clean,
+  compileFitTiers,
   deadlineMsFor,
+  fallbackScore,
+  fallbackTier,
+  fitTierFor,
   isStructuredOutputRejection,
   makeCallOrders,
   maxTokensFor,
+  mulberry32,
   parseCallResult,
   rankFallback,
   roundSeed,
   topVotePosition,
   type CallResult,
+  type FitTable,
 } from '@/lib/judge-core';
 
-// challengeId → scheme ids that genuinely address that problem (from the office's CARDS_MAPPING
-// sheet). Used as *context* for the judge, never as an answer key — see the ON-BRIEF section of
-// the system prompt. `npm run test:judge` checks every key is a challenge id and every value a
-// scheme id in the 75-card deck — a stale id here would silently mark an answer off-brief.
-const RELEVANT_SCHEMES = mappingData as Record<string, string[]>;
-
-// The problem↔scheme mapping, compiled ONCE at module load into an in-memory cache of lookup
-// sets. This is deliberately where the mapping lives — server memory, never the prompt. The
-// model only ever receives a per-answer "On-brief for this challenge: yes|no" line (~8 tokens),
-// computed here by card id; pasting the mapping itself would cost ~350 tokens per call, and
-// even the old per-round name list cost ~30 tokens plus fuzzy name-matching by the model.
-// Together with the cache_control'd system prompt below, every stable input is either cached
-// or reduced to a flag, so per-round spend is dominated by the answers themselves.
-const ON_BRIEF_BY_CHALLENGE: ReadonlyMap<string, ReadonlySet<string>> = new Map(
-  Object.entries(RELEVANT_SCHEMES)
-    .filter(([, ids]) => ids.length > 0)
-    .map(([challengeId, ids]) => [challengeId, new Set(ids)]),
-);
+// The deck's fit table — challengeId → (schemeId → tier 1–4; unlisted = 5, no real fit) — from
+// `context/cards_fit.json`, compiled ONCE at module load (judge-core's FitTable). It descends from
+// the office's CARDS_MAPPING sheet, checked entry by entry and ranked into tiers with a research
+// pass on each scheme. This is deliberately where it lives: server memory, never the prompt. The
+// model only ever receives a per-answer "On-brief for this challenge: yes (strong fit)" line
+// (~10 tokens), computed here by card id; pasting the table would cost hundreds of tokens per
+// call. Together with the cache_control'd system prompt below, every stable input is either
+// cached or reduced to a flag, so per-round spend is dominated by the answers themselves.
+// `npm run test:judge` checks every id in the table against the 75-card deck — a stale id here
+// would silently mark an answer off-brief.
+const FIT_BY_CHALLENGE = compileFitTiers(fitData as FitTable);
 
 // The single hardcoded model string for the judge call. Sonnet 5 — the cost-efficient
 // Sonnet: newer than Sonnet 4.6 at lower per-token prices (its heavier tokenizer eats part
@@ -114,6 +113,9 @@ ON-BRIEF FLAG
 When the round has an on-brief list, each answer is marked on-brief or not: whether its scheme is
 on the game's list of schemes that genuinely address this challenge. It is the strongest available
 signal of fit — not a rule:
+- The note in brackets after yes/no says how close the deck's own notes place the scheme: made
+  for it, strong fit, related, loosely related (no note = not listed at all). Use it to tell a
+  near-miss from a wild one; it is still context, never a rule.
 - on-brief + a specific argument → bands 7–10. On-brief + a generic explanation ("this scheme is
   relevant") → band 5–6, BELOW a stretch argued well enough to reach 7. The obvious card played
   without thought does not win the round.
@@ -186,16 +188,16 @@ const FALLBACK_VERDICTS = [
   "Other answers were good. This one was great. The difference? Pure Bharat ki creativity!",
 ];
 
-const FALLBACK_COMMENTS = [
-  "Ekdum mast connection!",
-  "Solid but could've gone wilder.",
-  "Safe choice, well argued.",
-  "The crowd appreciated this one.",
-  "Textbook answer — needs more masala.",
-  "Decent attempt, but judges wanted more jugaad.",
-  "Hmm. The logic is there if you squint.",
-  "Points for confidence alone.",
-];
+// Offline judge comments by fit tier (1 made for it … 5 not listed), plus one line for a blank
+// explanation. Chosen with the round's seeded coin so a re-fired round reads the same.
+const FIT_COMMENTS: Record<number, string[]> = {
+  1: ["Sahi pakde hain — that is exactly the scheme for this brief!", "Bull's-eye. The card and the challenge were made for each other.", "Textbook fit, and the panel loves a textbook this on-point."],
+  2: ["Close cousin of the perfect card — a strong connection.", "Right neighbourhood, right idea. Solid.", "Not the headline scheme, but it genuinely helps here."],
+  3: ["There is a thread here, if you squint a little.", "A creative stretch — the panel admired the jugaad.", "The link is loose; the confidence was not."],
+  4: ["Bold detour. Wrong district, great energy.", "Distant relative of the right answer. Points for nerve.", "Filed under 'imaginative'. Very imaginative."],
+  5: ["This card belongs to another brief entirely — points for nerve.", "The judges checked twice. Still no connection. Still smiling.", "A scheme in search of a problem. Not this one."],
+};
+const BLANK_COMMENT = 'Nothing written, nothing won — the card alone is not an argument.';
 
 // Structured outputs (output_config.format) are the primary path. If the API ever rejects the
 // parameter for this model, remember that for the life of the process and send plain JSON — the
@@ -253,11 +255,11 @@ async function claudeJudge(challenge: ChallengeCard, submissions: Submission[], 
   const labels = labelled.map((l) => l.label);
   const byLabel = new Map(labelled.map((l) => [l.label, l.submission]));
   const orders = makeCallOrders(labels, seed);
-  // Only this round's on-brief schemes matter, expressed per answer as a yes/no computed by
-  // card id from the precompiled ON_BRIEF_BY_CHALLENGE cache — the model no longer has to
-  // string-match names, which drifted between calls. Null (no line at all) for an unmapped
-  // challenge, so the model never sees a misleading all-"no" round.
-  const onBriefIds = ON_BRIEF_BY_CHALLENGE.get(challenge.id) ?? null;
+  // Only this round's fit tiers matter, expressed per answer as "yes/no (how close)" computed by
+  // card id from the precompiled FIT_BY_CHALLENGE cache — the model never string-matches names,
+  // which drifted between calls. Null (no line at all) for an unmapped challenge, so the model
+  // never sees a misleading all-"no" round.
+  const fitTiers = FIT_BY_CHALLENGE.get(challenge.id) ?? null;
   // Past ten answers the reply is what dominates latency (~70 output tokens/s), so the prompt
   // caps the per-answer prose harder; max_tokens is a ceiling, the deadline is the real bound.
   const brief = n > BRIEF_THRESHOLD;
@@ -285,7 +287,7 @@ async function claudeJudge(challenge: ChallengeCard, submissions: Submission[], 
         // latency and output spend the judge's deadline math does not allow. Disable it
         // explicitly; the reason-before-score fields are the deliberate "thinking" here.
         thinking: { type: 'disabled' as const },
-        messages: [{ role: 'user', content: buildUserMessage(challenge, byLabel, order, onBriefIds) }],
+        messages: [{ role: 'user', content: buildUserMessage(challenge, byLabel, order, fitTiers) }],
         ...(structured ? { output_config: { format: { type: 'json_schema' as const, schema: CALL_SCHEMA } } } : {}),
       },
       // No SDK retries: a retry sleeps on `retry-after` without our signal (see withDeadline),
@@ -391,26 +393,29 @@ async function claudeJudge(challenge: ChallengeCard, submissions: Submission[], 
   return verdict;
 }
 
-function fallbackJudge(challenge: ChallengeCard, submissions: Submission[]): JudgeVerdict {
-  // Not a coin toss. The office's problem→scheme mapping is already in memory, and it says
-  // whether a played card is one of the schemes that genuinely address this challenge — so
-  // even with no model available, an on-brief card should beat an off-brief one, and anyone
-  // who wrote a case should beat the empty explanation that timer-expiry auto-submits on a
-  // silent phone's behalf. Within a tier it is still a true Fisher–Yates shuffle (the old
-  // `sort(() => Math.random() - 0.5)` was biased toward the input order, i.e. toward the
-  // fastest submitter), and no tier depends on submission order or player id.
-  //
-  // What this deliberately does NOT do is rank by relevance within the on-brief set: the
-  // mapping is a SET, stored id-ascending in all 30 lists, so its order carries no signal.
-  const onBriefIds = ON_BRIEF_BY_CHALLENGE.get(challenge.id) ?? null;
-  const shuffled = rankFallback(submissions, Math.random, (s) =>
-    (onBriefIds?.has(s.schemeCard.id) ? 2 : 0) + (clean(s.explanation) ? 1 : 0));
-  const reasoning = FALLBACK_VERDICTS[Math.floor(Math.random() * FALLBACK_VERDICTS.length)];
+function fallbackJudge(challenge: ChallengeCard, submissions: Submission[], tag = ''): JudgeVerdict {
+  // Not a coin toss. The deck's fit table is already in memory, and it ranks every scheme for
+  // this challenge — so even with no model available, the closest scheme wins among the players
+  // who wrote a case, and anyone who wrote a case beats the blank explanation that timer-expiry
+  // auto-submits on a silent phone's behalf (fallbackTier / fallbackScore in judge-core). Within
+  // a key it is still a true Fisher–Yates shuffle, seeded from the challenge and the SET of
+  // players (roundSeed), so nothing depends on submission order or player id and a kick-judge
+  // re-fire reads the same. The verdict copy stays random on purpose: the offline judge has an
+  // opinion about the scheme, not about the argument.
+  const fitTiers = FIT_BY_CHALLENGE.get(challenge.id) ?? null;
+  const rand = mulberry32((roundSeed(challenge.id, submissions) ^ 0x51ed270b) >>> 0);
+  const pick = <T,>(arr: readonly T[]): T => arr[Math.floor(rand() * arr.length)];
+  const tierOf = (s: Submission) => fallbackTier(fitTierFor(fitTiers, s.schemeCard.id), !!clean(s.explanation));
+  const ordered = rankFallback(submissions, rand, tierOf);
+  const reasoning = pick(FALLBACK_VERDICTS);
 
-  const rankings: PlayerRanking[] = shuffled.map((sub, i) => {
-    // Distribute scores evenly across [1, 10] regardless of player count
-    const judgeScore = shuffled.length === 1 ? 10 : Math.round(10 - (9 * i) / (shuffled.length - 1));
-    const gamePoints = i === 0 ? 3 : i === 1 ? 2 : i === 2 ? 1 : 0;
+  let prevScore = 10;
+  const rankings: PlayerRanking[] = ordered.map((sub, i) => {
+    const tier = fitTierFor(fitTiers, sub.schemeCard.id);
+    const wrote = !!clean(sub.explanation);
+    // Bands per tier, never rising down the list, so the stars on screen agree with the order.
+    const judgeScore = Math.min(prevScore, fallbackScore(tier, wrote));
+    prevScore = judgeScore;
     return {
       playerId: sub.playerId,
       playerName: sub.playerName,
@@ -418,15 +423,16 @@ function fallbackJudge(challenge: ChallengeCard, submissions: Submission[]): Jud
       schemeCard: sub.schemeCard,
       explanation: sub.explanation,
       judgeScore,
-      // Comments are ordered best-to-worst, so wrapping the index would hand a mid-table player
-      // the winner's line — a visible tell at a full table. Past the list, everyone gets the
-      // tail comment instead.
-      judgeComment: FALLBACK_COMMENTS[Math.min(i, FALLBACK_COMMENTS.length - 1)],
-      gamePoints,
+      judgeComment: wrote ? pick(FIT_COMMENTS[tier] ?? FIT_COMMENTS[5]) : BLANK_COMMENT,
+      gamePoints: i === 0 ? 3 : i === 1 ? 2 : i === 2 ? 1 : 0,
     };
   });
 
   const winner = rankings[0];
+  console.log(
+    `[ai-judge] Fallback verdict ${tag}— ${submissions.length} players, fit=${fitTiers ? 'table' : 'none'}, ` +
+      `order=[${rankings.map((r) => `${r.schemeCard.id}:t${fitTierFor(fitTiers, r.schemeCard.id)}${clean(r.explanation) ? '' : ':blank'}=${r.judgeScore}`).join(' ')}]`,
+  );
   return {
     winnerId: winner.playerId,
     winnerName: winner.playerName,
@@ -463,14 +469,15 @@ export async function judgeRound(
   // Genuinely nobody played — there is no winner to crown.
   if (!submissions.length) return noWinnerVerdict('No one submitted an answer this round.');
 
+  const tag = opts.tag ? `[${opts.tag}] ` : '';
   if (process.env.ANTHROPIC_API_KEY) {
     try {
-      return await claudeJudge(challenge, submissions, opts.tag ? `[${opts.tag}] ` : '');
+      return await claudeJudge(challenge, submissions, tag);
     } catch (err) {
       // Every live call failed or the shared deadline passed — fall back to local judging so
       // the round still resolves with a winner rather than stalling the game.
       console.error('[ai-judge] Claude call failed/timed out; using local fallback judge:', err instanceof Error ? err.message : err);
-      return fallbackJudge(challenge, submissions);
+      return fallbackJudge(challenge, submissions, tag);
     }
   }
   // No API key configured — use the local judge. Log it EVERY round, loudly: env.ts only warns
@@ -478,5 +485,5 @@ export async function judgeRound(
   // verdict from a real one, so a key that is missing or expired in production would otherwise
   // let every round of a public event be decided locally with nobody any the wiser.
   console.error(`[ai-judge] ${opts.tag ? `[${opts.tag}] ` : ''}ANTHROPIC_API_KEY is not set — this round was decided by the local fallback judge, not Claude.`);
-  return fallbackJudge(challenge, submissions);
+  return fallbackJudge(challenge, submissions, tag);
 }
