@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
 import { subscribeRoom } from '@/lib/pusher-client';
 import { getLobbyMusic } from '@/lib/music-manager';
@@ -121,7 +122,7 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
         })
         .then((d) => { if (d?.room) { setRoom(prev => staleRoom(prev, d.room) ? prev : d.room); setRoomMissing(false); } })
         .catch(() => {});
-    }, pollIntervalMs(room?.phase));
+    }, pollIntervalMs(room?.phase, 'projector'));
     return () => clearInterval(poll);
   }, [code, room?.phase]);
 
@@ -243,7 +244,7 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
   function renderPhase() {
     if (!room) return null;
     switch (room.phase) {
-      case 'lobby':            return <ProjectorLobby room={room} />;
+      case 'lobby':            return <ProjectorLobby room={room} bottomInset={isHost ? 72 : 0} />;
       case 'challenge-reveal': return <ProjectorChallengeReveal room={room} />;
       case 'submission':       return <ProjectorSubmission room={room} />;
       case 'reveal':           return <ProjectorReveal room={room} />;
@@ -265,6 +266,17 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
         <p className="text-white/50 text-xl text-center font-[family-name:var(--font-inter)] max-w-xl">
           This game has ended or the room was shut down after inactivity.
         </p>
+        <Link
+          href="/"
+          className="btn-push"
+          style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 52, padding: '0 28px', marginTop: 8,
+            borderRadius: 6, background: '#FF9933', color: '#1a1208',
+            fontFamily: 'var(--font-bebas)', fontSize: 24, letterSpacing: '0.08em', textDecoration: 'none',
+          }}
+        >
+          Host a new game →
+        </Link>
       </div>
     );
   }
@@ -330,7 +342,7 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
               style={{ fontSize: 'min(15vw, 120px)', lineHeight: 1.1, textShadow: '0 4px 40px rgba(0,0,0,0.8)' }}
               initial={{ scale: 1.4, y: -40, opacity: 0 }}
               animate={{ scale: 1, y: 0, opacity: 1 }}
-              transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
               {transitionText}
             </motion.p>
@@ -359,7 +371,7 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
               initial={{ ...overlay.initial, opacity: 0 }}
               animate={{ y: 0, x: 0, scale: 1, opacity: 1 }}
               exit={{ scale: 0.85, opacity: 0 }}
-              transition={{ duration: 0.45, ease: [0.34, 1.56, 0.64, 1] }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
             >
               {overlay.text}
             </motion.p>
@@ -368,9 +380,9 @@ export default function ProjectorView({ code, hostId: hostIdProp }: Props) {
       </AnimatePresence>
 
       <EmoteOverlay code={code} />
-      {/* Mobile host gets a music toggle in the host bar (HostOverlay) that remote-mutes the
-          projector — hide the floating one so it doesn't collide with the room-code header. */}
-      {!(isHost && isMobileHost) && <MuteButton />}
+      {/* The host bar carries the one sound control on a host's screen (it mutes this device and
+          broadcasts music:toggle to the venue's projector); the floating mute is for a pure display. */}
+      {!isHost && <MuteButton />}
       {isHost && hostId && <HostOverlay room={room} code={code} hostId={hostId} />}
     </motion.div>
   );
