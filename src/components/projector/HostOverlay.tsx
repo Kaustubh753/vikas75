@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import type { GameRoom } from '@/types/game';
 import Avatar from '@/lib/avatars';
@@ -11,6 +11,9 @@ interface Props {
   code: string;
   hostId: string;
 }
+
+// Browser-only values read without an effect: the server snapshot is empty, the client's is live.
+const subscribeNoop = () => () => {};
 
 function getAdvanceLabel(room: GameRoom): string {
   switch (room.phase) {
@@ -59,6 +62,11 @@ export default function HostOverlay({ room, code, hostId }: Props) {
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [playersHover, setPlayersHover] = useState(false);
   const [showPlayers, setShowPlayers] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteHover, setInviteHover] = useState(false);
+  // "Copied ✓" feedback for 1.6 s after a copy; a failed copy leaves the link selectable instead.
+  const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
   const [kickingId, setKickingId] = useState<string | null>(null);
   const [musicHover, setMusicHover] = useState(false);
   // Last mute command this host sent to the room. The projector's actual state isn't
@@ -225,6 +233,35 @@ export default function HostOverlay({ room, code, hostId }: Props) {
   const isJudging = room.phase === 'judging';
   const isDisabled = loading || isJudging;
 
+  // The invite link: the same /join?code= deep link the projector's QR encodes. A WhatsApp group
+  // is how most rooms fill up, so the link is one tap to copy, share or post. Joining stays open
+  // in every phase but a live submission and game-over, so the panel stays until the game ends.
+  const origin = useSyncExternalStore(subscribeNoop, () => window.location.origin, () => '');
+  const canShare = useSyncExternalStore(subscribeNoop, () => typeof navigator.share === 'function', () => false);
+  const joinLink = `${origin}/join?code=${code}`;
+  const inviteText = `Join my Vikas 75 game · room code ${code} · ${joinLink}`;
+  useEffect(() => {
+    if (!copied) return;
+    const t = setTimeout(() => setCopied(false), 1600);
+    return () => clearTimeout(t);
+  }, [copied]);
+  async function handleCopyLink() {
+    try {
+      await navigator.clipboard.writeText(joinLink);
+      setCopyFailed(false);
+      setCopied(true);
+    } catch {
+      setCopyFailed(true);
+    }
+  }
+  async function handleShareLink() {
+    try {
+      await navigator.share({ title: 'Vikas 75', text: `Join my Vikas 75 game · room code ${code}`, url: joinLink });
+    } catch {
+      // the share sheet was dismissed
+    }
+  }
+
   // Bar height plus the device safe-area inset — the body's global safe-area padding doesn't
   // reach fixed elements, so without this the bar sits under the home indicator on notched phones.
   const barBaseH = isNarrow ? 60 : 72;
@@ -302,6 +339,21 @@ export default function HostOverlay({ room, code, hostId }: Props) {
     opacity: showPlayers ? 1 : 0,
     pointerEvents: showPlayers ? 'auto' : 'none',
     transition: 'transform 0.28s cubic-bezier(.4,0,.2,1), opacity 0.2s ease',
+  };
+
+  const invitePanelStyle: React.CSSProperties = {
+    ...playersPanelStyle,
+    transform: showInvite ? 'translateY(0)' : 'translateY(100%)',
+    opacity: showInvite ? 1 : 0,
+    pointerEvents: showInvite ? 'auto' : 'none',
+  };
+
+  // Outlined saffron: the advance button keeps the one filled saffron on this bar.
+  const inviteBtnStyle: React.CSSProperties = {
+    height: 40, paddingLeft: 14, paddingRight: 14, borderRadius: 8,
+    background: 'rgba(255,153,51,0.12)', border: '1px solid rgba(255,153,51,0.5)', color: '#FF9933',
+    fontFamily: 'var(--font-inter)', fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', cursor: 'pointer',
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap', textDecoration: 'none',
   };
 
   const iconBtnStyle = (hovered: boolean): React.CSSProperties => ({
@@ -455,6 +507,45 @@ export default function HostOverlay({ room, code, hostId }: Props) {
                 </div>
               ))}
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Invite panel — the join link for a WhatsApp group or a copy-paste; any non-finished phase */}
+      {room.phase !== 'game-over' && (
+        <div style={invitePanelStyle} aria-hidden={!showInvite}>
+          <span style={{
+            display: 'block', marginBottom: 6,
+            fontFamily: 'var(--font-inter)', fontSize: 10, letterSpacing: '0.1em',
+            fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase',
+          }}>
+            Invite players
+          </span>
+          <p style={{ fontFamily: 'var(--font-inter)', fontSize: 12, color: 'rgba(255,255,255,0.55)', margin: '0 0 10px', lineHeight: 1.45 }}>
+            Anyone with this link lands on the join page with the code filled in.
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
+            <span style={{
+              padding: '9px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)',
+              fontFamily: 'var(--font-inter)', fontSize: 13, fontWeight: 600, color: '#fff', wordBreak: 'break-all', userSelect: 'all',
+              flex: '1 1 260px', minWidth: 0,
+            }}>
+              {joinLink.replace(/^https?:\/\//, '')}
+            </span>
+            <button type="button" onClick={handleCopyLink} style={inviteBtnStyle}>
+              {copied ? 'Copied ✓' : 'Copy link'}
+            </button>
+            <a href={`https://wa.me/?text=${encodeURIComponent(inviteText)}`} target="_blank" rel="noopener noreferrer" style={inviteBtnStyle}>
+              WhatsApp
+            </a>
+            {canShare && (
+              <button type="button" onClick={handleShareLink} style={inviteBtnStyle}>Share…</button>
+            )}
+          </div>
+          {copyFailed && (
+            <p style={{ fontFamily: 'var(--font-inter)', fontSize: 11, color: '#fecaca', margin: '8px 0 0' }}>
+              Could not copy here — select the link above and copy it.
+            </p>
           )}
         </div>
       )}
@@ -645,10 +736,25 @@ export default function HostOverlay({ room, code, hostId }: Props) {
             </button>
           )}
 
+          {/* Invite — the join link, copy, WhatsApp and the share sheet; any non-finished phase */}
+          {room.phase !== 'game-over' && (
+            <button
+              onClick={() => { setShowInvite((p) => !p); setShowPlayers(false); setShowSettings(false); }}
+              onMouseEnter={() => setInviteHover(true)}
+              onMouseLeave={() => setInviteHover(false)}
+              title="Share the join link"
+              style={iconBtnStyle(inviteHover || showInvite)}
+              aria-label="Share the join link"
+              aria-expanded={showInvite}
+            >
+              🔗
+            </button>
+          )}
+
           {/* Players manager — kick players; any non-finished phase */}
           {room.phase !== 'game-over' && (
             <button
-              onClick={() => { setShowPlayers((p) => !p); setShowSettings(false); }}
+              onClick={() => { setShowPlayers((p) => !p); setShowSettings(false); setShowInvite(false); }}
               onMouseEnter={() => setPlayersHover(true)}
               onMouseLeave={() => setPlayersHover(false)}
               title="Manage players"
@@ -662,7 +768,7 @@ export default function HostOverlay({ room, code, hostId }: Props) {
           {/* Settings gear — lobby only */}
           {room.phase === 'lobby' && (
             <button
-              onClick={() => { setShowSettings((p) => !p); setShowPlayers(false); }}
+              onClick={() => { setShowSettings((p) => !p); setShowPlayers(false); setShowInvite(false); }}
               onMouseEnter={() => setSettingsHover(true)}
               onMouseLeave={() => setSettingsHover(false)}
               title="Settings"

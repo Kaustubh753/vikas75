@@ -1,4 +1,5 @@
 'use client';
+import { useSyncExternalStore } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import Avatar from '@/lib/avatars';
@@ -16,6 +17,7 @@ interface Props {
 const SAFFRON = '#FF9933';
 const CREAM = '#faf8f0';
 const INK = '#0d1b35';
+const subscribeNoop = () => () => {};
 
 function CodeTile({ char, i }: { char: string; i: number }) {
   return (
@@ -88,15 +90,30 @@ export default function PlayerLobby({ room, playerId }: Props) {
   // Own seat first — on a phone you should find yourself without hunting.
   const ordered = [...players].sort((a, b) => (a.id === playerId ? -1 : b.id === playerId ? 1 : 0));
 
+  // The same /join?code= deep link the projector's QR encodes; the origin is read without an effect.
+  const origin = useSyncExternalStore(subscribeNoop, () => window.location.origin, () => '');
+  const joinLink = `${origin}/join?code=${room.code}`;
+  const inviteText = `Join my Vikas 75 game · room code ${room.code} · ${joinLink}`;
+
   async function handleShare() {
-    const url = `${window.location.origin}/join?code=${room.code}`;
-    if (navigator.share) {
-      try { await navigator.share({ title: 'Vikas 75', text: `Join my Vikas 75 game! Room code: ${room.code}`, url }); } catch { /* cancelled */ }
-    } else {
-      await navigator.clipboard.writeText(url).catch(() => {});
-      toast.success('Link copied!');
+    if (typeof navigator.share === 'function') {
+      try { await navigator.share({ title: 'Vikas 75', text: `Join my Vikas 75 game · room code ${room.code}`, url: joinLink }); } catch { /* cancelled */ }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(joinLink);
+      toast.success('Link copied');
+    } catch {
+      toast.error('Could not copy — select the link and copy it.');
     }
   }
+
+  const pill: React.CSSProperties = {
+    fontFamily: 'var(--font-inter),sans-serif', fontSize: 12, fontWeight: 600,
+    letterSpacing: '0.08em', color: SAFFRON, textDecoration: 'none',
+    border: '1px solid rgba(255,153,51,0.4)', borderRadius: 999, padding: '8px 16px',
+    minHeight: 40, display: 'inline-flex', alignItems: 'center', gap: 8,
+  };
 
   return (
     <div className="flex flex-col items-center px-4 pb-6" style={{ gap: 18, paddingTop: 8 }}>
@@ -128,19 +145,30 @@ export default function PlayerLobby({ room, playerId }: Props) {
         </div>
       </div>
 
-      <button
-        onClick={handleShare}
-        className="flex items-center gap-2 active:scale-95 transition-all"
-        style={{
+      {/* Invite: the share sheet (or a copy), a WhatsApp message, and the link itself for anyone
+          who would rather read it out. Joining stays open until the game ends. */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button type="button" onClick={handleShare} className="active:scale-95 transition-all" style={pill}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            Invite friends
+          </button>
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent(inviteText)}`}
+            target="_blank" rel="noopener noreferrer"
+            className="active:scale-95 transition-all"
+            style={pill}
+          >
+            WhatsApp
+          </a>
+        </div>
+        <span style={{
           fontFamily: 'var(--font-inter),sans-serif', fontSize: 12, fontWeight: 600,
-          letterSpacing: '0.08em', color: SAFFRON,
-          border: '1px solid rgba(255,153,51,0.4)', borderRadius: 999, padding: '8px 16px',
-          minHeight: 40,
-        }}
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-        Invite friends
-      </button>
+          color: 'rgba(250,248,240,0.75)', wordBreak: 'break-all', textAlign: 'center', userSelect: 'all',
+        }}>
+          {joinLink.replace(/^https?:\/\//, '')}
+        </span>
+      </div>
 
       {/* Seats */}
       <div style={{ width: '100%', maxWidth: 340 }}>

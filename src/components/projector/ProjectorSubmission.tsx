@@ -55,21 +55,26 @@ export default function ProjectorSubmission({ room }: Props) {
   const remaining = useCountdown(room.timerEndsAt, room.timerDuration);
   const challenge = room.currentChallenge;
   const players = Object.values(room.players);
+  // Players who joined once this round was under way sit it out (allPlayersSubmitted never counts
+  // them), so the counter is out of the eligible players — otherwise it could never reach N/N —
+  // and their tiles read "next round" instead of "thinking…".
+  const eligible = players.filter((p) => p.joinedRound < room.round);
   const submittedIds = new Set(Object.keys(room.submissions));
-  const submittedCount = submittedIds.size;
-  const n = players.length;
+  const submittedCount = eligible.filter((p) => submittedIds.has(p.id)).length;
+  const n = eligible.length;
+  const tiles = players.length;
 
   useEffect(() => {
     getMusicManager().play('ticking');
   }, []);
 
   // Adaptive tile size — fewer players get larger tiles so the screen fills nicely
-  const minTile = n <= 4 ? 220 : n <= 8 ? 180 : n <= 12 ? 150 : 120;
+  const minTile = tiles <= 4 ? 220 : tiles <= 8 ? 180 : tiles <= 12 ? 150 : 120;
   const maxTile = Math.round(minTile * 1.5);
   // Tiles are sized to the room. With only a few players the old sizes left one small row
   // marooned in the middle of a 1080p stage, so the fewer the players the larger their tile.
-  const avatarSize = n <= 4 ? 132 : n <= 8 ? 92 : n <= 12 ? 60 : 44;
-  const tileMinH = n <= 4 ? 300 : n <= 8 ? 230 : n <= 12 ? 170 : 130;
+  const avatarSize = tiles <= 4 ? 132 : tiles <= 8 ? 92 : tiles <= 12 ? 60 : 44;
+  const tileMinH = tiles <= 4 ? 300 : tiles <= 8 ? 230 : tiles <= 12 ? 170 : 130;
 
   return (
     <div className="w-full h-full bg-[#08070f] flex flex-col overflow-hidden">
@@ -116,13 +121,16 @@ export default function ProjectorSubmission({ room }: Props) {
           style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${minTile}px, ${maxTile}px))`, gridAutoRows: `minmax(${tileMinH}px, auto)` }}
         >
           {players.map((p) => {
-            const submitted = submittedIds.has(p.id);
+            const isLate = p.joinedRound >= room.round;
+            const submitted = !isLate && submittedIds.has(p.id);
             const online = p.lastSeen ? Date.now() - p.lastSeen < 45_000 : true;
             return (
               <div
                 key={p.id}
                 className={`rounded-2xl border-2 flex flex-col items-center gap-3 transition-all duration-500 ${
-                  submitted
+                  isLate
+                    ? 'border-[#FF9933]/30 bg-[#FF9933]/5'
+                    : submitted
                     ? 'border-[#138808] bg-[#138808]/10'
                     : online
                     ? 'border-white/10 bg-white/5'
@@ -145,7 +153,10 @@ export default function ProjectorSubmission({ room }: Props) {
                    style={{ fontSize: 'clamp(11px, 1vw, 16px)', fontWeight: 500 }}>
                   {p.name}
                 </p>
-                {submitted ? (
+                {isLate ? (
+                  <span className="text-[#FF9933]/85 uppercase tracking-wider font-[family-name:var(--font-inter)]"
+                        style={{ fontSize: 'clamp(11px, 0.75vw, 12px)' }}>Next round</span>
+                ) : submitted ? (
                   <span className="text-[#138808]" style={{ fontSize: 'clamp(18px, 2vw, 28px)' }}>✓</span>
                 ) : online ? (
                   <span className="text-white/25 uppercase tracking-wider font-[family-name:var(--font-inter)]"
