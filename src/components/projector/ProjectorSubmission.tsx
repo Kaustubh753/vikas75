@@ -37,7 +37,7 @@ function TimerRing({ total, remaining }: { total: number; remaining: number }) {
                   style={{ fontSize: 'clamp(36px, 4.2vw, 64px)' }}>
               {remaining}
             </span>
-            <span className="text-white/40 uppercase tracking-widest font-[family-name:var(--font-inter)]"
+            <span className="text-[rgba(250,248,240,0.45)] uppercase tracking-widest font-[family-name:var(--font-inter)]"
                   style={{ fontSize: 'clamp(9px, 0.7vw, 12px)' }}>sec</span>
           </>
         ) : (
@@ -79,10 +79,10 @@ export default function ProjectorSubmission({ room }: Props) {
   return (
     <div className="w-full h-full bg-[#08070f] flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="px-10 pt-6 pb-4 flex items-center justify-between border-b border-white/10 gap-6">
+      <div className="px-10 pt-6 pb-4 flex items-center justify-between border-b border-[rgba(250,248,240,0.14)] gap-6">
         {challenge && (
           <div className="bg-[#1a3a6e] rounded-2xl flex-1 min-w-0" style={{ padding: 'clamp(12px, 1.2vw, 20px) clamp(16px, 1.5vw, 28px)' }}>
-            <p className="text-white/50 uppercase tracking-widest font-[family-name:var(--font-inter)]"
+            <p className="text-[rgba(250,248,240,0.55)] uppercase tracking-widest font-[family-name:var(--font-inter)]"
                style={{ fontSize: 'clamp(9px, 0.65vw, 11px)', marginBottom: 4 }}>
               Challenge
             </p>
@@ -105,7 +105,7 @@ export default function ProjectorSubmission({ room }: Props) {
             <p className="font-[family-name:var(--font-bebas)] text-[#FF9933]" style={{ fontSize: 'clamp(28px, 3.5vw, 56px)', lineHeight: 1 }}>
               <CountUp value={submittedCount} />/{n}
             </p>
-            <p className="text-white/40 uppercase tracking-widest font-[family-name:var(--font-inter)]"
+            <p className="text-[rgba(250,248,240,0.45)] uppercase tracking-widest font-[family-name:var(--font-inter)]"
                style={{ fontSize: 'clamp(9px, 0.65vw, 11px)' }}>
               Submitted
             </p>
@@ -133,8 +133,8 @@ export default function ProjectorSubmission({ room }: Props) {
                     : submitted
                     ? 'border-[#138808] bg-[#138808]/10'
                     : online
-                    ? 'border-white/10 bg-white/5'
-                    : 'border-white/5 bg-white/[0.02]'
+                    ? 'border-[rgba(250,248,240,0.14)] bg-[rgba(250,248,240,0.04)]'
+                    : 'border-[rgba(250,248,240,0.14)] bg-[rgba(250,248,240,0.02)]'
                 }`}
                 style={{ padding: 'clamp(12px, 1.2vw, 20px)' }}
               >
@@ -149,7 +149,7 @@ export default function ProjectorSubmission({ room }: Props) {
                     }}
                   />
                 </div>
-                <p className={`font-[family-name:var(--font-inter)] text-center truncate w-full ${online ? 'text-white' : 'text-white/40'}`}
+                <p className={`font-[family-name:var(--font-inter)] text-center truncate w-full ${online ? 'text-white' : 'text-[rgba(250,248,240,0.45)]'}`}
                    style={{ fontSize: 'clamp(11px, 1vw, 16px)', fontWeight: 500 }}>
                   {p.name}
                 </p>
@@ -159,10 +159,10 @@ export default function ProjectorSubmission({ room }: Props) {
                 ) : submitted ? (
                   <span className="text-[#138808]" style={{ fontSize: 'clamp(18px, 2vw, 28px)' }}>✓</span>
                 ) : online ? (
-                  <span className="text-white/25 uppercase tracking-wider font-[family-name:var(--font-inter)]"
+                  <span className="text-[rgba(250,248,240,0.35)] uppercase tracking-wider font-[family-name:var(--font-inter)]"
                         style={{ fontSize: 'clamp(9px, 0.7vw, 11px)' }}>Thinking…</span>
                 ) : (
-                  <span className="text-white/20 uppercase tracking-wider font-[family-name:var(--font-inter)]"
+                  <span className="text-[rgba(250,248,240,0.35)] uppercase tracking-wider font-[family-name:var(--font-inter)]"
                         style={{ fontSize: 'clamp(9px, 0.7vw, 11px)' }}>Away</span>
                 )}
               </div>

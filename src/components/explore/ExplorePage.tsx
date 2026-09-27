@@ -122,7 +122,7 @@ export default function ExplorePage({ schemes }: Props) {
       {/* ── Header ───────────────────────────────────────────── */}
       <header style={{
         position: 'sticky', top: 0, zIndex: 50,
-        background: 'rgba(7,16,31,0.94)', backdropFilter: 'blur(20px)',
+        background: 'rgba(8,7,15,0.94)', backdropFilter: 'blur(20px)',
         borderBottom: `1px solid ${C.w14}`,
         padding: '0 clamp(20px,4vw,64px)',
         display: 'flex', alignItems: 'stretch', gap: 0, height: 52,
@@ -386,7 +386,7 @@ function CardTile({ card, onOpen, lang, t }: {
             ? `0 0 0 1px ${C.w18}, 0 26px 48px rgba(0,0,0,.7), 0 0 32px rgba(255,153,51,.18)`
             : `0 0 0 1px ${C.w18}, 0 18px 36px rgba(0,0,0,.6)`,
           transform: hovered ? 'translateY(-6px) scale(1.03)' : 'none',
-          transition: 'transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .22s ease',
+          transition: 'transform .22s cubic-bezier(0.16,1,0.3,1), box-shadow .22s ease',
           willChange: 'transform',
         }}
       >
@@ -484,7 +484,7 @@ function CardModal({ card, onClose, lang, t }: {
         initial={{ scale: 0.93, y: 16, opacity: 0 }}
         animate={{ scale: 1, y: 0, opacity: 1 }}
         exit={{ scale: 0.96, y: 8, opacity: 0 }}
-        transition={{ duration: 0.24, ease: [0.34, 1.56, 0.64, 1] }}
+        transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
       >
         {/* Card image — left (above on phones) */}
         <div style={{
@@ -502,7 +502,7 @@ function CardModal({ card, onClose, lang, t }: {
         {/* Detail panel — right (below on phones; the min-width is what forces the wrap) */}
         <div style={{
           flex: 1, minWidth: 'min(100%, 260px)',
-          background: 'linear-gradient(160deg,rgba(255,153,51,.06) 0%,rgba(5,11,28,.96) 100%)',
+          background: 'linear-gradient(160deg,rgba(255,153,51,.06) 0%,rgba(8,7,15,0.96) 100%)',
           border: `1px solid rgba(255,153,51,0.25)`,
           borderRadius: 14,
           boxShadow: '0 32px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,153,51,0.14)',

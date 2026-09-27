@@ -25,7 +25,7 @@ function TimerBar({ total, endsAt }: { total: number; endsAt: number }) {
   const urgent = remaining <= 10;
 
   return (
-    <div className="relative h-6 bg-white/10 overflow-hidden">
+    <div className="relative h-6 bg-[rgba(250,248,240,0.08)] overflow-hidden">
       <motion.div
         className="absolute left-0 top-0 h-full w-full"
         style={{ backgroundColor: urgent ? '#ef4444' : '#FF9933', transformOrigin: '0 50%' }}
@@ -49,6 +49,10 @@ const DRAFT_KEY = 'vikas75_draft_explanation';
 const MAX_WORDS = 25;
 const CARD_W = 160;
 const CARD_H = 214; // 413:554 ≈ 3:4
+// The justify step shows the chosen card smaller so the primary button sits above the fold on an
+// 812px phone without scrolling.
+const PREVIEW_W = 128;
+const PREVIEW_H = 171;
 
 function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
@@ -239,14 +243,14 @@ export default function PlayerSubmit({
         </div>
 
         {/* Explanation is not in the image — keep it */}
-        <div className="w-full max-w-xs bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+        <div className="w-full max-w-xs bg-[rgba(250,248,240,0.04)] border border-[rgba(250,248,240,0.14)] rounded-xl px-4 py-3">
           <p className="text-[#FF9933] text-xs uppercase tracking-widest mb-1 font-[family-name:var(--font-inter)]">Your answer</p>
-          <p className="text-white/80 text-sm italic font-[family-name:var(--font-inter)] leading-relaxed">
+          <p className="text-[rgba(250,248,240,0.85)] text-sm italic font-[family-name:var(--font-inter)] leading-relaxed">
             &ldquo;{submittedExplanation}&rdquo;
           </p>
         </div>
 
-        <p className="text-white/40 text-sm text-center font-[family-name:var(--font-inter)]">
+        <p className="text-[rgba(250,248,240,0.45)] text-sm text-center font-[family-name:var(--font-inter)]">
           Watch the screen!
         </p>
       </motion.div>
@@ -303,7 +307,7 @@ export default function PlayerSubmit({
           </div>
         </div>
 
-        <p className="text-white/50 px-4 font-[family-name:var(--font-inter)] uppercase"
+        <p className="text-[rgba(250,248,240,0.55)] px-4 font-[family-name:var(--font-inter)] uppercase"
            style={{ fontSize: 11, letterSpacing: '0.08em', fontWeight: 500 }}>
           Your Hand — tap to select
         </p>
@@ -367,7 +371,7 @@ export default function PlayerSubmit({
                   aria-label={`Select scheme ${card.name}`}
                   aria-pressed={isSelected}
                   className={`relative cursor-pointer flex-shrink-0 rounded-xl overflow-hidden ${
-                    isSelected ? 'border-2 border-[#FF9933]' : 'border border-white/10'
+                    isSelected ? 'border-2 border-[#FF9933]' : 'border border-[rgba(250,248,240,0.14)]'
                   }`}
                   style={{
                     width: CARD_W,
@@ -411,16 +415,20 @@ export default function PlayerSubmit({
           <motion.button
             onClick={() => selected && setStep('justify')}
             disabled={!selected}
-            className="w-full disabled:opacity-40 disabled:cursor-not-allowed text-[#08070f] font-[family-name:var(--font-bebas)] tracking-widest rounded-xl"
+            // Always full saffron; the label carries the reason while disabled (DESIGN.md: the
+            // Spotlight primary never fades below 82%).
+            className="w-full disabled:cursor-not-allowed text-[#1a1208] font-[family-name:var(--font-bebas)] tracking-widest rounded-xl"
             style={{
               height: 56,
+              padding: '8px 16px',
               backgroundColor: '#FF9933',
+              opacity: selected ? 1 : 0.82,
               boxShadow: selected ? '0 4px 0 #cc7a00' : 'none',
               fontSize: 22,
             }}
             whileTap={selected ? { y: 4, boxShadow: '0 0 0 #cc7a00' } : {}}
           >
-            {selected ? `Play ${selected.name} →` : 'Select a Card First'}
+            {selected ? `Play ${selected.name} →` : 'Tap a card to play it'}
           </motion.button>
         </div>
       </div>
@@ -430,7 +438,7 @@ export default function PlayerSubmit({
   // ── Justify step ───────────────────────────────────────────────────────────
   return (
     <motion.div
-      className="flex flex-col gap-5 py-6 px-4"
+      className="flex flex-col gap-4 py-6 px-4"
       animate={throwing ? { y: -160, scale: 0.5, opacity: 0, rotate: 8 } : { y: 0, scale: 1, opacity: 1, rotate: 0 }}
       transition={{ duration: 0.6, ease: 'easeIn' }}
     >
@@ -445,7 +453,7 @@ export default function PlayerSubmit({
         <div className="flex flex-col items-center gap-1.5">
           <div
             className="rounded-2xl overflow-hidden border-2 border-[#FF9933] shadow-xl"
-            style={{ width: CARD_W, height: CARD_H, position: 'relative', flexShrink: 0 }}
+            style={{ width: PREVIEW_W, height: PREVIEW_H, position: 'relative', flexShrink: 0 }}
           >
             <Image
               src={getSchemeCardImage(selected.id)}
@@ -460,7 +468,7 @@ export default function PlayerSubmit({
           </div>
           {/* Card name reminder — useful since the text in the image can be small */}
           <p
-            className="font-[family-name:var(--font-bebas)] text-white/70 tracking-wide text-center leading-tight"
+            className="font-[family-name:var(--font-bebas)] text-[rgba(250,248,240,0.7)] tracking-wide text-center leading-tight"
             style={{ fontSize: 13, maxWidth: CARD_W }}
           >
             {selected.name}
@@ -470,12 +478,12 @@ export default function PlayerSubmit({
 
       <div>
         <div className="flex justify-between items-center mb-2">
-          <label htmlFor="justification" className="text-white/60 text-xs uppercase tracking-widest font-[family-name:var(--font-inter)]">
+          <label htmlFor="justification" className="text-[rgba(250,248,240,0.7)] text-xs uppercase tracking-widest font-[family-name:var(--font-inter)]">
             Your Justification
           </label>
           <span
             className={`text-xs font-bold font-[family-name:var(--font-inter)] ${
-              wordsLeft <= 5 ? 'text-red-400' : wordsLeft <= 10 ? 'text-orange-400' : 'text-white/40'
+              wordsLeft <= 5 ? 'text-red-400' : wordsLeft <= 10 ? 'text-orange-400' : 'text-[rgba(250,248,240,0.45)]'
             }`}
           >
             {wordCount}/{MAX_WORDS} words
@@ -493,9 +501,9 @@ export default function PlayerSubmit({
           }}
           placeholder="Why does your scheme solve this challenge? (25 words max)"
           rows={4}
-          className="w-full rounded-xl border-2 border-white/20 bg-white/5 text-white px-4 py-3 text-sm focus:outline-none focus:border-[#FF9933] focus:ring-2 focus:ring-[#FF9933]/40 placeholder-white/30 resize-none transition-all font-[family-name:var(--font-inter)]"
+          className="w-full rounded-xl border-2 border-[rgba(250,248,240,0.2)] bg-[rgba(250,248,240,0.04)] text-white px-4 py-3 text-sm focus:outline-none focus:border-[#FF9933] focus:ring-2 focus:ring-[#FF9933]/40 placeholder-[rgba(250,248,240,0.35)] resize-none transition-all font-[family-name:var(--font-inter)]"
         />
-        <p className="text-white/50 text-xs mt-1 font-[family-name:var(--font-inter)]">
+        <p className="text-[rgba(250,248,240,0.55)] text-xs mt-1 font-[family-name:var(--font-inter)]">
           Tip: say what your scheme does and why it fits the problem.
         </p>
       </div>
@@ -503,24 +511,26 @@ export default function PlayerSubmit({
       <motion.button
         onClick={handleThrow}
         disabled={!explanation.trim() || loading || throwing}
-        className="w-full disabled:opacity-40 disabled:cursor-not-allowed text-[#08070f] font-[family-name:var(--font-inter)] uppercase tracking-widest rounded-xl"
+        aria-busy={loading || throwing || undefined}
+        className="w-full disabled:cursor-not-allowed text-[#1a1208] font-[family-name:var(--font-bebas)] tracking-widest rounded-xl"
         style={{
-          height: 48,
+          height: 56,
+          padding: '8px 16px',
           backgroundColor: '#FF9933',
-          boxShadow: '0 4px 0 #cc7a00',
-          fontSize: 16,
-          fontWeight: 600,
+          opacity: explanation.trim() || loading || throwing ? 1 : 0.82,
+          boxShadow: explanation.trim() ? '0 4px 0 #cc7a00' : 'none',
+          fontSize: 22,
         }}
-        whileTap={{ y: 4, boxShadow: '0 0 0 #cc7a00' }}
+        whileTap={explanation.trim() ? { y: 4, boxShadow: '0 0 0 #cc7a00' } : {}}
       >
-        {loading || throwing ? 'Throwing…' : 'Throw Your Card ↑'}
+        {loading || throwing ? 'Throwing…' : explanation.trim() ? 'Throw Your Card ↑' : 'Write your justification first'}
       </motion.button>
 
       <button
         onClick={() => setStep('select')}
         disabled={loading || throwing}
-        className="w-full text-[#FF9933]/60 text-sm text-center font-[family-name:var(--font-inter)] border border-[#FF9933]/20 rounded-xl py-3 hover:text-[#FF9933] hover:border-[#FF9933]/50 hover:bg-[#FF9933]/5 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-        style={{ letterSpacing: '0.04em' }}
+        className="mx-auto text-[#FF9933] text-sm text-center font-[family-name:var(--font-inter)] font-semibold rounded-xl px-6 hover:bg-[#FF9933]/10 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+        style={{ letterSpacing: '0.04em', minHeight: 44 }}
       >
         ← Change card
       </button>

@@ -74,7 +74,7 @@ export default function EmoteOverlay({ code }: Props) {
                 <div className="rounded-md overflow-hidden">
                   <Avatar id={e.avatarId} size={22} />
                 </div>
-                <span className="text-white/60 text-xs font-[family-name:var(--font-inter)]">
+                <span className="text-[rgba(250,248,240,0.7)] text-xs font-[family-name:var(--font-inter)]">
                   {e.playerName}
                 </span>
               </div>

@@ -560,14 +560,14 @@ export default function PlayerView({ code }: Props) {
           <p className="text-white text-2xl tracking-wide" style={{ fontFamily: 'var(--font-bebas),var(--font-devanagari),sans-serif' }}>
             You&apos;re in, {myName}
           </p>
-          <p className="text-white/70 text-sm font-[family-name:var(--font-inter)] max-w-xs">
+          <p className="text-[rgba(250,248,240,0.7)] text-sm font-[family-name:var(--font-inter)] max-w-xs">
             {lastRound
               ? 'This is the last round. Stay for the finale on the big screen.'
               : `Round ${room.round} is under way on the big screen. You play from round ${room.round + 1}.`}
           </p>
           <div className="flex gap-2 mt-1">
             {[0, 1, 2].map((i) => (
-              <span key={i} className="w-2 h-2 bg-[#FF9933]/50 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+              <span key={i} className="w-2 h-2 bg-[#FF9933]/50 rounded-full animate-dots" style={{ animationDelay: `${i * 0.15}s` }} />
             ))}
           </div>
         </div>
@@ -606,7 +606,7 @@ export default function PlayerView({ code }: Props) {
             <div className="flex flex-col items-center justify-center gap-4 min-h-[60vh] px-6 text-center">
               <p className="text-5xl">🤷</p>
               <p className="text-white font-[family-name:var(--font-bebas)] text-3xl tracking-wide">No winner this round</p>
-              <p className="text-white/50 text-sm font-[family-name:var(--font-inter)]">{verdict.reasoning}</p>
+              <p className="text-[rgba(250,248,240,0.55)] text-sm font-[family-name:var(--font-inter)]">{verdict.reasoning}</p>
             </div>
           );
         }
@@ -622,15 +622,15 @@ export default function PlayerView({ code }: Props) {
             <p className="font-[family-name:var(--font-bebas)] text-[#FFD700] text-4xl tracking-wide leading-none">
               {verdict.winnerName}
             </p>
-            <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-3 max-w-sm">
+            <div className="bg-[rgba(250,248,240,0.04)] border border-[rgba(250,248,240,0.14)] rounded-2xl px-5 py-3 max-w-sm">
               <p className="font-[family-name:var(--font-bebas)] text-white text-lg tracking-wide mb-1">
                 {verdict.schemeCard.name}
               </p>
-              <p className="font-[family-name:var(--font-inter)] text-white/60 text-sm italic">
+              <p className="font-[family-name:var(--font-inter)] text-[rgba(250,248,240,0.7)] text-sm italic">
                 &ldquo;{verdict.explanation}&rdquo;
               </p>
             </div>
-            <p className={`font-[family-name:var(--font-inter)] text-sm font-semibold ${iWon ? 'text-[#138808]' : 'text-white/50'}`}>
+            <p className={`font-[family-name:var(--font-inter)] text-sm font-semibold ${iWon ? 'text-[#138808]' : 'text-[rgba(250,248,240,0.55)]'}`}>
               {iWon ? '🎉 You won this round!' : 'Better luck next round!'}
             </p>
             <PlayerScorecard verdict={verdict} playerId={playerId} />
@@ -671,10 +671,10 @@ export default function PlayerView({ code }: Props) {
                 getMusicManager().setMuted(!next);     // SFX follows the same preference
                 setMusicOn(next);
               }}
-              className="w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-95"
+              className="w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95"
               style={{
-                background: musicOn ? 'rgba(255,153,51,0.18)' : 'rgba(255,255,255,0.08)',
-                border: `1px solid ${musicOn ? 'rgba(255,153,51,0.5)' : 'rgba(255,255,255,0.15)'}`,
+                background: musicOn ? 'rgba(255,153,51,0.18)' : 'rgba(250,248,240,0.06)',
+                border: `1px solid ${musicOn ? 'rgba(255,153,51,0.5)' : 'rgba(250,248,240,0.14)'}`,
                 fontSize: 16,
               }}
               aria-label={musicOn ? 'Mute all sound' : 'Unmute all sound'}
@@ -684,7 +684,7 @@ export default function PlayerView({ code }: Props) {
           )}
           {phase !== 'lobby' && room.round > 0 && (
             <div className="text-right">
-              <p className="text-white/40 text-[10px] uppercase tracking-widest font-[family-name:var(--font-inter)]">
+              <p className="text-[rgba(250,248,240,0.45)] text-[10px] uppercase tracking-widest font-[family-name:var(--font-inter)]">
                 Round
               </p>
               <p className="font-[family-name:var(--font-bebas)] text-white text-xl">
@@ -699,13 +699,13 @@ export default function PlayerView({ code }: Props) {
               onClick={() => clearSessionAndGoHome()}
               className="flex items-center gap-1 transition-all active:scale-95"
               style={{
-                height: 40,
+                height: 44,
                 paddingLeft: 12,
                 paddingRight: 12,
                 borderRadius: 8,
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                color: 'rgba(255,255,255,0.4)',
+                background: 'rgba(250,248,240,0.04)',
+                border: '1px solid rgba(250,248,240,0.14)',
+                color: 'rgba(250,248,240,0.55)',
                 fontFamily: 'var(--font-inter),sans-serif',
                 fontSize: 11,
                 fontWeight: 500,
@@ -729,7 +729,7 @@ export default function PlayerView({ code }: Props) {
           <span className="text-white text-[13px] font-semibold font-[family-name:var(--font-inter)] truncate">{myName}</span>
           <span className="text-[#FF9933]/70 text-[11px] uppercase tracking-widest font-[family-name:var(--font-inter)] shrink-0">you</span>
           {isLateJoiner && (
-            <span className="text-white/45 text-[11px] uppercase tracking-widest font-[family-name:var(--font-inter)] shrink-0">· next round</span>
+            <span className="text-[rgba(250,248,240,0.45)] text-[11px] uppercase tracking-widest font-[family-name:var(--font-inter)] shrink-0">· next round</span>
           )}
         </div>
       )}
@@ -796,7 +796,7 @@ export default function PlayerView({ code }: Props) {
               initial={{ ...overlay.initial, opacity: 0 }}
               animate={{ y: 0, x: 0, scale: 1, opacity: 1 }}
               exit={{ scale: 0.85, opacity: 0 }}
-              transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             >
               {overlay.text}
             </motion.p>

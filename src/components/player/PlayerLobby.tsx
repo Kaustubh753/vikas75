@@ -73,7 +73,7 @@ function SeatCard({ player, isMe, isHost, delay }: { player: Player; isMe: boole
         maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>{player.name}</span>
       <span style={{
-        fontFamily: 'var(--font-inter),sans-serif', fontSize: 8.5, fontWeight: 700,
+        fontFamily: 'var(--font-inter),sans-serif', fontSize: 11, fontWeight: 700,
         letterSpacing: '0.16em', textTransform: 'uppercase',
         color: isHost ? SAFFRON : '#138808',
         background: isHost ? 'rgba(255,153,51,0.12)' : 'rgba(19,136,8,0.12)',
@@ -121,7 +121,7 @@ export default function PlayerLobby({ room, playerId }: Props) {
       {/* Phase pill + count, mirroring the projector header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{
-          fontFamily: 'var(--font-inter),sans-serif', fontSize: 9, fontWeight: 700,
+          fontFamily: 'var(--font-inter),sans-serif', fontSize: 11, fontWeight: 700,
           letterSpacing: '0.22em', textTransform: 'uppercase', color: SAFFRON,
           border: '1px solid rgba(255,153,51,0.35)', borderRadius: 999, padding: '4px 11px',
         }}>Lobby</span>
@@ -137,7 +137,7 @@ export default function PlayerLobby({ room, playerId }: Props) {
       {/* Room code, as the tiles the big screen shows */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 9 }}>
         <span style={{
-          fontFamily: 'var(--font-inter),sans-serif', fontSize: 9.5, fontWeight: 600,
+          fontFamily: 'var(--font-inter),sans-serif', fontSize: 11, fontWeight: 600,
           letterSpacing: '0.24em', textTransform: 'uppercase', color: 'rgba(250,248,240,0.45)',
         }}>Room code</span>
         <div style={{ display: 'flex', gap: 9 }}>
@@ -173,7 +173,7 @@ export default function PlayerLobby({ room, playerId }: Props) {
       {/* Seats */}
       <div style={{ width: '100%', maxWidth: 340 }}>
         <div style={{
-          fontFamily: 'var(--font-inter),sans-serif', fontSize: 9.5, fontWeight: 600,
+          fontFamily: 'var(--font-inter),sans-serif', fontSize: 11, fontWeight: 600,
           letterSpacing: '0.24em', textTransform: 'uppercase', color: 'rgba(250,248,240,0.45)',
           marginBottom: 10, textAlign: 'center',
         }}>
@@ -203,7 +203,7 @@ export default function PlayerLobby({ room, playerId }: Props) {
                 color: 'rgba(250,248,240,0.3)', fontSize: 18, fontWeight: 300,
               }}>+</div>
               <span style={{
-                fontFamily: 'var(--font-inter),sans-serif', fontSize: 8.5, fontWeight: 500,
+                fontFamily: 'var(--font-inter),sans-serif', fontSize: 11, fontWeight: 500,
                 letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(250,248,240,0.4)',
               }}>open seat</span>
             </div>
@@ -220,7 +220,7 @@ export default function PlayerLobby({ room, playerId }: Props) {
         }}>
           <span style={{ display: 'flex', gap: 4 }}>
             {[0, 1, 2].map(i => (
-              <span key={i} className="animate-bounce" style={{
+              <span key={i} className="animate-dots" style={{
                 width: 5, height: 5, borderRadius: '50%', background: 'rgba(255,153,51,0.75)',
                 animationDelay: `${i * 0.15}s`,
               }} />

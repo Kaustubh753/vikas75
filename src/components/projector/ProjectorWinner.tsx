@@ -1,6 +1,5 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
 import Avatar from '@/lib/avatars';
 import Confetti from '@/components/ui/Confetti';
 import Stars from '@/components/ui/Stars';
@@ -56,7 +55,7 @@ export default function ProjectorWinner({ room }: Props) {
             style={{ fontSize: 'clamp(40px,7vw,80px)', lineHeight: 1 }}>
           No winner this round
         </h1>
-        <p className="font-[family-name:var(--font-inter)] text-white/60 text-center"
+        <p className="font-[family-name:var(--font-inter)] text-[rgba(250,248,240,0.7)] text-center"
            style={{ fontSize: 'clamp(14px,1.4vw,20px)', maxWidth: '40ch' }}>
           {verdict.reasoning}
         </p>
@@ -89,77 +88,75 @@ export default function ProjectorWinner({ room }: Props) {
     <div className="w-full h-full bg-[#08070f] flex flex-col items-center justify-center overflow-hidden relative">
       {stage >= 1 && <Confetti />}
 
-      {/* Stage 0: suspense */}
+      {/* Stage 0: suspense — the words breathe, the dots wave; nothing bounces */}
       {stage === 0 && (
         <div className="flex flex-col items-center gap-6 animate-fade-in">
-          <div className="flex gap-2 mb-2">
-            {[0,1,2].map(i => (
-              <div key={i} className="w-4 h-4 rounded-full bg-[#FF9933] animate-bounce" style={{ animationDelay: `${i*0.2}s` }} />
-            ))}
-          </div>
-          <h2 className="font-[family-name:var(--font-bebas)] text-white/60 text-3xl tracking-[0.5em] uppercase">
+          <h2 className="font-[family-name:var(--font-bebas)] text-[#FF9933] text-3xl tracking-[0.5em] uppercase">
             Round {room.round}
           </h2>
-          <h1 className="font-[family-name:var(--font-bebas)] text-white text-8xl tracking-widest">
+          <h1 className="font-[family-name:var(--font-bebas)] text-white tracking-widest animate-breathe" style={{ fontSize: 'clamp(56px,8vw,120px)', lineHeight: 1 }}>
             The winner is…
           </h1>
+          <div className="flex gap-3 mt-2" aria-hidden="true">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="w-4 h-4 rounded-full bg-[#FF9933] animate-dots" style={{ animationDelay: `${i * 0.2}s` }} />
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Stage 1: winner reveal */}
+      {/* Stage 1: the winner lands in three beats — the avatar rises as the gold halo blooms, the
+          name is unmasked from the bottom, the verdict follows. CSS-driven so it plays the same on
+          a throttled laptop and a TV; reduced motion collapses it to the end states. */}
       {stage === 1 && (
-        <motion.div className="flex flex-col items-center gap-6" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 200, damping: 10 }}>
-          <p className="font-[family-name:var(--font-bebas)] text-[#FF9933] text-2xl tracking-[0.5em]">
+        <div className="flex flex-col items-center gap-6">
+          <p className="font-[family-name:var(--font-bebas)] text-[#FF9933] text-2xl tracking-[0.5em] animate-rise-in">
             ROUND {room.round} WINNER
           </p>
-          <div
-            className="rounded-3xl overflow-hidden shadow-[0_0_80px_#FFD70060]"
-            style={{ filter: 'drop-shadow(0 0 40px #FFD70040)' }}
-          >
+          <div className="rounded-3xl overflow-hidden animate-winner-avatar" style={{ animationDelay: '0.1s, 0.45s' }}>
             <Avatar id={verdict.rankings[0]?.avatarId ?? 'a1'} size={140} className="rounded-3xl" />
           </div>
-          <h1 className="font-[family-name:var(--font-bebas)] text-[#FFD700] leading-none tracking-wide text-center"
-              style={{ fontSize: '80px' }}>
-            {verdict.winnerName}
-          </h1>
-          <div className="bg-[#1a3a6e] rounded-2xl px-8 py-4 max-w-2xl text-center">
+          <div style={{ overflow: 'hidden', padding: '0.1em 0.2em' }}>
+            <h1 className="font-[family-name:var(--font-bebas)] text-[#FFD700] leading-none tracking-wide text-center animate-unmask-up"
+                style={{ fontSize: 'clamp(56px,6.5vw,96px)', animationDelay: '0.35s' }}>
+              {verdict.winnerName}
+            </h1>
+          </div>
+          <div className="bg-[#1a3a6e] rounded-2xl px-8 py-4 max-w-2xl text-center animate-rise-in" style={{ animationDelay: '0.65s' }}>
             <p className="font-[family-name:var(--font-bebas)] text-white text-2xl tracking-wide mb-2">
               {verdict.schemeCard.name}
             </p>
-            <p className="font-[family-name:var(--font-inter)] text-white/70 text-lg italic">
+            <p className="font-[family-name:var(--font-inter)] text-[rgba(250,248,240,0.7)] text-lg italic">
               &ldquo;{verdict.explanation}&rdquo;
             </p>
           </div>
-          <p className="font-[family-name:var(--font-inter)] text-white/50 text-sm max-w-xl text-center">
+          <p className="font-[family-name:var(--font-inter)] text-[rgba(250,248,240,0.55)] text-sm max-w-xl text-center animate-fade-in" style={{ animationDelay: '1s' }}>
             {verdict.reasoning}
           </p>
-        </motion.div>
+        </div>
       )}
 
       {/* Stage 2: all rankings */}
       {stage === 2 && (
-        <div className="w-full px-12 animate-slide-up" style={{ maxHeight: '100%' }}>
-          <h2 className="font-[family-name:var(--font-bebas)] text-white text-4xl tracking-widest text-center" style={{ marginBottom: 8 }}>
+        <div className="w-full px-12" style={{ maxHeight: '100%' }}>
+          <h2 className="font-[family-name:var(--font-bebas)] text-white text-4xl tracking-widest text-center animate-rise-in" style={{ marginBottom: 8 }}>
             Round {room.round} Rankings
           </h2>
           {/* Says what the stars mean without spelling it out twice — points come from placement,
               the stars rate the answer itself. */}
-          <p className="text-center text-white/40 text-sm tracking-widest uppercase font-[family-name:var(--font-inter)]" style={{ marginBottom: density.headGap }}>
+          <p className="text-center text-[rgba(250,248,240,0.45)] text-sm tracking-widest uppercase font-[family-name:var(--font-inter)]" style={{ marginBottom: density.headGap }}>
             Stars rate this round&apos;s answer
           </p>
           <div className="max-w-3xl mx-auto" style={{ display: 'flex', flexDirection: 'column', gap: density.gap }}>
             {rankings.map((r, i) => (
-              <motion.div
+              <div
                 key={r.playerId}
-                className={`flex items-center rounded-2xl px-6 ${
-                  i === 0 ? 'bg-[#FFD700]/10 border border-[#FFD700]/30' : 'bg-white/5 border border-white/5'
+                className={`flex items-center rounded-2xl px-6 animate-rise-in ${
+                  i === 0 ? 'bg-[#FFD700]/10 border border-[#FFD700]/30' : 'bg-[rgba(250,248,240,0.04)] border border-[rgba(250,248,240,0.14)]'
                 }`}
-                style={{ paddingTop: density.padY, paddingBottom: density.padY, gap: density.gap + 4 }}
-                initial={{ opacity: 0, x: 40 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.1 }}
+                style={{ paddingTop: density.padY, paddingBottom: density.padY, gap: density.gap + 4, animationDelay: `${0.1 + i * 0.08}s` }}
               >
-                <span className={`font-[family-name:var(--font-bebas)] text-2xl w-8 ${i === 0 ? 'text-[#FFD700]' : 'text-white/40'}`}>
+                <span className={`font-[family-name:var(--font-bebas)] text-2xl w-8 ${i === 0 ? 'text-[#FFD700]' : 'text-[rgba(250,248,240,0.45)]'}`}>
                   {i + 1}
                 </span>
                 <div className="rounded-xl overflow-hidden shrink-0">
@@ -167,7 +164,7 @@ export default function ProjectorWinner({ room }: Props) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-[family-name:var(--font-inter)] text-white font-bold truncate leading-tight" style={{ fontSize: density.name }}>{r.playerName}</p>
-                  <p className="text-white/50 font-[family-name:var(--font-inter)] truncate leading-tight" style={{ fontSize: density.scheme }}>{r.schemeCard.name}</p>
+                  <p className="text-[rgba(250,248,240,0.55)] font-[family-name:var(--font-inter)] truncate leading-tight" style={{ fontSize: density.scheme }}>{r.schemeCard.name}</p>
                 </div>
                 <div className="text-right shrink-0">
                   <Stars score={r.judgeScore} />
@@ -177,10 +174,10 @@ export default function ProjectorWinner({ room }: Props) {
                       asked to front-load routinely never arrived on the big screen. The phone
                       has always shown it in full. */}
                   {density.showComment && (
-                    <p className="text-white/40 text-xs font-[family-name:var(--font-inter)] italic line-clamp-2 max-w-[260px] text-balance">{r.judgeComment}</p>
+                    <p className="text-[rgba(250,248,240,0.45)] text-xs font-[family-name:var(--font-inter)] italic line-clamp-2 max-w-[260px] text-balance">{r.judgeComment}</p>
                   )}
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
