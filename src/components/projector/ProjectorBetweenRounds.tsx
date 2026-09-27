@@ -23,7 +23,7 @@ export default function ProjectorBetweenRounds({ room }: Props) {
     <div className="w-full h-full bg-[#08070f] flex flex-col items-center justify-center gap-8 relative overflow-hidden"
          style={{ padding: 'clamp(24px, 3vw, 56px)' }}>
 
-      <p className="text-white/40 uppercase font-[family-name:var(--font-inter)]"
+      <p className="text-[rgba(250,248,240,0.45)] uppercase font-[family-name:var(--font-inter)]"
          style={{ fontSize: 'clamp(11px, 0.9vw, 15px)', letterSpacing: '0.1em', fontWeight: 600 }}>
         Round {room.round} Winner
       </p>
@@ -34,7 +34,7 @@ export default function ProjectorBetweenRounds({ room }: Props) {
           className="flex flex-col items-center gap-4 text-center"
           initial={{ scale: 0.7, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 240, damping: 18 }}
+          transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
         >
           <div className="rounded-3xl overflow-hidden border-4 border-[#FFD700] shadow-2xl"
                style={{ width: 'clamp(80px, 9vw, 140px)', height: 'clamp(80px, 9vw, 140px)' }}>
@@ -47,21 +47,28 @@ export default function ProjectorBetweenRounds({ room }: Props) {
             >
               {roundWinner.name}
             </h1>
-            <p className="text-white/70 mt-2 font-[family-name:var(--font-inter)]"
+            <p className="text-[rgba(250,248,240,0.7)] mt-2 font-[family-name:var(--font-inter)]"
                style={{ fontSize: 'clamp(13px, 1.2vw, 18px)' }}>
               with <span className="text-white font-semibold">{room.lastVerdict.schemeCard.name}</span>
             </p>
           </div>
+          {/* The verdict on a glass card with the deck's own quote mark, not a side-tab border. */}
           <blockquote
-            className="text-white/85 italic font-[family-name:var(--font-inter)] leading-relaxed border-l-4 border-[#FF9933] pl-5 text-left"
-            style={{ fontSize: 'clamp(14px, 1.4vw, 22px)', maxWidth: 'clamp(400px, 50vw, 800px)' }}
+            className="text-[rgba(250,248,240,0.85)] italic font-[family-name:var(--font-inter)] leading-relaxed text-center relative"
+            style={{
+              fontSize: 'clamp(14px, 1.4vw, 22px)', maxWidth: 'clamp(400px, 50vw, 800px)', margin: 0,
+              padding: 'clamp(12px, 1.4vh, 18px) clamp(20px, 2vw, 32px)',
+              background: 'rgba(250,248,240,0.025)', border: '1px solid rgba(250,248,240,0.14)', borderRadius: 18,
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+            }}
           >
-            &ldquo;{room.lastVerdict.explanation}&rdquo;
+            <span aria-hidden="true" className="font-[family-name:var(--font-yatra)] not-italic text-[#FF9933] absolute" style={{ fontSize: 'clamp(28px, 2.6vw, 44px)', lineHeight: 1, left: 12, top: 6, opacity: 0.8 }}>&ldquo;</span>
+            {room.lastVerdict.explanation}
           </blockquote>
         </motion.div>
       ) : (
         <motion.p
-          className="text-white/50 font-[family-name:var(--font-bebas)] tracking-wide"
+          className="text-[rgba(250,248,240,0.55)] font-[family-name:var(--font-bebas)] tracking-wide"
           style={{ fontSize: 'clamp(32px, 4vw, 56px)' }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -79,13 +86,13 @@ export default function ProjectorBetweenRounds({ room }: Props) {
             key={p.id}
             initial={{ x: -24, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: i * 0.04, type: 'spring', stiffness: 260, damping: 22 }}
+            transition={{ delay: i * 0.04, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
             className={`rounded-xl border flex items-center gap-3 ${
-              leader ? 'border-[#FFD700]/40 bg-[#FFD700]/5' : 'border-white/[0.12] bg-white/[0.06]'
+              leader ? 'border-[#FFD700]/40 bg-[#FFD700]/5' : 'border-[rgba(250,248,240,0.14)] bg-[rgba(250,248,240,0.04)]'
             }`}
             style={{ padding: `${rowPy}px 16px`, boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}
           >
-            <span className={`font-[family-name:var(--font-bebas)] w-7 ${leader ? 'text-[#FFD700]' : 'text-white/40'}`}
+            <span className={`font-[family-name:var(--font-bebas)] w-7 ${leader ? 'text-[#FFD700]' : 'text-[rgba(250,248,240,0.45)]'}`}
                   style={{ fontSize: rankFs }}>
               {ranks[i]}
             </span>
@@ -99,7 +106,7 @@ export default function ProjectorBetweenRounds({ room }: Props) {
             {/* Round wins are what the order is built on, so they have to be visible — without
                 them a player sitting above someone with more points reads as a bug. */}
             {(p.roundsWon ?? 0) > 0 && (
-              <span className="text-white/55 font-[family-name:var(--font-inter)]"
+              <span className="text-[rgba(250,248,240,0.55)] font-[family-name:var(--font-inter)]"
                     style={{ fontSize: rowFs * 0.8 }}>
                 🏆 {p.roundsWon}
               </span>
@@ -113,13 +120,13 @@ export default function ProjectorBetweenRounds({ room }: Props) {
         })}
       </div>
 
-      <p className="text-white/40 font-[family-name:var(--font-inter)] uppercase text-center"
+      <p className="text-[rgba(250,248,240,0.45)] font-[family-name:var(--font-inter)] uppercase text-center"
          style={{ fontSize: 'clamp(10px, 0.8vw, 13px)', letterSpacing: '0.08em', fontWeight: 500 }}>
         Waiting for the host to start Round {room.round + 1}…
       </p>
 
       <div className="absolute bottom-6 text-center">
-        <p className="text-white/20 font-[family-name:var(--font-inter)]" style={{ fontSize: 11 }}>
+        <p className="text-[rgba(250,248,240,0.35)] font-[family-name:var(--font-inter)]" style={{ fontSize: 11 }}>
           An initiative of the Office of Sujeet Kumar
         </p>
       </div>

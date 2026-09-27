@@ -26,7 +26,7 @@ export default function ProjectorLoading() {
       {/* Tricolour strip — real, not a placeholder, so the brand lands on frame one */}
       <div className="absolute top-0 left-0 right-0 h-1.5 flex">
         <div className="flex-1 bg-[#FF9933]" />
-        <div className="flex-1 bg-white/20" />
+        <div className="flex-1 bg-[rgba(250,248,240,0.16)]" />
         <div className="flex-1 bg-[#138808]" />
       </div>
 

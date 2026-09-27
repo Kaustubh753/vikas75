@@ -26,7 +26,7 @@ export default function PlayerScorecard({ verdict, playerId }: Props) {
   if (idx < 0) {
     // In the room but not in the round (joined late, or the timer beat them with no card).
     return (
-      <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-center">
+      <div className="w-full max-w-sm rounded-2xl border border-[rgba(250,248,240,0.14)] bg-[rgba(250,248,240,0.04)] px-5 py-4 text-center">
         <p className="font-[family-name:var(--font-inter)] text-sm" style={{ color: `${CREAM}0.55)` }}>
           You sat this round out — jump in on the next one!
         </p>

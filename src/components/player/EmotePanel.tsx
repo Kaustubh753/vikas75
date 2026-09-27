@@ -34,17 +34,17 @@ export default function EmotePanel({ onEmote }: Props) {
   return (
     <div className="fixed bottom-20 right-4 z-40 flex flex-col items-end gap-2" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       {open && (
-        <div className="bg-[#08070f]/95 border border-white/20 rounded-2xl p-3 grid grid-cols-2 gap-2 shadow-xl animate-bounce-in">
+        <div className="bg-[#08070f]/95 border border-[rgba(250,248,240,0.2)] rounded-2xl p-3 grid grid-cols-2 gap-2 shadow-xl animate-rise-in">
           {EMOTE_IDS.map((id) => {
             const e = EMOTES[id];
             return (
               <button
                 key={id}
                 onClick={() => handleEmote(id)}
-                className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/15 transition-all active:scale-95 min-w-[64px]"
+                className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-[rgba(250,248,240,0.04)] hover:bg-[rgba(250,248,240,0.16)] transition-all active:scale-95 min-w-[64px]"
               >
                 <span className="text-2xl">{e.emoji}</span>
-                <span className="text-white/70 text-[10px] font-[family-name:var(--font-inter)] text-center leading-tight">
+                <span className="text-[rgba(250,248,240,0.7)] text-[10px] font-[family-name:var(--font-inter)] text-center leading-tight">
                   {e.label}
                 </span>
                 {/* Every emote has carried a Devanagari label since they were written; it just
@@ -61,9 +61,9 @@ export default function EmotePanel({ onEmote }: Props) {
 
       {/* Brief sent confirmation */}
       {lastSent && (
-        <div className="bg-black/80 rounded-xl px-3 py-1.5 flex items-center gap-2 animate-bounce-in">
+        <div className="bg-black/80 rounded-xl px-3 py-1.5 flex items-center gap-2 animate-rise-in">
           <span className="text-lg">{EMOTES[lastSent].emoji}</span>
-          <span className="text-white/80 text-xs font-[family-name:var(--font-inter)]">Sent!</span>
+          <span className="text-[rgba(250,248,240,0.85)] text-xs font-[family-name:var(--font-inter)]">Sent!</span>
         </div>
       )}
 

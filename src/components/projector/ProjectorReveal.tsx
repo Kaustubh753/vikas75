@@ -70,7 +70,7 @@ function RevealCard({ sub, isRevealed, h }: { sub: Submission; isRevealed: boole
               </div>
               {/* Explanation — line-clamp-3 so long answers never crush the card image */}
               <p
-                className="font-[family-name:var(--font-inter)] text-white/75 italic leading-snug"
+                className="font-[family-name:var(--font-inter)] text-[rgba(250,248,240,0.55)] italic leading-snug"
                 style={{
                   fontSize: 'clamp(10px, 0.9vw, 13px)',
                   display: '-webkit-box',
@@ -117,7 +117,7 @@ export default function ProjectorReveal({ room }: Props) {
 
   return (
     <div className="w-full h-full bg-[#08070f] flex flex-col overflow-hidden">
-      <div className="px-10 py-6 border-b border-white/10">
+      <div className="px-10 py-6 border-b border-[rgba(250,248,240,0.14)]">
         <h2 className="font-[family-name:var(--font-bebas)] text-white text-4xl tracking-widest text-center">
           Let&apos;s see what everyone played…
         </h2>

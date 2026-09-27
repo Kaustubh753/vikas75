@@ -25,7 +25,7 @@ export default function ProjectorJudging({ room }: Props) {
       {challenge ? (
         <div className="bg-[#1a3a6e] rounded-2xl w-full max-w-6xl text-center"
              style={{ padding: 'clamp(12px, 1.2vw, 20px) clamp(16px, 1.5vw, 28px)' }}>
-          <p className="text-white/50 uppercase tracking-widest font-[family-name:var(--font-inter)]"
+          <p className="text-[rgba(250,248,240,0.55)] uppercase tracking-widest font-[family-name:var(--font-inter)]"
              style={{ fontSize: 'clamp(9px, 0.65vw, 11px)', marginBottom: 4 }}>
             Challenge
           </p>
@@ -66,7 +66,7 @@ export default function ProjectorJudging({ room }: Props) {
             फैसला आ रहा है
           </p>
           {count > 0 && (
-            <p className="font-[family-name:var(--font-inter)] uppercase text-white/35"
+            <p className="font-[family-name:var(--font-inter)] uppercase text-[rgba(250,248,240,0.45)]"
                style={{ marginTop: 'clamp(8px, 1.4vh, 16px)', fontSize: 'clamp(10px, 0.85vw, 14px)', letterSpacing: '0.24em' }}>
               Weighing {count} {count === 1 ? 'answer' : 'answers'}
             </p>
@@ -75,7 +75,7 @@ export default function ProjectorJudging({ room }: Props) {
             {[0, 1, 2].map((i) => (
               <div
                 key={i}
-                className="w-3 h-3 rounded-full bg-[#FF9933] animate-bounce"
+                className="w-3 h-3 rounded-full bg-[#FF9933] animate-dots"
                 style={{ animationDelay: `${i * 0.2}s` }}
               />
             ))}
@@ -84,7 +84,7 @@ export default function ProjectorJudging({ room }: Props) {
       </div>
 
       {room.round > 0 ? (
-        <p className="font-[family-name:var(--font-inter)] uppercase text-white/25"
+        <p className="font-[family-name:var(--font-inter)] uppercase text-[rgba(250,248,240,0.35)]"
            style={{ fontSize: 'clamp(10px, 0.8vw, 14px)', letterSpacing: '0.28em' }}>
           Round {room.round} of {room.totalRounds}
         </p>

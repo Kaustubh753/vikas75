@@ -34,7 +34,7 @@ export default function ProjectorGameOver({ room }: Props) {
       {/* Tricolour top bar */}
       <div className="absolute top-0 left-0 right-0 h-1.5 flex">
         <div className="flex-1 bg-[#FF9933]" />
-        <div className="flex-1 bg-white/20" />
+        <div className="flex-1 bg-[rgba(250,248,240,0.16)]" />
         <div className="flex-1 bg-[#138808]" />
       </div>
 
@@ -44,7 +44,7 @@ export default function ProjectorGameOver({ room }: Props) {
           justify-between alone they were pinned to opposite ends, which left a long gap down the
           middle of the screen whenever the standings were short. */}
       <div className="flex-1 w-full flex flex-col items-center justify-center gap-10 min-h-0">
-      <div className="text-center animate-bounce-in">
+      <div className="text-center animate-rise-in">
         <p className="font-[family-name:var(--font-bebas)] text-[#FF9933] text-3xl tracking-[0.4em] mb-1">
           GAME OVER
         </p>
@@ -59,11 +59,11 @@ export default function ProjectorGameOver({ room }: Props) {
         <div className="flex flex-col items-center gap-6 w-full max-w-4xl px-8">
           <p className="font-[family-name:var(--font-bebas)] text-[#FFD700] text-2xl tracking-[0.3em] text-center">
             {champions.length === 2 ? 'JOINT CHAMPIONS' : `${champions.length}-WAY TIE`}
-            <span className="text-white/60"> · 🏆 {wins(champions[0])} · {champions[0].score} pts</span>
+            <span className="text-[rgba(250,248,240,0.7)]"> · 🏆 {wins(champions[0])} · {champions[0].score} pts</span>
           </p>
           <div className="flex flex-wrap items-start justify-center gap-x-10 gap-y-6">
             {champions.map((c, i) => (
-              <div key={c.id} className="flex flex-col items-center gap-3 animate-slam-in" style={{ animationDelay: `${i * 0.12}s` }}>
+              <div key={c.id} className="flex flex-col items-center gap-3 animate-land-in" style={{ animationDelay: `${i * 0.12}s` }}>
                 <span className="text-5xl">👑</span>
                 <div className="rounded-2xl overflow-hidden shadow-[0_0_60px_#FFD70060] ring-4 ring-[#FFD700]/60">
                   <Avatar id={c.avatarId} size={champions.length > 3 ? 76 : 96} />
@@ -75,13 +75,13 @@ export default function ProjectorGameOver({ room }: Props) {
           {rest.length > 0 && (
             <div className="flex flex-wrap justify-center gap-4 px-8 mt-1">
               {rest.map((p, i) => (
-                <div key={p.id} className="flex items-center gap-2 bg-white/5 rounded-xl px-4 py-2 animate-fade-in"
+                <div key={p.id} className="flex items-center gap-2 bg-[rgba(250,248,240,0.04)] rounded-xl px-4 py-2 animate-fade-in"
                   style={{ animationDelay: `${i * 0.08}s` }}>
-                  <span className="font-[family-name:var(--font-bebas)] text-white/40 text-lg w-5">{champions.length + i + 1}</span>
+                  <span className="font-[family-name:var(--font-bebas)] text-[rgba(250,248,240,0.45)] text-lg w-5">{champions.length + i + 1}</span>
                   <div className="rounded-lg overflow-hidden"><Avatar id={p.avatarId} size={28} /></div>
-                  <span className="font-[family-name:var(--font-inter)] text-white/70 text-sm">{p.name}</span>
-                  <span className="font-[family-name:var(--font-bebas)] text-white/50 text-sm">🏆 {wins(p)}</span>
-                  <span className="font-[family-name:var(--font-inter)] text-white/30 text-xs">{p.score} pts</span>
+                  <span className="font-[family-name:var(--font-inter)] text-[rgba(250,248,240,0.7)] text-sm">{p.name}</span>
+                  <span className="font-[family-name:var(--font-bebas)] text-[rgba(250,248,240,0.55)] text-sm">🏆 {wins(p)}</span>
+                  <span className="font-[family-name:var(--font-inter)] text-[rgba(250,248,240,0.35)] text-xs">{p.score} pts</span>
                 </div>
               ))}
             </div>
@@ -99,8 +99,8 @@ export default function ProjectorGameOver({ room }: Props) {
                 </div>
                 <div className="text-center">
                   <p className="font-[family-name:var(--font-bebas)] text-[#C0C0C0] text-2xl tracking-wide">{second.name}</p>
-                  <p className="font-[family-name:var(--font-bebas)] text-white/60 text-lg">🏆 {wins(second)}</p>
-                  <p className="font-[family-name:var(--font-inter)] text-white/40 text-xs">{second.score} pts</p>
+                  <p className="font-[family-name:var(--font-bebas)] text-[rgba(250,248,240,0.7)] text-lg">🏆 {wins(second)}</p>
+                  <p className="font-[family-name:var(--font-inter)] text-[rgba(250,248,240,0.45)] text-xs">{second.score} pts</p>
                 </div>
                 <div className="w-32 bg-[#C0C0C0]/20 border-2 border-[#C0C0C0]/40 rounded-t-xl flex items-center justify-center py-5">
                   <span className="font-[family-name:var(--font-bebas)] text-[#C0C0C0] text-4xl">2</span>
@@ -110,15 +110,15 @@ export default function ProjectorGameOver({ room }: Props) {
 
             {/* 1st place */}
             {first && (
-              <div className="flex flex-col items-center gap-3 animate-slam-in">
+              <div className="flex flex-col items-center gap-3 animate-land-in">
                 <span className="text-5xl">👑</span>
                 <div className="rounded-2xl overflow-hidden shadow-[0_0_60px_#FFD70060] ring-4 ring-[#FFD700]/60">
                   <Avatar id={first.avatarId} size={100} />
                 </div>
                 <div className="text-center">
                   <p className="font-[family-name:var(--font-bebas)] text-[#FFD700] text-3xl tracking-wide">{first.name}</p>
-                  <p className="font-[family-name:var(--font-bebas)] text-white/80 text-xl">🏆 {wins(first)}</p>
-                  <p className="font-[family-name:var(--font-inter)] text-white/50 text-sm">{first.score} pts</p>
+                  <p className="font-[family-name:var(--font-bebas)] text-[rgba(250,248,240,0.85)] text-xl">🏆 {wins(first)}</p>
+                  <p className="font-[family-name:var(--font-inter)] text-[rgba(250,248,240,0.55)] text-sm">{first.score} pts</p>
                 </div>
                 <div className="w-32 bg-[#FFD700]/20 border-2 border-[#FFD700]/50 rounded-t-xl flex items-center justify-center py-10">
                   <span className="font-[family-name:var(--font-bebas)] text-[#FFD700] text-5xl">1</span>
@@ -134,8 +134,8 @@ export default function ProjectorGameOver({ room }: Props) {
                 </div>
                 <div className="text-center">
                   <p className="font-[family-name:var(--font-bebas)] text-[#CD7F32] text-xl tracking-wide">{third.name}</p>
-                  <p className="font-[family-name:var(--font-bebas)] text-white/50 text-base">🏆 {wins(third)}</p>
-                  <p className="font-[family-name:var(--font-inter)] text-white/40 text-xs">{third.score} pts</p>
+                  <p className="font-[family-name:var(--font-bebas)] text-[rgba(250,248,240,0.55)] text-base">🏆 {wins(third)}</p>
+                  <p className="font-[family-name:var(--font-inter)] text-[rgba(250,248,240,0.45)] text-xs">{third.score} pts</p>
                 </div>
                 <div className="w-32 bg-[#CD7F32]/20 border-2 border-[#CD7F32]/40 rounded-t-xl flex items-center justify-center py-3">
                   <span className="font-[family-name:var(--font-bebas)] text-[#CD7F32] text-3xl">3</span>
@@ -148,13 +148,13 @@ export default function ProjectorGameOver({ room }: Props) {
           {players.length > 3 && (
             <div className="flex flex-wrap justify-center gap-4 px-8 mt-2">
               {players.slice(3).map((p, i) => (
-                <div key={p.id} className="flex items-center gap-2 bg-white/5 rounded-xl px-4 py-2 animate-fade-in"
+                <div key={p.id} className="flex items-center gap-2 bg-[rgba(250,248,240,0.04)] rounded-xl px-4 py-2 animate-fade-in"
                   style={{ animationDelay: `${(i + 3) * 0.08}s` }}>
-                  <span className="font-[family-name:var(--font-bebas)] text-white/40 text-lg w-5">{i + 4}</span>
+                  <span className="font-[family-name:var(--font-bebas)] text-[rgba(250,248,240,0.45)] text-lg w-5">{i + 4}</span>
                   <div className="rounded-lg overflow-hidden"><Avatar id={p.avatarId} size={28} /></div>
-                  <span className="font-[family-name:var(--font-inter)] text-white/70 text-sm">{p.name}</span>
-                  <span className="font-[family-name:var(--font-bebas)] text-white/50 text-sm">🏆 {wins(p)}</span>
-                  <span className="font-[family-name:var(--font-inter)] text-white/30 text-xs">{p.score} pts</span>
+                  <span className="font-[family-name:var(--font-inter)] text-[rgba(250,248,240,0.7)] text-sm">{p.name}</span>
+                  <span className="font-[family-name:var(--font-bebas)] text-[rgba(250,248,240,0.55)] text-sm">🏆 {wins(p)}</span>
+                  <span className="font-[family-name:var(--font-inter)] text-[rgba(250,248,240,0.35)] text-xs">{p.score} pts</span>
                 </div>
               ))}
             </div>
@@ -166,7 +166,7 @@ export default function ProjectorGameOver({ room }: Props) {
 
       <div className="flex flex-col items-center gap-3">
         <SocialLinks />
-        <div className="text-white/20 text-xs font-[family-name:var(--font-inter)]">
+        <div className="text-[rgba(250,248,240,0.35)] text-xs font-[family-name:var(--font-inter)]">
           An initiative of the Office of Sujeet Kumar
         </div>
       </div>

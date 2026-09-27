@@ -174,7 +174,7 @@ export default function PlayerGameOver({ room, playerId, onExit }: Props) {
           aria-label="Your shareable result card"
         >
           {/* eslint-disable-next-line @next/next/no-img-element -- blob URL, next/image can't optimise it */}
-          <img src={previewUrl} alt="Vikas 75 result card" className="max-h-[70vh] w-auto rounded-xl border border-white/15" />
+          <img src={previewUrl} alt="Vikas 75 result card" className="max-h-[70vh] w-auto rounded-xl border border-[rgba(250,248,240,0.14)]" />
           <p className="font-[family-name:var(--font-inter)] text-xs text-center" style={{ color: `${CREAM}0.6)` }}>
             Long-press the image to share or save it
           </p>

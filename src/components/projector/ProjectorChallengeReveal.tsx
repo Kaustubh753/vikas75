@@ -13,7 +13,7 @@ function TimerBar({ total, remaining }: { total: number; remaining: number }) {
   const frac = Math.max(0, remaining / total);
   const urgent = remaining <= 10;
   return (
-    <div className="absolute top-0 left-0 right-0 z-30 h-8 bg-white/10 overflow-hidden">
+    <div className="absolute top-0 left-0 right-0 z-30 h-8 bg-[rgba(250,248,240,0.08)] overflow-hidden">
       <motion.div
         className="absolute left-0 top-0 h-full w-full"
         style={{ backgroundColor: urgent ? '#ef4444' : '#FF9933', transformOrigin: '0 50%' }}
@@ -35,9 +35,9 @@ function TimerBar({ total, remaining }: { total: number; remaining: number }) {
 
 function AwaitingSubmissionBanner() {
   return (
-    <div className="absolute top-0 left-0 right-0 z-30 h-8 bg-white/10 flex items-center justify-center gap-2">
+    <div className="absolute top-0 left-0 right-0 z-30 h-8 bg-[rgba(250,248,240,0.08)] flex items-center justify-center gap-2">
       <span className="w-2 h-2 rounded-full bg-[#FF9933] animate-pulse" />
-      <span className="font-[family-name:var(--font-inter)] text-white/60 font-medium"
+      <span className="font-[family-name:var(--font-inter)] text-[rgba(250,248,240,0.7)] font-medium"
             style={{ fontSize: 13, letterSpacing: '0.06em' }}>
         SUBMISSIONS OPEN WHEN HOST ADVANCES
       </span>
@@ -85,7 +85,7 @@ export default function ProjectorChallengeReveal({ room }: Props) {
         }}
       />
 
-      <motion.div style={cardStyle} className="animate-slam-in">
+      <motion.div style={cardStyle} className="animate-land-in">
         <Image
           src={getChallengeCardImage(challenge.id)}
           alt={challenge.en}
@@ -106,7 +106,7 @@ export default function ProjectorChallengeReveal({ room }: Props) {
       </motion.div>
 
       {room.round > 0 && (
-        <p className="relative font-[family-name:var(--font-inter)] uppercase text-white/35"
+        <p className="relative font-[family-name:var(--font-inter)] uppercase text-[rgba(250,248,240,0.45)]"
            style={{ marginTop: 'clamp(14px, 2.2vh, 26px)', fontSize: 'clamp(10px, 0.8vw, 14px)', letterSpacing: '0.28em' }}>
           Round {room.round} of {room.totalRounds}
         </p>
