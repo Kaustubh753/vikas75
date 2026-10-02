@@ -2,17 +2,30 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import type { AvatarId } from '@/types/game';
+import type { AvatarId, GameRoom } from '@/types/game';
 import AvatarPicker from '@/components/ui/AvatarPicker';
+import CodeInput from '@/components/ui/CodeInput';
+import { AVATAR_NAMES } from '@/lib/avatars';
 import IntroAnimation from '@/components/intro/IntroAnimation';
 import LogoLockup from '@/components/ui/LogoLockup';
 import JoinTurnAnimation, { type TurnResult } from '@/components/join/JoinTurnAnimation';
 import { HANDOFF_KEY, prefersReducedMotion, type Rect, type TurnHandoff } from '@/components/join/turn-timeline';
 import { loadSeat, saveSeat, clearSeat } from '@/lib/seat-storage';
 
-/** Smallest the join form is allowed to shrink to. Past this it stops scaling and the page is
- *  allowed to scroll instead — a form too small to read is worse than a short scroll. */
-const FIT_FLOOR = 0.62;
+// What the room says back once four valid characters are in, read 350 ms after the last one.
+type Peek =
+  | { status: 'idle' }
+  | { status: 'checking'; code: string }
+  | { status: 'missing'; code: string }
+  | { status: 'error'; code: string }
+  | { status: 'found'; code: string; count: number; phase: GameRoom['phase']; players: { name: string; avatarId: AvatarId }[]; savedName: string };
+
+const INTER = 'var(--font-inter),sans-serif';
+const BEBAS = 'var(--font-bebas),sans-serif';
+const HOUSE_70 = 'rgba(250,248,240,0.7)';
+const HOUSE_55 = 'rgba(250,248,240,0.55)';
+const HAIRLINE = 'rgba(250,248,240,0.14)';
+const tapeLabel: React.CSSProperties = { fontFamily: INTER, fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: HOUSE_55 };
 
 /** How long to wait for the join to be answered before giving the screen back. Comfortably
  *  longer than a slow-but-working request on venue Wi-Fi, short enough that a stalled one
@@ -43,34 +56,47 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
   const [waiting, setWaiting] = useState(false); // a round is in progress — auto-retrying
   const [error, setError] = useState('');
   const nameRef = useRef<HTMLInputElement>(null);
-
-  // Fit the whole form — logo, name, all nine avatars, code boxes, button — into whatever screen
-  // the player is on, rather than making them scroll to find the join button. Measures the form's
-  // natural height against the viewport and scales down only as far as it needs to.
-  const fitRef = useRef<HTMLDivElement>(null);
-  const [fitScale, setFitScale] = useState(1);
-  useEffect(() => {
-    const el = fitRef.current;
-    if (!el) return;
-    const fit = () => {
-      const natural = el.offsetHeight;              // transform doesn't change this
-      if (!natural) return;
-      const pad = window.innerWidth < 420 ? 24 : 96; // matches the container's vertical padding
-      const avail = window.innerHeight - pad;
-      setFitScale(Math.max(FIT_FLOOR, Math.min(1, avail / natural)));
-    };
-    fit();
-    // Re-fit when the content changes height (an error appears, the avatar grid reflows) and when
-    // the viewport does (rotation, the mobile URL bar collapsing).
-    const ro = new ResizeObserver(fit);
-    ro.observe(el);
-    window.addEventListener('resize', fit);
-    window.addEventListener('orientationchange', fit);
-    return () => { ro.disconnect(); window.removeEventListener('resize', fit); window.removeEventListener('orientationchange', fit); };
-  }, []);
-  const slotsRef = useRef<(HTMLInputElement | null)[]>([]);
+  const [note, setNote] = useState('');
   const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (retryRef.current) clearTimeout(retryRef.current); }, []);
+
+  // CodeInput emits a fixed four-slot string (a cleared middle letter never shifts the rest), so
+  // the code is judged complete by its letters, not its length.
+  const trimmedCode = code.replace(/\s/g, '');
+
+  // Read the room as soon as the code is complete: a wrong code is caught before Join, a right
+  // one turns a blind form into an invitation ("Room NECD · 3 players waiting") and tells the
+  // picker which faces are already taken.
+  const [peek, setPeek] = useState<Peek>({ status: 'idle' });
+  useEffect(() => {
+    let cancelled = false;
+    // The state changes happen inside the timer, never synchronously in the effect body.
+    const t = setTimeout(async () => {
+      if (trimmedCode.length !== 4) { setPeek({ status: 'idle' }); return; }
+      setPeek({ status: 'checking', code: trimmedCode });
+      let savedName = '';
+      try { savedName = loadSeat(trimmedCode)?.name ?? ''; } catch { /* blocked storage */ }
+      try {
+        const res = await fetch(`/api/game?code=${trimmedCode}`);
+        if (cancelled) return;
+        if (res.status === 404) { setPeek({ status: 'missing', code: trimmedCode }); return; }
+        if (!res.ok) { setPeek({ status: 'error', code: trimmedCode }); return; }
+        const data = await res.json();
+        const room = data.room as GameRoom;
+        const players = Object.values(room.players ?? {}).map((p) => ({ name: p.name, avatarId: p.avatarId }));
+        setPeek({ status: 'found', code: trimmedCode, count: players.length, phase: room.phase, players, savedName });
+      } catch {
+        if (!cancelled) setPeek({ status: 'error', code: trimmedCode });
+      }
+    }, trimmedCode.length === 4 ? 350 : 0);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [trimmedCode]);
+  const taken: Partial<Record<AvatarId, string>> = {};
+  if (peek.status === 'found') for (const p of peek.players) taken[p.avatarId] = p.name;
+  // A returning player's own saved name is not a clash — that seat is theirs to reclaim.
+  const sameName = peek.status === 'found' && !!name.trim()
+    && peek.players.some((p) => p.name.trim().toLowerCase() === name.trim().toLowerCase())
+    && peek.savedName.trim().toLowerCase() !== name.trim().toLowerCase();
 
   // ── The turn (design direction 2a) ──────────────────────────────────────────────
   // On submit the four code boxes gather into a card, it turns over to show the player, and
@@ -92,9 +118,10 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
   /** Live viewport rects of the four code inputs — the animation is built off these, so it
    *  fits whatever size the form actually rendered at. */
   function measureSlots(): Rect[] | null {
-    const rects = [0, 1, 2, 3].map(i => slotsRef.current[i]?.getBoundingClientRect());
-    if (rects.some(r => !r || r.width < 1)) return null;
-    return rects.map(r => ({ left: r!.left, top: r!.top, width: r!.width, height: r!.height }));
+    const slots = [...document.querySelectorAll('.code-slot')] as HTMLElement[];
+    const rects = slots.slice(0, 4).map(el => el.getBoundingClientRect());
+    if (rects.length !== 4 || rects.some(r => r.width < 1)) return null;
+    return rects.map(r => ({ left: r.left, top: r.top, width: r.width, height: r.height }));
   }
 
   const handleTurnSuccess = useCallback((h: Omit<TurnHandoff, 'at'> | null) => {
@@ -133,15 +160,31 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
     // Focus name if we already have a code (came from QR), otherwise focus the code.
     const t = setTimeout(() => {
       if (initialCode.length === 4) nameRef.current?.focus();
-      else slotsRef.current[0]?.focus();
+      else document.querySelector<HTMLInputElement>('.code-slot')?.focus();
     }, 200);
     return () => clearTimeout(t);
   }, [initialCode]);
 
+  const canJoin = !!name.trim() && trimmedCode.length === 4 && !loading && peek.status !== 'missing';
+
+  /** The disabled Join points at what is missing instead of swallowing the tap. */
+  function nudge() {
+    if (!name.trim()) { nameRef.current?.focus(); return; }
+    if (trimmedCode.length !== 4) {
+      const slots = document.querySelectorAll<HTMLInputElement>('.code-slot');
+      const empty = [...slots].find((s) => !s.value) ?? slots[0];
+      empty?.focus();
+    }
+  }
+
+  function cancelWaiting() {
+    if (retryRef.current) clearTimeout(retryRef.current);
+    setWaiting(false); setLoading(false); setError('');
+  }
+
   async function handleJoin(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
-    const trimmedCode = code.replace(/\s/g, '');
-    if (!name.trim() || trimmedCode.length !== 4) return;
+    if (!canJoin) { nudge(); return; }
     setLoading(true); setError('');
     // A returning player (same room, same name as this device's saved seat) presents their
     // old playerId + token, so the server's idempotent-rejoin branch hands back their exact
@@ -275,26 +318,31 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
     await attempt();
   }
 
-  const baseSlot: React.CSSProperties = {
-    width: 'clamp(48px, 14vw, 60px)', height: 'clamp(56px, 16vw, 68px)',
-    background: 'rgba(250,248,240,.04)',
-    border: '1px solid rgba(250,248,240,.14)',
-    borderRadius: 6, color: '#fff',
-    fontFamily: 'var(--font-inter),sans-serif', fontWeight: 600, fontSize: 'clamp(24px, 6vw, 28px)',
-    textAlign: 'center', textTransform: 'uppercase', outline: 'none',
-    transition: 'border-color .12s ease',
-  };
+  // A wrong code is the only thing that paints the slots red; every other failure says what
+  // went wrong in the alert line so the code the player typed is not accused.
+  const codeWrong = peek.status === 'missing' || /no room called/i.test(error);
+  let statusText = '';
+  if (peek.status === 'checking') statusText = 'Looking for the room…';
+  else if (peek.status === 'found') {
+    if (peek.phase === 'game-over') statusText = `Room ${peek.code} · that game has ended`;
+    else if (peek.phase === 'lobby') statusText = `Room ${peek.code} · ${peek.count} ${peek.count === 1 ? 'player' : 'players'} waiting`;
+    else if (peek.phase === 'submission') statusText = `Room ${peek.code} · a round is in progress, you can join when it ends`;
+    else statusText = `Room ${peek.code} · ${peek.count} ${peek.count === 1 ? 'player' : 'players'} in the game`;
+  }
+  const alertText = peek.status === 'missing' ? 'No room with this code. Check the big screen.' : error;
+  const ended = peek.status === 'found' && peek.phase === 'game-over';
+  const joinLabel = waiting ? 'Waiting for the round to end…'
+    : loading ? 'Joining…'
+    : peek.status === 'missing' ? 'No room with this code'
+    : ended ? 'That game has ended'
+    : !name.trim() ? 'Enter your name to join'
+    : trimmedCode.length !== 4 ? 'Enter the room code'
+    : 'Join the game';
+
+  const showBlocked = (owner: string) => setNote(`That one's ${owner}'s. Pick another.`);
 
   return (
-    <div style={{
-      height: '100dvh', width: '100%',
-      background: '#08070f',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      padding: 'clamp(12px, 4vw, 48px) 20px', boxSizing: 'border-box',
-      // Scaled to fit, so nothing should scroll — unless the screen is so short that `fit` bottoms
-      // out at its floor, in which case scrolling is the honest fallback.
-      overflowY: fitScale > FIT_FLOOR ? 'hidden' : 'auto',
-    }}>
+    <div style={{ minHeight: '100dvh', width: '100%', background: '#08070f', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       {showIntro && <IntroAnimation onDone={dismissIntro} />}
       {turn && (
         <JoinTurnAnimation
@@ -308,22 +356,19 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
           onRefused={handleTurnRefused}
         />
       )}
-      <div
-        ref={fitRef}
+
+      <main
+        inert={showIntro}
         style={{
-          width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 24,
-          // A transform is visual only: the element keeps its natural layout height, which is
-          // exactly what `fit` measures, and the inputs keep their real 16px font size so iOS
-          // still doesn't zoom on focus.
-          transform: `scale(${fitScale})${formSettled ? ' translateY(10px)' : ''}`,
-          transformOrigin: 'center center',
-          // The first beat of the turn: the form settles back and blurs, handing the screen
-          // to the card. Reversed — more slowly, after a beat — if the card is refused.
+          width: '100%', maxWidth: 400, boxSizing: 'border-box',
+          // Room for the fixed Join bar and its helper line, so the last avatar row scrolls clear.
+          padding: 'calc(8px + env(safe-area-inset-top)) 16px calc(150px + env(safe-area-inset-bottom))',
+          display: 'flex', flexDirection: 'column', gap: 22,
+          // The first beat of the turn: the form settles back and blurs, handing the screen to
+          // the card. Reversed — more slowly, after a beat — if the card is refused.
+          transform: formSettled ? 'translateY(10px)' : 'none',
           opacity: formSettled ? 0 : 1,
           filter: formSettled ? 'blur(3px)' : 'blur(0px)',
-          // Going: a beat, then it settles back over 620ms. Coming back: no delay — the
-          // refusal cues this at the exact beat the screen is meant to return, so waiting
-          // again here would just leave the player looking at nothing.
           transition: turn || formSettled
             ? ['opacity', 'filter', 'transform']
               .map(p => `${p} ${formSettled ? '620ms' : '700ms'} cubic-bezier(.33,0,.25,1) ${formSettled ? '120ms' : '0ms'}`)
@@ -331,130 +376,121 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
             : undefined,
         }}
       >
-
-        {/* Heading */}
-        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <LogoLockup fluid />
-        </div>
-
-        <form onSubmit={handleJoin} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {/* Name */}
-          <input
-            ref={nameRef}
-            style={{
-              height: 50, background: 'rgba(250,248,240,.04)',
-              border: '1px solid rgba(250,248,240,.14)', borderRadius: 6,
-              padding: '0 16px', color: '#fff',
-              fontFamily: 'var(--font-inter),sans-serif', fontSize: 16,
-              outline: 'none', width: '100%', boxSizing: 'border-box',
-              transition: 'border-color .12s ease',
-            }}
-            placeholder="Your name"
-            aria-label="Your name"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            maxLength={20} autoComplete="off"
-            onFocus={e => (e.target.style.borderColor = '#FF9933')}
-            onBlur={e => (e.target.style.borderColor = 'rgba(250,248,240,.14)')}
-          />
-
-          {/* Room code OTP slots */}
-          <div>
-            <label style={{
-              display: 'block', marginBottom: 8,
-              fontFamily: 'var(--font-inter),sans-serif', fontSize: 11,
-              letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(250,248,240,.5)',
-            }}>Room code</label>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
-              {[0, 1, 2, 3].map(i => (
-                <input
-                  key={i}
-                  ref={el => { slotsRef.current[i] = el; }}
-                  style={{ ...baseSlot, borderColor: code[i] ? '#FF9933' : 'rgba(250,248,240,.14)' }}
-                  value={code[i] ?? ''}
-                  maxLength={1} inputMode="text"
-                  aria-label={`Room code character ${i + 1}`}
-                  onPaste={e => {
-                    // Pasting a shared 4-char code (WhatsApp/SMS) should fill all boxes, not one.
-                    e.preventDefault();
-                    const chars = e.clipboardData.getData('text').toUpperCase()
-                      .replace(/[^ABCDEFGHJKLMNPQRSTUVWXYZ23456789]/g, '').slice(0, 4);
-                    if (!chars) return;
-                    setCode(chars);
-                    slotsRef.current[Math.min(chars.length, 3)]?.focus();
-                  }}
-                  onChange={e => {
-                    // Exclude I and O — generateRoomCode never produces them (too similar to 1/0)
-                    const ch = e.target.value.slice(-1).toUpperCase().replace(/[^ABCDEFGHJKLMNPQRSTUVWXYZ23456789]/g, '');
-                    const arr = [code[0] ?? '', code[1] ?? '', code[2] ?? '', code[3] ?? ''];
-                    arr[i] = ch;
-                    setCode(arr.join(''));
-                    if (ch) slotsRef.current[i + 1]?.focus();
-                  }}
-                  onKeyDown={e => {
-                    if (e.key === 'Backspace' && !code[i] && i > 0) slotsRef.current[i - 1]?.focus();
-                  }}
-                  onFocus={e => (e.target.style.borderColor = '#FF9933')}
-                  onBlur={e => (e.target.style.borderColor = code[i] ? '#FF9933' : 'rgba(250,248,240,.14)')}
-                />
-              ))}
-            </div>
-          </div>
-
-          <AvatarPicker value={avatarId} onChange={setAvatarId} disabled={loading} />
-
-          {/* The refusal's words. They fade rather than snap in, so a rejected code arrives as
-              part of the screen coming back rather than as a jolt. */}
-          {error && (
-            <div
-              className="animate-fade-in"
-              style={{ color: '#f87171', fontSize: 13, fontFamily: 'var(--font-inter),sans-serif' }}
-            >{error}</div>
-          )}
-          {waiting && <div style={{ color: '#FF9933', fontSize: 13, fontFamily: 'var(--font-inter),sans-serif' }}>A round is in progress — you&apos;ll join automatically when it ends…</div>}
-
-          <button
-            type="submit"
-            disabled={loading || !name.trim() || code.length !== 4}
-            style={{
-              height: 52, padding: '0 18px',
-              background: '#FF9933', color: '#08070f',
-              border: '1.5px solid #FF9933', borderRadius: 6,
-              fontFamily: 'var(--font-inter),sans-serif', fontWeight: 600,
-              fontSize: 13, letterSpacing: '0.18em', textTransform: 'uppercase',
-              cursor: 'pointer', opacity: (loading || !name.trim() || code.length !== 4) ? 0.45 : 1,
-              transition: 'opacity .15s ease',
-            }}
-          >
-            {waiting ? 'Waiting for round…' : loading ? 'Joining…' : 'Join'}
-          </button>
-
-          {/* Consent notice at the point of data entry (the name field above). */}
-          <p style={{
-            textAlign: 'center', margin: 0,
-            fontFamily: 'var(--font-inter),sans-serif', fontSize: 11, lineHeight: 1.5,
-            color: 'rgba(250,248,240,.4)',
-          }}>
-            By joining, you agree to our{' '}
-            <a href="/terms" style={{ color: 'rgba(250,248,240,.7)', textDecoration: 'underline', textUnderlineOffset: 2 }}>Terms</a>
-            {' '}and{' '}
-            <a href="/privacy" style={{ color: 'rgba(250,248,240,.7)', textDecoration: 'underline', textUnderlineOffset: 2 }}>Privacy Policy</a>.
-          </p>
-
+        {/* Header: the way out sits top-left, never beside the primary where a slipped thumb would lose the form. */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 }}>
           <button
             type="button" onClick={() => router.push('/')}
-            style={{
-              background: 'none', border: 'none', color: 'rgba(250,248,240,.55)',
-              fontFamily: 'var(--font-inter),sans-serif', fontSize: 13,
-              cursor: 'pointer', letterSpacing: '0.04em', padding: 4,
-              transition: 'color .15s ease',
-            }}
-            onMouseEnter={e => e.currentTarget.style.color = 'rgba(250,248,240,.85)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'rgba(250,248,240,.55)'}
+            style={{ background: 'none', border: 'none', color: HOUSE_55, fontFamily: INTER, fontSize: 13, cursor: 'pointer', letterSpacing: '0.04em', padding: '0 4px', minHeight: 44, display: 'inline-flex', alignItems: 'center' }}
           >
-            ← back to home
+            ← Home
           </button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+          <LogoLockup size="md" />
+          <div style={{ textAlign: 'center' }}>
+            <h1 style={{ fontFamily: BEBAS, fontSize: 38, lineHeight: 1, letterSpacing: '0.06em', color: '#fff', margin: 0 }}>Join the game</h1>
+            <p lang="hi" style={{ fontFamily: 'var(--font-devanagari),var(--font-inter),sans-serif', fontSize: 15, lineHeight: 1.4, color: HOUSE_70, margin: '6px 0 0' }}>खेल में शामिल हों</p>
+          </div>
+        </div>
+
+        <form id="join-form" onSubmit={handleJoin} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Name */}
+          <div>
+            <label htmlFor="join-name" style={{ ...tapeLabel, display: 'block', marginBottom: 8 }}>Your name</label>
+            <input
+              id="join-name"
+              ref={nameRef}
+              style={{
+                height: 52, background: 'rgba(250,248,240,.04)',
+                border: `1px solid ${HAIRLINE}`, borderRadius: 6,
+                padding: '0 16px', color: '#fff',
+                fontFamily: INTER, fontSize: 16,
+                width: '100%', boxSizing: 'border-box',
+                transition: 'border-color .12s ease',
+              }}
+              placeholder="What should the room call you?"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              maxLength={20} autoComplete="nickname" autoCapitalize="words"
+              onFocus={e => (e.target.style.borderColor = '#FF9933')}
+              onBlur={e => (e.target.style.borderColor = HAIRLINE)}
+            />
+            <p style={{ fontFamily: INTER, fontSize: 12, lineHeight: 1.45, color: sameName ? '#FF9933' : HOUSE_55, margin: '6px 0 0' }}>
+              {sameName
+                ? `Someone in this room is already called ${name.trim()}. Add an initial so the judge can tell you apart.`
+                : 'Your name and avatar show on the big screen.'}
+            </p>
+          </div>
+
+          {/* Room code, with the two live regions under it */}
+          <div>
+            <span id="join-code-label" style={{ ...tapeLabel, display: 'block', marginBottom: 8, textAlign: 'center' }}>Room code</span>
+            <CodeInput value={code} onChange={setCode} disabled={loading} error={codeWrong} labelledBy="join-code-label" />
+            <p role="status" aria-live="polite" style={{ fontFamily: INTER, fontSize: 12, fontWeight: 600, color: '#85c47d', textAlign: 'center', margin: '10px 0 0', minHeight: 17 }}>
+              {statusText}
+            </p>
+            <p role="alert" style={{ fontFamily: INTER, fontSize: 13, color: '#f87171', textAlign: 'center', margin: '4px 0 0', minHeight: alertText ? undefined : 0 }}>
+              {alertText}
+            </p>
+          </div>
+
+          {/* Avatar */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span id="join-avatar-label" style={tapeLabel}>Pick a face</span>
+              <span style={{ fontFamily: INTER, fontSize: 12, color: note ? '#FF9933' : HOUSE_55 }}>
+                {note || (avatarId === 'a0' ? 'Or leave it to the dice.' : `You're ${AVATAR_NAMES[avatarId]}.`)}
+              </span>
+            </div>
+            <AvatarPicker value={avatarId} onChange={(id) => { setAvatarId(id); setNote(''); }} disabled={loading} taken={taken} labelledBy="join-avatar-label" onBlocked={showBlocked} />
+          </div>
+
+          {/* Consent notice at the point of data entry (the name field above). */}
+          <p style={{ textAlign: 'center', margin: 0, fontFamily: INTER, fontSize: 11, lineHeight: 1.5, color: 'rgba(250,248,240,.45)' }}>
+            By joining, you agree to our{' '}
+            <a href="/terms" style={{ color: HOUSE_70, textDecoration: 'underline', textUnderlineOffset: 2 }}>Terms</a>
+            {' '}and{' '}
+            <a href="/privacy" style={{ color: HOUSE_70, textDecoration: 'underline', textUnderlineOffset: 2 }}>Privacy Policy</a>.
+          </p>
         </form>
+      </main>
+
+      {/* The Join bar: fixed in the thumb zone, always saffron, the reason on its label. It is
+          aria-disabled rather than disabled so a tap on a not-yet-ready button points at the
+          missing field instead of doing nothing. (sticky is defeated by the body's overflow-x guard.) */}
+      <div
+        style={{
+          position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 40,
+          padding: '12px 16px calc(12px + env(safe-area-inset-bottom))',
+          background: 'linear-gradient(to top, rgba(8,7,15,0.98) 70%, rgba(8,7,15,0))',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+          opacity: formSettled ? 0 : 1, transition: 'opacity 300ms ease',
+          pointerEvents: formSettled ? 'none' : 'auto',
+        }}
+      >
+        <div style={{ width: '100%', maxWidth: 400, display: 'flex', gap: 10 }}>
+          <button
+            type="submit" form="join-form"
+            aria-disabled={!canJoin || undefined}
+            aria-busy={loading || undefined}
+            className="btn-push"
+            style={{
+              flex: 1, height: 56, padding: '8px 16px', borderRadius: 6, border: 'none',
+              background: '#FF9933', color: '#1a1208', opacity: canJoin || loading ? 1 : 0.82,
+              fontFamily: BEBAS, fontSize: 22, letterSpacing: '0.08em', cursor: 'pointer',
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }}
+          >
+            {joinLabel}
+          </button>
+          {waiting && (
+            <button type="button" onClick={cancelWaiting} style={{ height: 56, padding: '0 16px', borderRadius: 6, background: 'transparent', border: `1px solid ${HAIRLINE}`, color: HOUSE_70, fontFamily: INTER, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+              Cancel
+            </button>
+          )}
+        </div>
+        <p style={{ fontFamily: INTER, fontSize: 12, color: HOUSE_55, margin: 0 }}>The host starts the game on the big screen.</p>
       </div>
     </div>
   );
