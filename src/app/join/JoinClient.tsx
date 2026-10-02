@@ -49,16 +49,27 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
   // natural height against the viewport and scales down only as far as it needs to.
   const fitRef = useRef<HTMLDivElement>(null);
   const [fitScale, setFitScale] = useState(1);
+  // Held while the join animation is playing — see the `turn` block below for why.
+  const holdFitRef = useRef(false);
+  const refitRef = useRef<() => void>(() => {});
   useEffect(() => {
     const el = fitRef.current;
     if (!el) return;
     const fit = () => {
+      // The animation measured the code boxes when it started and draws against those
+      // coordinates for its whole three seconds. Re-fitting underneath it would slide the
+      // real form out from under a gesture that can't follow — and on a phone that happens
+      // constantly: the URL bar collapses, the keyboard goes away as Join is tapped, the
+      // error line changes the form's height. The form is invisible for the length of the
+      // gesture anyway, so there is nothing to re-fit; it re-fits the moment the turn ends.
+      if (holdFitRef.current) return;
       const natural = el.offsetHeight;              // transform doesn't change this
       if (!natural) return;
       const pad = window.innerWidth < 420 ? 24 : 96; // matches the container's vertical padding
       const avail = window.innerHeight - pad;
       setFitScale(Math.max(FIT_FLOOR, Math.min(1, avail / natural)));
     };
+    refitRef.current = fit;                         // so releasing the hold can re-run it
     fit();
     // Re-fit when the content changes height (an error appears, the avatar grid reflows) and when
     // the viewport does (rotation, the mobile URL bar collapsing).
@@ -79,6 +90,23 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
   // so a refused code gets the refusal instead of a card. See `turn-timeline.ts`.
   const [turn, setTurn] = useState<{ slots: Rect[]; code: string; name: string } | null>(null);
   const [turnResult, setTurnResult] = useState<TurnResult>('pending');
+
+  /** The viewport height the turn was measured against, or null when nothing is pinned. */
+  const [frozenHeight, setFrozenHeight] = useState<number | null>(null);
+
+  // Pin the form's layout for as long as the card is in play — both halves of it: the scale
+  // `fit` would recompute, and the box the form is centred in. Together they hold the code
+  // inputs exactly where the animation measured them. Released the moment the card is gone,
+  // and the form fits itself again on the way out.
+  useEffect(() => {
+    holdFitRef.current = !!turn;
+    if (turn) {
+      setFrozenHeight(window.innerHeight);
+    } else {
+      setFrozenHeight(null);
+      refitRef.current();
+    }
+  }, [turn]);
   /** The form settles back and blurs while the card is in play, and comes back into focus if
    *  the card is refused. A CSS transition, so it costs nothing per frame. */
   const [formSettled, setFormSettled] = useState(false);
@@ -287,7 +315,12 @@ export default function JoinClient({ initialCode }: { initialCode: string }) {
 
   return (
     <div style={{
-      height: '100dvh', width: '100%',
+      // Normally the viewport. Pinned to whatever it measured at submit while the card is in
+      // play: the form is centred in this box, so letting it grow (the URL bar collapsing,
+      // the keyboard going away) would re-centre the form under an animation that cannot
+      // follow it. Any overhang is invisible — the page and the body share one background.
+      height: frozenHeight === null ? '100dvh' : `${frozenHeight}px`,
+      width: '100%',
       background: '#08070f',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       padding: 'clamp(12px, 4vw, 48px) 20px', boxSizing: 'border-box',
