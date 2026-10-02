@@ -8,6 +8,7 @@ import IntroAnimation from '@/components/intro/IntroAnimation';
 import LogoLockup from '@/components/ui/LogoLockup';
 import HowToPlayPanel from '@/components/landing/HowToPlayPanel';
 import { SOCIAL_LINKS } from '@/components/ui/SocialLinks';
+import { clearSeat, loadSeat } from '@/lib/seat-storage';
 
 // ─────────────────────────────────────────────────────────────
 // Card data — real game card images
@@ -213,6 +214,54 @@ function HeroFan() {
 
 // ─────────────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────
+// A seat this device can go back to — offered, never taken (bug #60)
+// ─────────────────────────────────────────────────────────────
+type ResumeSeat = { code: string; name: string; avatarId: string };
+
+// Drop a room this device can no longer go back to, so the next visit does not ask again. The
+// name and face stay — they are the player's, not the room's, and the join form prefills them.
+function forgetRoom(code: string) {
+  clearSeat(code);
+  try {
+    if ((localStorage.getItem('vikas75_roomCode') ?? '').trim().toUpperCase() === code) {
+      localStorage.removeItem('vikas75_roomCode');
+      localStorage.removeItem('vikas75_playerId');
+      localStorage.removeItem('vikas75_token');
+    }
+    localStorage.removeItem(`vikas75_hand_${code}`);
+  } catch { /* nothing persisted to clear */ }
+}
+
+function ResumeCard({ seat, onGo }: { seat: ResumeSeat; onGo: () => void }) {
+  const rest = 'rgba(250,248,240,0.04)';
+  return (
+    <button
+      type="button"
+      onClick={onGo}
+      aria-label={`Back to your game in room ${seat.code}`}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 12, width: '100%', minHeight: 56,
+        padding: '8px 14px 8px 10px', borderRadius: 8, textAlign: 'left', cursor: 'pointer',
+        background: rest, border: '1.5px solid rgba(255,153,51,0.5)', color: '#faf8f0',
+        boxSizing: 'border-box', transition: 'background .15s ease, border-color .15s ease',
+      }}
+      onMouseEnter={e => { const b = e.currentTarget; b.style.background = 'rgba(255,153,51,.08)'; b.style.borderColor = '#FF9933'; }}
+      onMouseLeave={e => { const b = e.currentTarget; b.style.background = rest; b.style.borderColor = 'rgba(255,153,51,0.5)'; }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={`/avatars/${seat.avatarId}.webp`} alt="" width={36} height={36} draggable={false}
+        style={{ width: 36, height: 36, borderRadius: 8, flexShrink: 0, objectFit: 'cover' }} />
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+        <span style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 11, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(250,248,240,0.55)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {seat.name ? `${seat.name}, you're` : 'You\\u2019re'} still in room {seat.code}
+        </span>
+        <span style={{ fontFamily: 'var(--font-inter),sans-serif', fontSize: 14, fontWeight: 600, color: '#FF9933' }}>Back to the game →</span>
+      </span>
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // Full-page landing layout — fully responsive, no fixed canvas
 // ─────────────────────────────────────────────────────────────
 function LandingPage() {
@@ -222,28 +271,11 @@ function LandingPage() {
   const [musicOn, setMusicOn] = useState(false);
   const [hosting, setHosting] = useState(false);
   // Brand intro: plays on every load of the landing (a fixed, opaque overlay over the page).
-  // Default-true so it covers the page from first paint; the redirect effect below decides
-  // where to go *after* the intro (so a returning player still sees it, then lands in /room).
+  // Default-true so it covers the page from first paint.
   const [showIntro, setShowIntro] = useState(true);
-  const pendingRedirect = useRef<string | null>(null);
-  const dismissIntro = useCallback(() => {
-    setShowIntro(false);
-    let dest = pendingRedirect.current;
-    // The intro can finish before the redirect effect runs (reduced-motion fires onDone during
-    // mount, and a child's effects run before its parent's). Re-derive the returning-player
-    // destination here so those players still get routed back to their room.
-    if (!dest && !initialCode) {
-      try {
-        const pid = localStorage.getItem('vikas75_playerId');
-        const pname = localStorage.getItem('vikas75_playerName');
-        const avid = localStorage.getItem('vikas75_avatarId');
-        const rc = localStorage.getItem('vikas75_roomCode');
-        if (pid && pname && avid && rc) dest = `/room/${rc}`;
-      } catch { /* ignore */ }
-    }
-    pendingRedirect.current = null;
-    if (dest) router.replace(dest);
-  }, [router, initialCode]);
+  const dismissIntro = useCallback(() => setShowIntro(false), []);
+  // A live seat this device can go back to — see the effect below. Offered above the CTAs.
+  const [resume, setResume] = useState<ResumeSeat | null>(null);
   // Starts false (desktop) so SSR and first client render agree, then corrects on mount.
   const [isMobile, setIsMobile] = useState(false);
 
@@ -294,19 +326,42 @@ function LandingPage() {
     // A shared link / legacy QR landing on the home page with ?code= goes to the join page,
     // which plays the intro itself — so skip it here and redirect immediately.
     if (initialCode) { setShowIntro(false); router.replace(`/join?code=${initialCode}`); return; }
-    // Storage THROWS, not just returns null, on a device that blocks site data — and an
-    // uncaught throw here goes to the route error boundary, so the home page reads
-    // "Something broke". The identical reads in dismissIntro are already guarded; these were
-    // missed. No stored identity simply means no redirect.
+    // A device that joined a game keeps that room's identity in storage, and nothing clears it
+    // when the game ends unless the player taps Leave. This used to be an automatic redirect
+    // into `/room/<last code>` — so every phone that had ever played was bounced into a dead
+    // room on its next visit (intro, loading ghost, two 404s, back here, intro again), and at
+    // a new event it could not reach the new game from here at all. Now the way back is
+    // OFFERED, and only once a read of the room says it is still live and the seat is still
+    // this player's. Storage THROWS, not just returns null, on a device that blocks site data
+    // (an uncaught throw here goes to the route error boundary), so every read is guarded.
+    let code = '';
+    let pid = '';
+    let name = '';
+    let avatarId = '';
     try {
-      const pid  = localStorage.getItem('vikas75_playerId');
-      const pname = localStorage.getItem('vikas75_playerName');
-      const avid = localStorage.getItem('vikas75_avatarId');
-      const rc   = localStorage.getItem('vikas75_roomCode');
-      // A returning player gets bounced back to their room — but only *after* the intro plays
-      // (or they hit Skip), so the opening animation still shows on every load of the game.
-      if (pid && pname && avid && rc) pendingRedirect.current = `/room/${rc}`;
-    } catch { /* blocked storage — start as a new visitor */ }
+      code = (localStorage.getItem('vikas75_roomCode') ?? '').trim().toUpperCase();
+      const seat = code ? loadSeat(code) : null;
+      pid = seat?.playerId || localStorage.getItem('vikas75_playerId') || '';
+      name = seat?.name || localStorage.getItem('vikas75_playerName') || '';
+      avatarId = seat?.avatarId || localStorage.getItem('vikas75_avatarId') || 'a1';
+    } catch { return; /* blocked storage — a new visitor */ }
+    if (!/^[A-Z0-9]{4}$/.test(code) || !pid) return;
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const res = await fetch(`/api/game?code=${code}`, { signal: controller.signal, cache: 'no-store' });
+        if (res.status === 404) { forgetRoom(code); return; }
+        if (!res.ok) return; // a blip: offer nothing, forget nothing
+        const data = (await res.json()) as { room?: { phase?: string; players?: Record<string, { name?: string; avatarId?: string }> } };
+        const players = data.room?.players;
+        const me = players && Object.hasOwn(players, pid) ? players[pid] : null;
+        // A finished game, or a seat that is no longer ours (kicked, or reclaimed by someone
+        // of the same name on another phone), is nothing to go back to.
+        if (!data.room || data.room.phase === 'game-over' || !me) { forgetRoom(code); return; }
+        setResume({ code, name: me.name || name, avatarId: me.avatarId || avatarId });
+      } catch { /* aborted, or offline: offer nothing */ }
+    })();
+    return () => controller.abort();
   }, [router, initialCode]);
 
   // Sync music button state from saved preference and attempt to resume playback.
@@ -370,6 +425,7 @@ function LandingPage() {
 
           {/* CTAs */}
           <div style={{ width: '100%', maxWidth: 340, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {resume && <ResumeCard seat={resume} onGo={() => router.push(`/room/${resume.code}`)} />}
             <button
               style={{ ...btnBase, height: 52, fontSize: 13, width: '100%', background: '#FF9933', color: '#08070f', borderColor: '#FF9933' }}
               onClick={handleHostGame}
@@ -457,6 +513,7 @@ function LandingPage() {
 
           {/* CTA buttons — width: 100% stretches to match logo above */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {resume && <ResumeCard seat={resume} onGo={() => router.push(`/room/${resume.code}`)} />}
             <button
               style={{ ...btnBase, width: '100%', background: '#FF9933', color: '#08070f', borderColor: '#FF9933' }}
               onMouseEnter={e => { const b = e.currentTarget; b.style.background = '#e8872a'; b.style.transform = 'translateY(-1px)'; b.style.boxShadow = '0 6px 24px rgba(255,153,51,.32)'; }}
